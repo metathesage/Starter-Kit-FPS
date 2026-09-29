@@ -154,3 +154,13 @@ A fan tribute. Not affiliated with or endorsed by any publisher.
 ## Saves
 
 Progress autosaves in the browser (`lockout.profile`, save version 2: player id, skills slot, look slot for the future customizer). Settings > Save data exports a checksummed `LOCKOUT2.` code you can paste on another device or keep as a backup; older v1 saves migrate automatically.
+
+## Sanctum (the hub)
+
+Title menu > Enter Sanctum. A calm, combat-free cherry-blossom garden you walk around in third person (glide with jump held, blink with X / LB). It runs a slow sunset-to-night cycle.
+
+- **Mission Board** (pavilion): ten missions plus a rotating Daily Bloom. Bot matches with a fixed setup, first-clear rewards, a bonus objective and an unlock chain. Results return you to the garden.
+- **Teahouse:** Armory / locker, Service Record, Save Data terminal, and a cup of tea (+15% XP on your next match).
+- **The Vault** (north, opens with a door interaction): all 11 weapons on plinths (stats, test fire, rotate, preview skins), all 9 operators on daises (locked ones show as silhouettes, equip unlocked ones), dioramas of every map, a codex orb (power-ups, modes, medals, lore), and a wall of your medals.
+- **Discoveries:** 46 things to find (weapons, operators, maps, garden spots, secrets). Milestones pay credits; 20 unseals the Deep Vault and its relic (Sakura halo + Keeper title).
+- **Life:** koi to feed, a bell to ring, a garden cat to pet, seats to sit on, sand to rake, a void altar, fireflies, photo mode (V hides the HUD).

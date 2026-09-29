@@ -141,6 +141,8 @@ export class Hub {
     // main interactables
     item({ id: 'board', x: POI.board.x, y: 0, z: POI.board.z - 0.6, r: 2.6, verb: 'READ THE MISSION BOARD', disc: 'board', name: 'MISSION BOARD', act: () => ctx.openMissions() });
     item({ id: 'armory', x: POI.teaCounter.x, y: 0.7, z: POI.teaCounter.z + 1.3, r: 2.3, verb: 'ARMORY AND LOCKER', disc: 'armory', name: 'THE ARMORY', act: () => ctx.openArmory() });
+    item({ id: 'tea', x: POI.tea.x, y: 0.7, z: POI.tea.z, r: 2.3, verb: () => (Profile.d.seen.tea ? 'THE TEA IS STILL WARM' : 'HAVE A CUP OF TEA'), disc: 'tea', name: 'A CUP OF TEA', act: () => { Profile.d.seen.tea = 1; Profile.save(); Sound.play('koto', { vol: 0.6 }); for (let i = 0; i < 18; i++) this.fx.emit(-22.6 + (Math.random() - 0.5) * 0.4, 1.5, 9.2 + (Math.random() - 0.5) * 0.4, (Math.random() - 0.5) * 0.3, 0.5 + Math.random() * 0.5, (Math.random() - 0.5) * 0.3, 1.6, 0.35, 0.05, 0.95, 0.95, 0.95, 0.5, 0); this.toast('TEA BREWED. +15% XP ON YOUR NEXT MATCH'); } });
+    label('TEA', 'Warm buff', -22.6, 3.1, 9.2, 0.6, 7);
     item({ id: 'record', x: POI.record.x, y: 0.7, z: POI.record.z - 1.3, r: 2.3, verb: 'SERVICE RECORD', disc: 'record', name: 'SERVICE RECORD', act: () => ctx.openRecord() });
     item({ id: 'save', x: POI.save.x, y: 0.7, z: POI.save.z - 1.3, r: 2.3, verb: 'SAVE DATA', disc: 'saveterm', name: 'SAVE TERMINAL', act: () => ctx.openSave() });
     item({ id: 'bell', x: POI.bell.x, y: 0, z: POI.bell.z + 1.4, r: 2.6, verb: 'RING THE BELL', disc: 'bell', name: 'THE BELL', act: () => { Sound.play('bell', { vol: 0.9 }); this.world.hub.bellSwing = 1; this.fx.light(25, 2.3, 19.8, 0xffd890, 12, 0.6, 10); this.toast('THE BELL RINGS ACROSS THE GARDEN'); } });
@@ -193,6 +195,9 @@ export class Hub {
     keeper.root.position.set(3.4, 0, 29.4); g.add(keeper.root); keeper.root.traverse((o) => { o.frustumCulled = false; }); this.keeper = keeper; this.keeperLine = 0;
     label('THE KEEPER', 'Ask anything', 3.4, 2.9, 29.4, 0.7, 9);
     item({ id: 'keeper', x: 3.4, y: 0, z: 29.4, r: 2.8, verb: 'TALK TO THE KEEPER', disc: 'keeper', name: 'THE KEEPER', act: () => this.talk() });
+    // the garden cat
+    this.cat = this.makeCat(); g.add(this.cat.g); this.cat.g.position.set(-4, 0, 27); this.cat.st = { mode: 'idle', t: 2, tx: -4, tz: 27, sitT: 0 };
+    item({ id: 'cat', x: -4, y: 0, z: 27, r: 2.2, verb: 'PET THE CAT', disc: 'cat', name: 'THE GARDEN CAT', act: () => this.petCat(), dynamic: true }); this.catItem = this.items[this.items.length - 1];
     // torii pass (auto)
     item({ id: 'torii', x: 0, y: 0, z: 24, r: 2.2, auto: true, disc: 'torii', label: 'THE TORII GATE' });
     // medal wall texture
@@ -203,6 +208,53 @@ export class Hub {
       const halo = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.02, 6, 48), new THREE.MeshBasicMaterial({ color: 0xffe0ea, fog: false })); halo.rotation.x = 1.2; rel.add(halo);
       const halo2 = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.015, 6, 40), new THREE.MeshBasicMaterial({ color: 0xffb7d0, fog: false })); halo2.rotation.set(0.3, 0, 1.1); rel.add(halo2); g.add(rel); this.relic = rel; }
     this.discIds = new Set(this.items.filter((i) => i.disc).map((i) => i.disc)); ['deep', 'blink', 'codex10'].forEach((k) => this.discIds.add(k)); this.total = this.discIds.size;
+  }
+  makeCat() {
+    const g = new THREE.Group(), fur = new THREE.MeshStandardMaterial({ color: 0xd88a4a, roughness: 0.95 }), wh = new THREE.MeshStandardMaterial({ color: 0xf4efe6, roughness: 0.95 }), dk = new THREE.MeshBasicMaterial({ color: 0x18110e });
+    const body = new THREE.Mesh(new THREE.SphereGeometry(1, 10, 8), fur); body.scale.set(0.2, 0.19, 0.4); body.position.y = 0.34; g.add(body);
+    const chest = new THREE.Mesh(new THREE.SphereGeometry(1, 8, 6), wh); chest.scale.set(0.13, 0.14, 0.14); chest.position.set(0, 0.32, -0.28); g.add(chest);
+    const head = new THREE.Group(); head.position.set(0, 0.46, -0.4); g.add(head);
+    const hm = new THREE.Mesh(new THREE.SphereGeometry(0.15, 10, 8), fur); hm.scale.set(1, 0.9, 0.9); head.add(hm);
+    for (const sx of [-1, 1]) { const ear = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.13, 4), fur); ear.position.set(sx * 0.09, 0.13, 0.0); ear.rotation.z = -sx * 0.25; head.add(ear); const eye = new THREE.Mesh(new THREE.SphereGeometry(0.022, 6, 5), dk); eye.position.set(sx * 0.06, 0.03, -0.13); head.add(eye); }
+    const nose = new THREE.Mesh(new THREE.SphereGeometry(0.02, 6, 5), new THREE.MeshBasicMaterial({ color: 0xffa0a8 })); nose.position.set(0, -0.01, -0.145); head.add(nose);
+    const legs = []; for (const [x, z] of [[-0.09, -0.24], [0.09, -0.24], [-0.09, 0.24], [0.09, 0.24]]) { const l = new THREE.Group(); l.position.set(x, 0.24, z); const lm = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.03, 0.24, 6), fur); lm.position.y = -0.11; l.add(lm); g.add(l); legs.push(l); }
+    const tail = new THREE.Group(); tail.position.set(0, 0.38, 0.36); let prev = tail; for (let i = 0; i < 4; i++) { const seg = new THREE.Group(); const sm = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.035, 0.16, 6), fur); sm.position.y = 0.08; seg.add(sm); seg.position.y = i ? 0.16 : 0; prev.add(seg); prev = seg; } g.add(tail);
+    g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+    return { g, head, legs, tail, walk: 0 };
+  }
+  petCat() {
+    const c = this.cat, st = c.st; st.mode = 'sit'; st.t = 5; st.sitT = 5; Sound.play('purr', { vol: 0.7 });
+    for (let i = 0; i < 10; i++) this.fx.emit(c.g.position.x + (Math.random() - 0.5) * 0.4, 0.9, c.g.position.z + (Math.random() - 0.5) * 0.4, (Math.random() - 0.5) * 0.4, 0.7 + Math.random() * 0.5, (Math.random() - 0.5) * 0.4, 1.3, 0.28, 0.05, 1, 0.55, 0.7, 0.9, 0);
+    const s = Profile.d.seen; s.pets = (s.pets || 0) + 1; Profile.save(); this.toast(s.pets % 5 === 0 ? 'THE CAT LOVES YOU' : 'PURRRR');
+  }
+  updateCat(dt) {
+    const c = this.cat, st = c.st, g = c.g, p = this.p, T = this.t; if (!c) return;
+    const dxp = p.x - g.position.x, dzp = p.z - g.position.z, dp = Math.hypot(dxp, dzp);
+    st.t -= dt;
+    if (st.mode === 'idle' || st.mode === 'sit') {
+      if (st.t <= 0) {
+        const r = Math.random();
+        if (r < 0.4 && dp < 22) { const a = Math.random() * TAU; st.tx = p.x + Math.cos(a) * 2.2; st.tz = p.z + Math.sin(a) * 2.2; }
+        else { st.tx = (Math.random() - 0.5) * 60; st.tz = -6 + Math.random() * 40; }
+        if (Math.abs(st.tx) < 12.2 && st.tz > -11 && st.tz < 7) { st.tz = 9; }
+        st.mode = 'walk'; st.t = 14;
+      }
+    } else if (st.mode === 'walk') {
+      const dx = st.tx - g.position.x, dz = st.tz - g.position.z, d = Math.hypot(dx, dz), sp = dp > 9 ? 3.4 : 1.7;
+      if (d < 0.4 || st.t <= 0) { st.mode = Math.random() < 0.5 ? 'sit' : 'idle'; st.t = 3 + Math.random() * 6; }
+      else {
+        const nx = g.position.x + (dx / d) * sp * dt, nz = g.position.z + (dz / d) * sp * dt, y = W.groundAt(g.position.x, g.position.z, 20);
+        if (!W.blocked(nx, nz, Math.max(0, y), 0.22, 0.4)) { g.position.x = nx; g.position.z = nz; } else { st.tx = g.position.x + (Math.random() - 0.5) * 8; st.tz = g.position.z + (Math.random() - 0.5) * 8; }
+        let dy = Math.atan2(-dx, -dz) - g.rotation.y; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); g.rotation.y += dy * Math.min(1, dt * 8);
+      }
+    }
+    const y = W.groundAt(g.position.x, g.position.z, 20); g.position.y = Number.isFinite(y) ? y : 0;
+    const walking = st.mode === 'walk', sitting = st.mode === 'sit';
+    c.walk += dt * (walking ? 9 : 0); c.legs.forEach((l, i) => { l.rotation.x = walking ? Math.sin(c.walk + (i % 2 ? Math.PI : 0) + (i > 1 ? Math.PI * 0.5 : 0)) * 0.7 : 0; });
+    c.g.children[0].position.y = sitting ? 0.27 : 0.34; c.g.children[0].rotation.x = sitting ? -0.5 : 0; c.head.position.y = sitting ? 0.55 : 0.46; c.head.rotation.x = sitting ? 0.2 : Math.sin(T * 1.7) * 0.05;
+    c.tail.children[0].rotation.z = Math.sin(T * (walking ? 5 : 2)) * 0.5; let seg = c.tail.children[0].children[1] ? c.tail.children[0].children[1] : null; for (let i = 1; seg && i < 4; i++) { seg.rotation.z = Math.sin(T * 3 + i) * 0.35; seg = seg.children[1] || null; }
+    c.tail.rotation.x = 0.6 + (sitting ? 0.5 : 0);
+    if (this.catItem) { this.catItem.x = g.position.x; this.catItem.z = g.position.z; }
   }
   sanctumModel() {
     const g = new THREE.Group(), base = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.2, 0.08, 24), new THREE.MeshStandardMaterial({ color: 0x8faa70, roughness: 1 })); g.add(base);
@@ -413,6 +465,9 @@ export class Hub {
       if (!this.focus && this.focusK < 0.02) this.lastFocus = null;
     }
     // ambient-life
+    this.updateCat(dt);
+    if (Input.pressed.cam && !busy) { this.photo = !this.photo; this.el.classList.toggle('photo', this.photo); }
+    Sound.night = this.world && this.world.hub ? this.world.hub.night : 0;
     this.animateWorld(dt); this.interactions(dt, busy);
     this.q('#hhRegion').textContent = this.region();
     if (this.world && this.world.snow) this.world.snow.update(dt, cam.position, T);

@@ -586,6 +586,7 @@ function award(m, p, won, tie) {
   const parts = [['KILLS', S.kills * 10], ['HEADSHOTS', S.heads * 5], ['PERFECTS', S.perfects * 40], ['ASSISTS', p.assists * 4], ['MEDALS', medalN * 8], ['CAPTURES', S.caps * 60], ['BALL TIME', Math.round(S.ballSec * 1.5)], [won ? 'VICTORY' : tie ? 'DRAW' : 'COMPLETION', won ? 120 : tie ? 70 : 40]].filter((x) => x[1] > 0);
   const chDone = Challenges.apply({ kills: S.kills, heads: S.heads, perfects: S.perfects, sniper: S.sniper, sword: S.sword, grenade: S.grenade, caps: S.caps, ballSec: S.ballSec, medals: medalN, wins: won ? 1 : 0, matches: 1, streakBest: S.streakBest });
   for (const c of chDone) parts.push(['CHALLENGE', c.xp]);
+  if (Profile.d.seen.tea) { parts.push(['TEA BONUS', Math.round(parts.reduce((a, b) => a + b[1], 0) * 0.15)]); Profile.d.seen.tea = 0; }
   const xp = parts.reduce((a, b) => a + b[1], 0), cr = Math.round(xp * 0.55) + chDone.reduce((a, c) => a + c.cr, 0);
   const before = { level: Profile.level, xp: Profile.xp, need: Profile.level >= 50 ? 1 : (function () { return 0; })() };
   const fromLevel = Profile.level;

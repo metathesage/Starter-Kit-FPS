@@ -13,7 +13,7 @@ const T = 0.6;
 export const POI = {
   spawn: { x: 0, y: 0, z: 34, yaw: 0 },
   board: { x: -10, y: 0, z: 25.6 },
-  teaCounter: { x: -25, y: 0.7, z: 5.4 }, record: { x: -21.2, y: 0.7, z: 12.6 }, save: { x: -28.6, y: 0.7, z: 12.6 },
+  teaCounter: { x: -25, y: 0.7, z: 5.4 }, tea: { x: -22.6, y: 0.7, z: 10.6 }, record: { x: -21.2, y: 0.7, z: 12.6 }, save: { x: -28.6, y: 0.7, z: 12.6 },
   bell: { x: 25, y: 0, z: 20.2 }, altar: { x: 31, y: 0.4, z: -11 }, koi: { x: 11.8, y: 0, z: -2 }, sit: { x: -27, y: 0, z: -3.2 }, sit2: { x: 13.5, y: 0, z: 9.5 },
   vaultDoor: { x: 0, y: 1.6, z: -22.6 }, deepDoor: { x: 0, y: 1.6, z: -42.6 }, orb: { x: 0, y: 1.6, z: -30 }, relic: { x: 0, y: 1.6, z: -47.5 },
   medalWall: { x: 0, y: 1.6, z: -41.4 }, torii: { x: 0, y: 0, z: 24 }, sand: { x: -28, y: 0, z: -10 }, lantern: { x: -3.6, y: 0, z: 15 },
@@ -65,7 +65,7 @@ export function defineSanctum(A) {
   box(-31, -19, 3, 15, 0, 0.7, 'deck'); for (const [x, z] of [[-30.6, 3.4], [-19.4, 3.4], [-30.6, 14.6], [-19.4, 14.6]]) box(x - 0.25, x + 0.25, z - 0.25, z + 0.25, 0.7, 3.6, 'post');
   box(-33, -17, 1, 17, 3.6, 4.2, 'roof');
   ramp(-19, -17.6, 7, 11, 0, 'x', -17.6, -19, 0, 0.7, { mat: 'stairs' });
-  box(-26.6, -23.4, 4.4, 5.2, 0.7, 1.7, 'counter'); box(-22.6, -19.8, 13.4, 14.4, 0.7, 2.6, 'counter'); box(-29.6, -27.6, 13.4, 14.4, 0.7, 2.6, 'counter');
+  box(-23.8, -21.4, 8.6, 9.8, 0.7, 1.35, 'counter'); box(-26.6, -23.4, 4.4, 5.2, 0.7, 1.7, 'counter'); box(-22.6, -19.8, 13.4, 14.4, 0.7, 2.6, 'counter'); box(-29.6, -27.6, 13.4, 14.4, 0.7, 2.6, 'counter');
   // mission pavilion
   for (const [x, z] of [[-14.5, 20], [-5.5, 20], [-14.5, 26], [-5.5, 26]]) box(x - 0.25, x + 0.25, z - 0.25, z + 0.25, 0, 3.6, 'post');
   box(-16, -4, 18.5, 27.5, 3.6, 4.2, 'roof'); box(-12.6, -7.4, 26.4, 27.2, 0, 3, 'board');
@@ -342,8 +342,13 @@ export async function buildSanctumVisuals(A, scene, renderer, onProgress) {
   for (let i = 0; i < pp.count; i++) { const y = pp.getY(i) / 320; c.copy(y > 0 ? low.clone().lerp(mid, clamp(y * 3.2, 0, 1)).lerp(top, clamp((y - 0.18) * 2.2, 0, 1)) : low); col.push(c.r, c.g, c.b); }
   skyGeo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
   const sky = new THREE.Mesh(skyGeo, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, fog: false, depthWrite: false })); sky.renderOrder = -10; root.add(sky);
+  const starPos = []; for (let i = 0; i < 700; i++) { const a = rnd() * TAU, e = 0.12 + rnd() * 1.3, r = 300; starPos.push(Math.cos(a) * Math.cos(e) * r, Math.sin(e) * r, Math.sin(a) * Math.cos(e) * r); }
+  const starGeo = new THREE.BufferGeometry(); starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPos, 3));
+  const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 1.8, sizeAttenuation: false, transparent: true, opacity: 0, fog: false, depthWrite: false })); root.add(stars);
+  const moon = new THREE.Mesh(new THREE.SphereGeometry(14, 20, 14), new THREE.MeshBasicMaterial({ color: 0xe8f0ff, fog: false, transparent: true, opacity: 0 })); moon.position.set(120, 70, -200); root.add(moon);
+  const moonGlow = glowSprite(glowTex, 0x9ab8ff, 260, 120, 70, -200, 0); root.add(moonGlow);
   const sun = new THREE.Mesh(new THREE.SphereGeometry(16, 20, 14), new THREE.MeshBasicMaterial({ color: 0xfff2d8, fog: false })); sun.position.set(-120, 46, -230); root.add(sun);
-  root.add(glowSprite(glowTex, 0xffb890, 380, -120, 46, -230, 0.9));
+  const sunGlow = glowSprite(glowTex, 0xffb890, 380, -120, 46, -230, 0.9); root.add(sunGlow);
   const mtn = new THREE.Group();
   const layers = [[210, 0xa89ab8, 46], [170, 0xb8a4bc, 34], [130, 0xc8b0c0, 24]];
   layers.forEach(([r, colr, hh], li) => { const m = new THREE.MeshBasicMaterial({ color: colr, fog: true }); for (let i = 0; i < 14; i++) { const a = -Math.PI * 0.9 + (i / 13) * Math.PI * 1.8 + li * 0.2, h = hh * rr(0.5, 1.2), w = rr(40, 70); const cone = new THREE.Mesh(new THREE.ConeGeometry(w, h, 6), m); cone.position.set(Math.sin(a) * r, h / 2 - 4, -Math.cos(a) * r); cone.rotation.y = rnd() * 3; mtn.add(cone); } });
@@ -367,9 +372,18 @@ export async function buildSanctumVisuals(A, scene, renderer, onProgress) {
   for (let i = 0; i < 40; i++) fireflies.push({ a: rnd() * TAU, r: rr(1, 4), cx: rr(-38, 38), cz: rr(-24, 40), y: rr(0.6, 2.6), sp: rr(0.3, 0.9), ph: rnd() * 9 });
   // static glows: one Points per size bucket
   for (const size of [...new Set(glowList.map((q) => q.s))]) { const list = glowList.filter((q) => q.s === size), pos = new Float32Array(list.length * 3), cols = new Float32Array(list.length * 3), cc2 = new THREE.Color(); list.forEach((q, i) => { pos.set([q.x, q.y, q.z], i * 3); cc2.set(q.c); cols.set([cc2.r, cc2.g, cc2.b], i * 3); }); const g2 = new THREE.BufferGeometry(); g2.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g2.setAttribute('color', new THREE.BufferAttribute(cols, 3)); const pt = new THREE.Points(g2, new THREE.PointsMaterial({ map: glowTex, size, vertexColors: true, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })); pt.frustumCulled = false; root.add(pt); }
-  const hubState = { doorOpen: 0, doorTarget: 0, deepOpen: 0, deepTarget: 0, koi, koiLure: null, bellSwing: 0, bell, bellTop };
+  const paperMats = [paper], todA = { sky: new THREE.Color(), fogA: new THREE.Color(0xeed0dc), fogB: new THREE.Color(0x232c4c), bgA: new THREE.Color(0xf0c8d0), bgB: new THREE.Color(0x141a36), hemA: new THREE.Color(0xffe8f0), hemB: new THREE.Color(0x5a6cb0), dirA: new THREE.Color(0xffc890), dirB: new THREE.Color(0x7a94d8), skyA: new THREE.Color(0xffffff), skyB: new THREE.Color(0x2c3868) };
+  const glowMats = []; root.traverse((o) => { if (o.isPoints && o.material.blending === THREE.AdditiveBlending && o !== ffPts && o.material.vertexColors) glowMats.push(o.material); });
+  const tod = (k) => {   // 0 golden hour .. 1 deep night
+    scene.fog.color.lerpColors(todA.fogA, todA.fogB, k); scene.background.lerpColors(todA.bgA, todA.bgB, k); hemi.color.lerpColors(todA.hemA, todA.hemB, k); hemi.intensity = 1.55 - 1.0 * k;
+    dir.color.lerpColors(todA.dirA, todA.dirB, k); dir.intensity = 3.0 - 2.35 * k; dir.position.set(-40 + 80 * k, 34 - 8 * k, -50 + 20 * k); sky.material.color.lerpColors(todA.skyA, todA.skyB, k);
+    stars.material.opacity = clamp((k - 0.35) * 1.6, 0, 0.95); moon.material.opacity = clamp((k - 0.4) * 1.8, 0, 1); moonGlow.material.opacity = clamp((k - 0.4) * 0.9, 0, 0.55); sunGlow.material.opacity = 0.9 * (1 - k); sun.visible = k < 0.85;
+    for (const m of glowMats) m.opacity = 0.5 + 0.5 * k; ffPts.material.opacity = 0.35 + 0.6 * k; paper.emissiveIntensity = 1.8 + 1.6 * k; scene.environmentIntensity = 1.0 - 0.6 * k;
+    hubState.night = k;
+  };
+  const hubState = { tod, night: 0, lock: null, doorOpen: 0, doorTarget: 0, deepOpen: 0, deepTarget: 0, koi, koiLure: null, bellSwing: 0, bell, bellTop };
   petals.extra = (dt, t) => {
-    wind.value = t;
+    wind.value = t; { const k = hubState.lock != null ? hubState.lock : clamp((0.5 - 0.5 * Math.cos(t * TAU / 480 - 0.6)) * 1.08 - 0.04, 0, 1); tod(hubState.lock != null ? k : Math.min(k, 0.84)); }
     wn.offset.set(t * 0.012, t * 0.008);
     for (const k of koi) {
       k.a += k.sp * dt; let x = Math.cos(k.a) * k.r * 1.5, z = -2 + Math.sin(k.a * 1.3 + k.ph) * k.r * 0.8;

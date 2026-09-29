@@ -74,6 +74,8 @@ const S = {
   vault(o) { noise(o, { dur: 2.4, f0: 500, f1: 80, gain: 0.5, q: 0.5, atk: 0.4 }); tone(o, { type: 'sawtooth', f0: 52, f1: 34, dur: 2.4, gain: 0.34, atk: 0.3 }); tone(o, { type: 'sine', f0: 900, f1: 300, dur: 1.2, gain: 0.05, at: 0.2 }); },
   discover(o) { [523, 659, 784, 1046].forEach((f, i) => tone(o, { type: 'triangle', f0: f, dur: 0.6, gain: 0.11, at: i * 0.07 })); tone(o, { type: 'sine', f0: 1568, dur: 1.2, gain: 0.05, at: 0.3 }); },
   koto(o, pitch = 1) { const f = 293.7 * pitch; tone(o, { type: 'triangle', f0: f, f1: f * 0.995, dur: 1.8, gain: 0.16, atk: 0.003 }); tone(o, { type: 'sine', f0: f * 2, dur: 1, gain: 0.05, atk: 0.003 }); noise(o, { dur: 0.03, f0: 4000, f1: 1500, gain: 0.05 }); },
+  purr(o) { noise(o, { dur: 1.8, f0: 200, f1: 110, gain: 0.2, type: 'lowpass', q: 0.7, atk: 0.35 }); tone(o, { type: 'sine', f0: 36, f1: 32, dur: 1.8, gain: 0.14, atk: 0.35 }); },
+  cricket(o) { [0, 0.09, 0.18].forEach((d) => tone(o, { type: 'triangle', f0: 4300, f1: 4100, dur: 0.05, gain: 0.02, at: d })); },
   throw(o) { noise(o, { dur: 0.18, f0: 600, f1: 2500, gain: 0.25, type: 'bandpass', q: 1.5 }); },
   plasmaStick(o) { tone(o, { type: 'sine', f0: 1200, f1: 2600, dur: 0.12, gain: 0.25 }); },
   bounce(o) { tone(o, { type: 'triangle', f0: 320, f1: 140, dur: 0.09, gain: 0.25 }); noise(o, { dur: 0.05, f0: 3000, f1: 1000, gain: 0.15 }); },
@@ -159,7 +161,7 @@ function buildAmbience(kind) {
 }
 
 export const Sound = {
-  ready: false,
+  ready: false, night: 0,
   unlock() {
     const c = ensure();
     if (!c) return;
@@ -198,6 +200,7 @@ export const Sound = {
         if (ctx.state !== 'running') return;
         const r = Math.random();
         if (r < 0.45) { const sc = [1, 1.19, 1.34, 1.5, 1.78, 2, 2.38]; S.koto(sfxBus, sc[(Math.random() * sc.length) | 0] * (Math.random() < 0.3 ? 0.5 : 1)); if (Math.random() < 0.4) setTimeout(() => S.koto(sfxBus, sc[(Math.random() * sc.length) | 0]), 380); }
+        else if (r < 0.8 && Sound.night > 0.5) { for (let i = 0; i < 3; i++) setTimeout(() => S.cricket(sfxBus), i * 420); }
         else if (r < 0.8) { const f = 2200 + Math.random() * 1400; [0, 0.11, 0.22].forEach((d, i) => { if (Math.random() < 0.8) tone(sfxBus, { type: 'sine', f0: f * (1 + i * 0.06), f1: f * (1.25 + i * 0.05), dur: 0.09, gain: 0.03, at: d }); }); }
         return;
       }

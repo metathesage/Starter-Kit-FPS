@@ -486,3 +486,4 @@ body.in-hub .fx-grain { opacity: .35; }
 
 .hh-hints { position: absolute; left: calc(30px + var(--safe-l)); bottom: calc(28px + var(--safe-b)); display: flex; flex-wrap: wrap; gap: 8px 22px; opacity: 0; transition: opacity 1s; }
 .hh-hints.on { opacity: .95; } .hh-hints span { display: flex; align-items: center; gap: 6px; } .hh-hints em { font: 700 10px var(--f-mono); letter-spacing: .24em; font-style: normal; color: #f0e6dc; text-shadow: 0 2px 8px rgba(0, 0, 0, .7); }
+#hubhud.photo > *:not(.hcard) { opacity: 0 !important; }
