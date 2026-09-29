@@ -19,14 +19,16 @@ public class Lockout : MonoBehaviour
     static readonly Color Trim = new Color(0f, 0.55f, 0.6f);
 
     public static Vector3 HillSpot = new Vector3(0f, 1.02f, 2f);   // plateau centre
-    public static Vector3 PlayerSpot = new Vector3(0f, 1.4f, 26f); // south spawn, faces the arena
+    public static Vector3 PlayerSpot = new Vector3(0f, 1.4f, 10f); // plateau south edge, faces the hill
 
     static Material matStruct, matPanel, matSnow, matTrim;
+    static Transform rootT;   // everything parents here so the map is one subtree
 
     public static void Build(Transform parent)
     {
         EnsureMats();
         if (!parent) parent = new GameObject("LockoutMap").transform;
+        rootT = parent;
 
         GroundPlateau();
         SniperTower();
@@ -53,6 +55,7 @@ public class Lockout : MonoBehaviour
         b.transform.localScale = s;
         b.GetComponent<Renderer>().sharedMaterial = m;
         b.isStatic = true;
+        if (rootT) b.transform.SetParent(rootT, true);
         return b;
     }
 
@@ -69,6 +72,7 @@ public class Lockout : MonoBehaviour
         r.transform.localScale = new Vector3(w, 0.35f, len);
         r.GetComponent<Renderer>().sharedMaterial = matStruct;
         r.isStatic = true;
+        if (rootT) r.transform.SetParent(rootT, true);
         return r;
     }
 
@@ -77,6 +81,8 @@ public class Lockout : MonoBehaviour
     /// <summary>The one-story main plateau — the whole ground game happens here.</summary>
     static void GroundPlateau()
     {
+        // full arena floor at true ground level — no voids, no safety-net falls
+        Box(new Vector3(0f, -0.25f, 4f), new Vector3(68f, 0.5f, 50f), matStruct);      // ground, top y=0
         Box(new Vector3(0f, 0.5f, 2f), new Vector3(46f, 1f, 22f), matStruct);          // deck, top y=1
         Box(new Vector3(0f, 1.04f, 2f), new Vector3(46f, 0.08f, 2.2f), matSnow);       // centre plank
         Box(new Vector3(0f, 1.06f, -8.8f), new Vector3(46f, 0.12f, 0.5f), matTrim);    // cyan trim N

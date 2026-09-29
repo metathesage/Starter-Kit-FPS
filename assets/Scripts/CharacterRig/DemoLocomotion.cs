@@ -19,6 +19,7 @@ namespace CharacterRig
         [SerializeField] private float gravity = -20f;
 
         private CharacterAnimDriver driver;
+        private GunAttacher attacher;
         private CharacterController cc;
         private Transform cameraTf;
         private Vector3 velocity;
@@ -27,6 +28,7 @@ namespace CharacterRig
         private void Awake()
         {
             driver = GetComponent<CharacterAnimDriver>();
+            attacher = GetComponentInParent<GunAttacher>();
             cc = GetComponentInParent<CharacterController>();
             if (cc == null)
             {
@@ -42,7 +44,11 @@ namespace CharacterRig
         {
             if (Input.GetKeyDown(KeyCode.E)) driver.Dance(!driver.Animator.GetBool("EmoteActive"));
             if (Input.GetKeyDown(KeyCode.Y)) driver.isArmed = !driver.isArmed;
-            if (Input.GetMouseButtonDown(0)) driver.Shoot();
+            if (Input.GetMouseButtonDown(0))
+            {
+                driver.Shoot();
+                if (attacher != null) MuzzleFlash.Spawn(attacher.Muzzle);
+            }
             if (Input.GetKeyDown(KeyCode.R)) driver.Reload();
 
             if (driver.Animator.GetBool("EmoteActive"))

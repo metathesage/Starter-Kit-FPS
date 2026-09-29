@@ -543,7 +543,7 @@ public static class CharacterAnimBootstrapper
 
     // ------------------------------------------------------------------ demo scene
 
-    private static void CreateDemoScene()
+    public static void CreateDemoScene()
     {
         var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
@@ -552,16 +552,26 @@ public static class CharacterAnimBootstrapper
         camGo.AddComponent<Camera>();
         camGo.AddComponent<AudioListener>();
         var cam = camGo.AddComponent<ThirdPersonCamera>();
+        cam.distance = 4.5f;
 
         var lightGo = new GameObject("Directional Light");
         var light = lightGo.AddComponent<Light>();
         light.type = LightType.Directional;
-        lightGo.transform.rotation = Quaternion.Euler(50f, -30f, 0f);
+        light.intensity = 1.15f;
+        light.color = new Color(1f, 0.96f, 0.9f);
+        lightGo.transform.rotation = Quaternion.Euler(52f, -32f, 0f);
+        RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
+        RenderSettings.ambientLight = new Color(0.45f, 0.5f, 0.58f);
+        RenderSettings.fog = true;
+        RenderSettings.fogColor = new Color(0.62f, 0.68f, 0.75f);
+        RenderSettings.fogDensity = 0.012f;
 
         var ground = GameObject.CreatePrimitive(PrimitiveType.Cube);
         ground.name = "Ground";
-        ground.transform.position = new Vector3(0, -0.05f, 0);
-        ground.transform.localScale = new Vector3(20f, 0.1f, 20f);
+        ground.transform.position = new Vector3(12f, -0.05f, 4f);
+        ground.transform.localScale = new Vector3(70f, 0.1f, 40f);
+        var groundMat = new Material(Shader.Find("Standard")) { color = new Color(0.34f, 0.36f, 0.4f) };
+        ground.GetComponent<Renderer>().sharedMaterial = groundMat;
 
         GameObject first = null;
         float x = 0f;
@@ -570,15 +580,18 @@ public static class CharacterAnimBootstrapper
             var go = LoadPrefabAndPlace(ch.prefab, new Vector3(x, 0, 0));
             if (go != null)
             {
-                go.AddComponent<CharacterRig.DemoLocomotion>();
+                if (first == null) go.AddComponent<CharacterRig.DemoLocomotion>();
+                else go.AddComponent<CharacterRig.DemoShowcase>();
                 if (first == null) first = go;
             }
-            x += 2f;
+            x += 3f;
         }
+        x = 1.5f;
         foreach (var q in new[] { "Quad_Fox", "Quad_TRex", "Quad_Dragon", "Quad_Eagle" })
         {
-            LoadPrefabAndPlace($"Assets/Characters/{q}/{q}_AnimReady.prefab", new Vector3(x, 0, 4f));
-            x += 2.5f;
+            var qo = LoadPrefabAndPlace($"Assets/Characters/{q}/{q}_AnimReady.prefab", new Vector3(x, 0, 4.5f));
+            if (qo != null) qo.AddComponent<CharacterRig.DemoShowcase>();
+            x += 3f;
         }
         if (first != null)
         {

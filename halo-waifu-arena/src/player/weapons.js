@@ -614,7 +614,7 @@ export class WeaponSystem {
    * @param {Array}  targets  [{ pos, height, alive, team, takeDamage() }]
    * @param {THREE.Camera} camera for the shot direction
    */
-  update(dt, cmd, owner, targets, eyePos, baseYaw, basePitch) {
+  update(dt, cmd, owner, targets, eyePos, baseYaw, basePitch, aimTargetPoint = null, muzzlePos = null) {
     this.events.length = 0;
     const s = this.slot, d = s.def;
 
@@ -690,13 +690,13 @@ export class WeaponSystem {
     const canFire = s.ammo > 0 && this._reloading === 0;
     const wantFire = d.auto ? cmd.fire : (this._pressActive && !this._pressSpent);
     if (canFire && wantFire && (cmd.time - this.lastFire) >= interval) {
-      this._fire(cmd, owner, targets, eyePos, baseYaw, basePitch);
+      this._fire(cmd, owner, targets, eyePos, baseYaw, basePitch, aimTargetPoint, muzzlePos);
       if (!d.auto) this._pressSpent = true;   // this press is used up
     }
     return this.events;
   }
 
-  _fire(cmd, owner, targets, eyePos, baseYaw, basePitch) {
+  _fire(cmd, owner, targets, eyePos, baseYaw, basePitch, aimTargetPoint = null, muzzlePos = null) {
     const s = this.slot, d = s.def;
     s.ammo--;
     this.lastFire = cmd.time;
@@ -719,14 +719,25 @@ export class WeaponSystem {
     // (this.spread) including movement and ADS; nothing to recompute here.
     const cone = this.spread;
 
-    // --- aim direction: base look + accumulated recoil, then spread cone
-    const yaw = baseYaw + this.camYaw * Math.PI / 180;
-    const pitch = basePitch + this.camPitch * Math.PI / 180;
-    const dir = _dir.set(
-      -Math.sin(yaw) * Math.cos(pitch),
-      Math.sin(pitch),
-      -Math.cos(yaw) * Math.cos(pitch),
-    );
+    // --- aim direction: screen-space target point or base look angles
+    const fireOrigin = (muzzlePos || eyePos).clone();
+    let dir = _dir;
+    if (aimTargetPoint && muzzlePos) {
+      dir.copy(aimTargetPoint).sub(fireOrigin).normalize();
+      if (Math.abs(this.camPitch) > 1e-4 || Math.abs(this.camYaw) > 1e-4) {
+        const right = _tmpRight.crossVectors(dir, new THREE.Vector3(0, 1, 0)).normalize();
+        dir.applyAxisAngle(right, this.camPitch * Math.PI / 180);
+        dir.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.camYaw * Math.PI / 180);
+      }
+    } else {
+      const yaw = baseYaw + this.camYaw * Math.PI / 180;
+      const pitch = basePitch + this.camPitch * Math.PI / 180;
+      dir.set(
+        -Math.sin(yaw) * Math.cos(pitch),
+        Math.sin(pitch),
+        -Math.cos(yaw) * Math.cos(pitch),
+      );
+    }
 
     const results = [];
     for (let pI = 0; pI < d.pellets; pI++) {
@@ -737,7 +748,7 @@ export class WeaponSystem {
         const rad = Math.sqrt(Math.random()) * cone * Math.PI / 180;
         applyCone(dd, ang, rad);
       }
-      const r = this._trace(eyePos, dd, targets, d.range);
+      const r = this._trace(fireOrigin, dd, targets, d.range);
       results.push(r);
     }
 
@@ -745,6 +756,7 @@ export class WeaponSystem {
       type: 'fire',
       weapon: d,
       dir: dir.clone(),
+      origin: fireOrigin.clone(),
       spread: cone,
       traces: results,
       muzzle: d.model,

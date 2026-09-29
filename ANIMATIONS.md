@@ -145,3 +145,10 @@ A batch crashing mid-import can poison Unity's avatar cache: avatar reports isHu
 retargeted animation silently writes nothing (localRotAccum ~0). SetupAll now regenerates every
 avatar via Generic->Human toggle each run; MiyazawaProbe.cs exists for one-off diagnosis.
 
+
+## Game scenes (added after rig pipeline)
+- **AnimDemo.unity** — validation bench: WASD character (mac10 equipped, G skins, LMB shoot w/ muzzle flash), all other characters wander/emote via DemoShowcase, textured models, fog+ground. Rebuild: Tools > Character Anim > Setup Everything.
+- **LaststandArena.unity** — wave-survival slice: WuwaLucy + mac10 vs waves of samurai/creature enemies (chase, X_sofia attacks, HP, bullets, OnGUI HUD, R retry). Rebuild: Tools > Character Anim > Build Laststand Arena (or LaststandArenaBuilder.BuildAll).
+- Gameplay scripts: Assets/Scripts/Laststand/LaststandGame.cs (Health, EnemyAgent, PlayerShooter, Bullet, LaststandGame).
+- MuzzleFlash + DemoShowcase in Assets/Scripts/CharacterRig/.
+- Repo is git-managed; Library/ and raw dumps ignored. Rebuild everything in a fresh clone: open project, run Setup Everything.

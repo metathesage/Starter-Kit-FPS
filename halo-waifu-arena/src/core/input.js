@@ -174,7 +174,7 @@ export class Input {
       ...empty,
       connected: true,
       move: radialDead({ x: dead(av(0)), y: -dead(av(1)) }),
-      look: radialDead({ x: dead(av(2)), y: -dead(av(3)) }),
+      look: radialDead({ x: dead(av(2)), y: dead(av(3)) }),
       trigger: gp.buttons[7]?.value ?? 0,
       leftTrigger: gp.buttons[6]?.value ?? 0,
       a: b(0), b: b(1), x: b(2), y: b(3),
@@ -229,6 +229,11 @@ export class Input {
       }
     }
     return { yaw, pitch };
+  }
+
+  toggleInvertY() {
+    this.invertY = !this.invertY;
+    return this.invertY;
   }
 
   consumeWheel() { const w = this.wheel; this.wheel = 0; return w; }
