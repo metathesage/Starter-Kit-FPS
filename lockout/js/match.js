@@ -511,7 +511,12 @@ export class Match {
       if (p.dropped && this.time - p.born > 40) { this.pgroup.remove(p.mesh); this.pickups.splice(i, 1); continue; }
       if (!p.active) {
         if (this.replica) continue;
-        p.back -= dt;
+        const prevBack = p.back; p.back -= dt;
+        const key = p.isPower ? ({ overshield: 'OVERSHIELD', camo: 'ACTIVE CAMO', boost: 'DAMAGE BOOST' })[p.id] : WEAPONS[p.id] && WEAPONS[p.id].power >= 3 ? WEAPONS[p.id].short : null;
+        if (key && !p.dropped && p.t > 0 && this.state === 'live') {
+          if (prevBack > 10 && p.back <= 10) this.bus.emit('announce', `${key} IN 10`, null);
+          if (p.back <= 0 && prevBack > 0) this.bus.emit('announce', `${key} SPAWNED`, null);
+        }
         if (p.back <= 0 && p.t > 0) { p.active = true; p.mesh.visible = true; Sound.at('spawn', p, this.listener, 0.5); }
         continue;
       }

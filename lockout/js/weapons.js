@@ -155,10 +155,10 @@ export async function loadWeaponModels(onStatus = () => {}) {
     if (!Object.keys(man).length) continue;
     if (!loader) { const { GLTFLoader } = await import('../vendor/jsm/loaders/GLTFLoader.js'); loader = new GLTFLoader(); }
     for (const [id, raw] of Object.entries(man)) {
-      if (MODELS[id] || !WEAPONS[id]) continue;
       const o = typeof raw === 'string' ? { file: raw } : raw;
+      if (o.prop ? PROPS[id] : MODELS[id] || !WEAPONS[id]) continue;
       try {
-        onStatus('Loading ' + WEAPONS[id].short);
+        onStatus('Loading ' + (WEAPONS[id] ? WEAPONS[id].short : id));
         let gltf;
         try { gltf = await loader.loadAsync(dir + o.file); }
         catch (e0) {   // text-only hosts: base64 copy next to the model
@@ -166,11 +166,25 @@ export async function loadWeaponModels(onStatus = () => {}) {
           const bin = atob((await r.text()).trim()), buf = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
           gltf = await new Promise((res, rej) => loader.parse(buf.buffer, '', res, rej));
         }
-        MODELS[id] = normalizeModel(gltf.scene, id, o);
+        if (o.prop) PROPS[id] = normalizeProp(gltf.scene, o); else MODELS[id] = normalizeModel(gltf.scene, id, o);
       } catch (e) { console.warn('weapon model failed', id, e); }
     }
   }
   return Object.keys(MODELS);
+}
+
+const PROPS = {};
+// small props (grenades): centre on the origin and scale the largest side to `size` metres
+function normalizeProp(scene, o) {
+  const root = new THREE.Group(); root.add(scene);
+  if (o.rotX) scene.rotation.x = (o.rotX * Math.PI) / 180; if (o.rotY) scene.rotation.y = (o.rotY * Math.PI) / 180;
+  root.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(root), sz = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3());
+  const k = (o.size || 0.2) / Math.max(sz.x, sz.y, sz.z, 0.001);
+  scene.position.sub(c); root.scale.setScalar(k);
+  const out = new THREE.Group(); out.add(root);
+  out.traverse((m) => { if (!m.isMesh) return; m.frustumCulled = false; const mt = m.material; if (mt && mt.map) { mt.emissiveMap = mt.map; mt.emissive.setScalar(o.glow ?? 0.4); } if (mt && 'metalness' in mt) { mt.metalness = Math.min(mt.metalness, 0.3); mt.roughness = Math.max(mt.roughness, 0.6); } });
+  return out;
 }
 
 function normalizeModel(scene, id, o) {
@@ -223,6 +237,7 @@ export function makeWeaponMesh(id) {
 }
 
 export function makeGrenadeMesh(kind) {
+  if (PROPS[kind]) return PROPS[kind].clone(true);
   const g = new THREE.Group();
   if (kind === 'plasma') {
     g.add(new THREE.Mesh(new THREE.IcosahedronGeometry(0.11, 0), glow(0x66d0ff)));

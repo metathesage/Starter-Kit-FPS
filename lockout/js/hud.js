@@ -247,7 +247,8 @@ export class HUD {
       const key = w.id + (p.weapons[1 - p.cur] ? p.weapons[1 - p.cur].id : '');
       if (this.wKey !== key) {
         this.wKey = key;
-        E.wIcon.innerHTML = svg(WEAPON_ICON[w.id]) + (p.weapons.length > 1 ? svg(WEAPON_ICON[p.weapons[1 - p.cur].id], 'sec') : '');
+        const sil = (id, cls) => `<img class="wsil ${cls}" alt="" src="models/weapons/thumb/${id}.webp" onerror="this.outerHTML=''">`;
+        E.wIcon.innerHTML = sil(w.id, '') + (p.weapons.length > 1 ? sil(p.weapons[1 - p.cur].id, 'sec') : '');
         E.wName.textContent = def.short;
       }
       const melee = def.melee;
