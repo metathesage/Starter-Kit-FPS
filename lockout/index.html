@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LOCKOUT — Team Slayer, Waifu Edition</title>
+<meta name="description" content="A low-poly arena shooter tribute: 4v4 Team Slayer on a symmetrical Forerunner yard, armored waifus, energy swords, sniper towers. Runs in your browser. Xbox controller ready.">
+<meta name="theme-color" content="#070b14">
+<meta property="og:title" content="LOCKOUT — Team Slayer, Waifu Edition">
+<meta property="og:description" content="4v4 arena shooter in your browser. Low-poly armored waifus, sniper tower, energy swords. Full Xbox controller support.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23070b14'/%3E%3Cpath d='M16 3l11 6.5v13L16 29 5 22.5v-13z' fill='none' stroke='%23ffd48a' stroke-width='2'/%3E%3Cpath d='M11 11v10h10' fill='none' stroke='%2362e4ff' stroke-width='3'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,400;0,500;0,600;0,700;1,600;1,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<script type="importmap">{"imports":{"three":"./vendor/three.module.js"}}</script>
+</head>
+<body class="is-splash">
+<canvas id="game" aria-label="Game view"></canvas>
+<div class="fx-vignette"></div><div class="fx-grain"></div>
+
+<!-- SPLASH -->
+<section id="splash" class="screen active" data-screen="splash">
+  <svg class="hexmark" viewBox="0 0 120 120" aria-hidden="true">
+    <path class="hx1" d="M60 6l46 27v54L60 114 14 87V33z"/>
+    <path class="hx2" d="M60 22l32 19v38L60 98 28 79V41z"/>
+    <path class="hx3" d="M44 44v34h34"/>
+  </svg>
+  <div class="splash-word"><span>M</span><span>E</span><span>T</span><span>A</span><span class="dot">/</span><span>T</span><span>H</span><span>E</span><span>S</span><span>A</span><span>G</span><span>E</span></div>
+  <div class="splash-sub">STUDIO PRESENTS</div>
+  <div class="press" id="splashPress">PRESS ANY BUTTON</div>
+</section>
+
+<!-- LOADING -->
+<section id="loading" class="screen" data-screen="loading">
+  <div class="load-grid"></div>
+  <svg class="load-emblem" viewBox="0 0 200 200" aria-hidden="true">
+    <circle class="r1" cx="100" cy="100" r="92"/><circle class="r2" cx="100" cy="100" r="76"/><circle class="r3" cx="100" cy="100" r="58"/>
+    <path class="core" d="M100 62l33 19v38l-33 19-33-19V81z"/><path class="core2" d="M88 84v32h30"/>
+  </svg>
+  <div class="load-pct"><span id="loadPct">000</span><small>%</small></div>
+  <div class="load-stage" id="loadStage">Booting</div>
+  <div class="load-tip" id="loadTip"></div>
+  <div class="load-bar"><i id="loadBar"></i></div>
+</section>
+
+<!-- TITLE -->
+<section id="title" class="screen" data-screen="title">
+  <header class="title-top">
+    <div class="tag">SEASON 00 <b>/</b> THE YARD</div>
+    <div class="top-actions">
+      <button class="chip" id="btnFull" aria-label="Fullscreen"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+      <button class="chip" id="btnMute" aria-label="Mute"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z M17 9c1.5 1.5 1.5 4.500 0 6"/></svg></button>
+    </div>
+  </header>
+  <div class="title-main">
+    <div class="eyebrow">TEAM SLAYER <b>·</b> 4 v 4 <b>·</b> WAIFU EDITION</div>
+    <h1 class="logo" aria-label="Lockout"><span class="l1">LOCK</span><span class="l2">OUT</span></h1>
+    <nav class="menu" id="titleMenu"></nav>
+  </div>
+  <aside class="hero-card" id="heroCard">
+    <div class="hc-role" id="hcRole">VANGUARD</div>
+    <div class="hc-name" id="hcName">AOI</div>
+    <div class="hc-blurb" id="hcBlurb"></div>
+  </aside>
+  <footer class="prompts" id="titlePrompts"></footer>
+</section>
+
+<!-- SETUP -->
+<section id="setup" class="screen" data-screen="setup">
+  <div class="panel wide">
+    <div class="panel-head"><span class="idx">01</span><h2>DEPLOYMENT</h2><span class="sub">Pick your operator. Bots fill the rest.</span></div>
+    <div class="cards" id="waifuCards"></div>
+    <div class="opts" id="setupOpts"></div>
+    <div class="panel-foot"><button class="btn primary" id="btnDrop"><span>DROP IN</span><i></i></button></div>
+  </div>
+  <footer class="prompts" id="setupPrompts"></footer>
+</section>
+
+<!-- CONTROLS -->
+<section id="controls" class="screen" data-screen="controls">
+  <div class="panel wide">
+    <div class="panel-head"><span class="idx">02</span><h2>CONTROLS</h2><span class="sub">Keyboard + mouse and Xbox controller. Both live at once.</span></div>
+    <div class="ctrl-grid" id="ctrlGrid"></div>
+    <div class="panel-foot"><button class="btn" id="btnCtrlBack"><span>BACK</span><i></i></button></div>
+  </div>
+</section>
+
+<!-- SETTINGS -->
+<section id="settings" class="screen" data-screen="settings">
+  <div class="panel">
+    <div class="panel-head"><span class="idx">03</span><h2>SETTINGS</h2></div>
+    <div class="opts" id="settingsOpts"></div>
+    <div class="panel-foot"><button class="btn" id="btnSetBack"><span>BACK</span><i></i></button></div>
+  </div>
+</section>
+
+<!-- HUD -->
+<div id="hud" class="hidden"></div>
+
+<!-- PAUSE -->
+<section id="pause" class="screen" data-screen="pause">
+  <div class="panel narrow">
+    <div class="panel-head"><span class="idx">II</span><h2>PAUSED</h2></div>
+    <nav class="menu" id="pauseMenu"></nav>
+  </div>
+</section>
+
+<!-- RESULTS -->
+<section id="results" class="screen" data-screen="results">
+  <div class="panel wide results">
+    <div class="res-banner" id="resBanner"><div class="res-kicker" id="resKicker"></div><div class="res-title" id="resTitle"></div><div class="res-score" id="resScore"></div></div>
+    <div class="res-table" id="resTable"></div>
+    <div class="res-medals" id="resMedals"></div>
+    <div class="panel-foot" id="resBtns"></div>
+  </div>
+</section>
+
+<div id="toast" class="toast"></div>
+<div id="orient" class="orient"><svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20"/><path d="M20 8l2 2-2 2M4 12l-2-2 2-2"/></svg><span>ROTATE YOUR DEVICE</span></div>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
