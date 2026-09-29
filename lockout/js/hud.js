@@ -143,7 +143,8 @@ export class HUD {
 
   modeIntro() {
     const md = MODES[this.match.mode], m = this.el.modeBig;
-    m.innerHTML = `${md.name}<br><span style="color:var(--gold)">FIRST TO ${this.match.limit} ${md.unit}</span>`; m.classList.remove('on'); void m.offsetWidth; m.classList.add('on');
+    const vn = { lowgrav: 'LOW GRAVITY', fiesta: 'FIESTA', snipers: 'SNIPERS', swords: 'SWORDS + MAGNUMS' }[this.match.variant];
+    m.innerHTML = `${vn ? vn + ' · ' : ''}${md.name}<br><span style="color:var(--gold)">FIRST TO ${this.match.limit} ${md.unit}</span>`; m.classList.remove('on'); void m.offsetWidth; m.classList.add('on');
   }
 
   announce(text, team) {

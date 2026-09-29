@@ -22,13 +22,16 @@ import { initTouch } from './touch.js';
 
 const Q = new URLSearchParams(location.search);
 const settings = Object.assign({ sens: 1, padSens: 1, invertY: false, fov: 66, master: 0.8, sfx: 1, music: 0.5, shadows: true, quality: 'auto', reticle: '#ffffff', hudScale: 1, announcer: false }, store('settings', {}));
-const loadout = Object.assign({ waifu: 0, team: 'blue', diff: 'normal', limit: 25, helmet: false, map: 'lockout', mode: 'slayer', limits: {} }, store('loadout', {}));
+const loadout = Object.assign({ waifu: 0, team: 'blue', diff: 'normal', limit: 25, helmet: false, map: 'lockout', mode: 'slayer', variant: 'standard', limits: {} }, store('loadout', {}));
 if (!MODES[loadout.mode]) loadout.mode = 'slayer';
 if (Q.get('mode') && MODES[Q.get('mode')]) loadout.mode = Q.get('mode');
+if (Q.get('variant')) loadout.variant = Q.get('variant');
 const limitOf = () => { const l = MODES[loadout.mode].limits, v = loadout.limits && loadout.limits[loadout.mode]; return l.includes(v) ? v : l[1]; };
 const haloHex = (id) => { const h = C.HALOS.find((x) => x.id === (id || Profile.d.eq.halo)); return h ? h.color : undefined; };
 const skinHex = (id) => { const s = C.SKINS.find((x) => x.id === (id || Profile.d.eq.skin)); return s ? s.tint : null; };
-const matchCfg = () => ({ mode: loadout.mode, limit: limitOf(), haloColor: haloHex(), skinTint: skinHex() });
+const VARIANTS = [['standard', 'STANDARD'], ['lowgrav', 'LOW GRAVITY'], ['fiesta', 'FIESTA'], ['snipers', 'SNIPERS'], ['swords', 'SWORDS + MAGNUMS']];
+if (!VARIANTS.some((v) => v[0] === loadout.variant)) loadout.variant = 'standard';
+const matchCfg = () => ({ variant: loadout.variant, mode: loadout.mode, limit: limitOf(), haloColor: haloHex(), skinTint: skinHex() });
 { const i = WAIFUS.findIndex((w) => w.id === Profile.d.eq.operator); if (i >= 0) loadout.waifu = i; else loadout.waifu = 0; }
 if (Q.get('map')) loadout.map = Q.get('map');
 if (!['lockout', 'cryostat'].includes(loadout.map)) loadout.map = 'lockout';
@@ -264,6 +267,9 @@ function callsignRow(box) {
   return row;
 }
 
+function variantRow(box) {
+  return UI.choice(box, 'Variant', VARIANTS.map(([v, l]) => ({ label: l, value: v })), VARIANTS.findIndex((v) => v[0] === loadout.variant), (v) => { loadout.variant = v; persist(); });
+}
 function modeRow(box, rebuild) {
   const ids = Object.keys(MODES);
   const row = UI.choice(box, 'Game mode', ids.map((k) => ({ label: MODES[k].name, value: k })), ids.indexOf(loadout.mode), (v) => { if (v !== loadout.mode) { loadout.mode = v; persist(); rebuild(); } });
@@ -292,6 +298,7 @@ function showSetup(focusRow) {
   select(loadout.waifu);
   const rows = [cardsRow];
   rows.push(modeRow(box, () => showSetup(1)));
+  rows.push(variantRow(box));
   rows.push(UI.choice(box, 'Map', World.MAP_LIST.map((m) => ({ label: m.name, value: m.id })), World.MAP_LIST.findIndex((m) => m.id === loadout.map), (v) => { loadout.map = v; persist(); $('#mapTag').textContent = World.MAP_LIST.find((m) => m.id === v).tag; }));
   if (loadout.mode !== 'rumble') rows.push(UI.choice(box, 'Team', [{ label: 'BLUE', value: 'blue' }, { label: 'RED', value: 'red' }], loadout.team === 'blue' ? 0 : 1, (v) => { loadout.team = v; rebuildShowcase(); persist(); }));
   rows.push(UI.choice(box, 'Armor', [{ label: 'SPARTAN HELM', value: true }, { label: 'ANGEL', value: false }], loadout.helmet ? 0 : 1, (v) => { loadout.helmet = v; rebuildShowcase(); setHero(); persist(); }));
@@ -384,6 +391,7 @@ function showLobby(host) {
     const dk = Object.keys(DIFFICULTY);
     rows.push(UI.choice(opts, 'Bot difficulty', dk.map((k) => ({ label: DIFFICULTY[k].name, value: k })), dk.indexOf(loadout.diff), (v) => { loadout.diff = v; persist(); }));
     rows.push(modeRow(opts, () => showLobby(true)));
+    rows.push(variantRow(opts));
     rows.push(limitRow(opts));
     const go = document.createElement('button'); go.className = 'btn primary'; go.innerHTML = '<span>START MATCH</span><i></i>';
     UI.button(go, () => startOnlineHost());
@@ -402,13 +410,13 @@ async function startOnlineHost() {
   beginMatch(m, w);
   m.enableHost();
   const roster = m.actors.map((a) => ({ id: a.id, name: a.name, team: a.team, hair: a.style.hair, eye: a.style.eye, helmet: a.rig.helmet }));
-  for (const h of humans) { const a = m.actors.find((x) => x.remote === h.peer); if (a) Net.sendTo(h.peer, { t: 'start', roster, you: a.id, limit: m.limit, mode: m.mode, minutes: 12, map: loadout.map }); }
+  for (const h of humans) { const a = m.actors.find((x) => x.remote === h.peer); if (a) Net.sendTo(h.peer, { t: 'start', roster, you: a.id, limit: m.limit, mode: m.mode, variant: m.variant, minutes: 12, map: loadout.map }); }
   m.bus.emit('count', 3);
 }
 
 async function startReplica(msg) {
   await ensureMap(msg.map || 'lockout');
-  beginMatch(new Match(scene, fx, { replica: true, roster: msg.roster, you: msg.you, limit: msg.limit, mode: msg.mode, minutes: msg.minutes }));
+  beginMatch(new Match(scene, fx, { replica: true, roster: msg.roster, you: msg.you, limit: msg.limit, mode: msg.mode, variant: msg.variant, minutes: msg.minutes }));
 }
 
 function leaveOnline() {
@@ -692,15 +700,22 @@ function render(showVM) {
   if (showVM) viewmodel.render(renderer, 62 * (1 - (0) * 0), W / H, scene.environment);
 }
 
+const menuPtr = { x: 0, y: 0, sx: 0, sy: 0 };
+addEventListener('pointermove', (e) => { menuPtr.x = e.clientX / innerWidth - 0.5; menuPtr.y = e.clientY / innerHeight - 0.5; });
 function menuFrame(dt) {
   menuT += dt;
   const px = Input.last === 'kbm' ? 0 : 0;
   camera.fov = 44; camera.updateProjectionMatrix();
   const mc = MENU[World.MAP ? World.MAP.id : 'lockout'];
+  menuPtr.sx += (menuPtr.x - menuPtr.sx) * Math.min(1, dt * 3); menuPtr.sy += (menuPtr.y - menuPtr.sy) * Math.min(1, dt * 3);
   camera.position.set(mc.cam[0] + Math.sin(menuT * 0.23) * 0.3 + px, mc.cam[1] + Math.sin(menuT * 0.31) * 0.08, mc.cam[2] + Math.cos(menuT * 0.19) * 0.2);
+  { // pointer parallax: slide the camera sideways along its right vector
+    const dx = mc.look[0] - mc.cam[0], dz = mc.look[2] - mc.cam[2], l = Math.hypot(dx, dz) || 1;
+    camera.position.x += (-dz / l) * menuPtr.sx * 1.1; camera.position.z += (dx / l) * menuPtr.sx * 1.1; camera.position.y -= menuPtr.sy * 0.4;
+  }
   camera.up.set(0, 1, 0); camera.lookAt(...mc.look);
   if (showcase) {
-    showcase.root.rotation.y = 2.05 + Math.sin(menuT * 0.4) * 0.12;
+    showcase.root.rotation.y = 2.05 + Math.sin(menuT * 0.4) * 0.12 + menuPtr.sx * 0.35;
     animateRig(showcase, dt, { speed: 0, lx: 0, lz: 1, weaponId: showWeapon, grounded: true, pitch: Math.sin(menuT * 0.5) * 0.05 });
   }
   fx && fx.update(dt); world && world.snow.update(dt, camera.position, menuT);

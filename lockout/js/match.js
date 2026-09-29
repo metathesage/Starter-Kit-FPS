@@ -62,7 +62,7 @@ export class Actor {
     this.vx = this.vy = this.vz = 0; this.grounded = true; this.crouch = 0; this.h = H_STAND;
     this.alive = true; this.deadT = 0;
     this.shield = SHIELD_MAX; this.health = HEALTH_MAX; this.over = 0; this.overT = 0; this.camoT = 0; this.boostT = 0;
-    this.weapons = [{ id: 'br', mag: WEAPONS.br.mag, res: WEAPONS.br.reserve }]; this.cur = 0;
+    this.weapons = this.m.startWeapons(); this.cur = 0;
     this.gren = { frag: 2, plasma: 2 }; this.gtype = 'frag';
     this.resetTimers(); this.spawnProt = 2.2; this.dmgBy.clear();
     this.spawnSeq++; this.netT = null; this.carry = null; this.pf = null;
@@ -225,7 +225,7 @@ export class Actor {
       if (g >= this.y - W.STEP * 1.1) this.y = g; else this.grounded = false;
     }
     if (!this.grounded) {
-      this.vy -= GRAV * dt;
+      this.vy -= GRAV * (this.m.variant === 'lowgrav' ? 0.42 : 1) * dt;
       let ny = this.y + this.vy * dt;
       if (this.vy > 0) {
         const cl = W.ceilingBetween(this.x, this.z, this.y + h, ny + h);
@@ -425,6 +425,7 @@ export class Match {
     this.scene = scene; this.fx = fx; this.cfg = cfg; this.bus = new Bus();
     this.diff = DIFFICULTY[cfg.difficulty] || DIFFICULTY.normal;
     this.actors = []; this.projs = []; this.pickups = [];
+    this.variant = cfg.variant || 'standard';
     this.mode = MODES[cfg.mode] ? cfg.mode : 'slayer'; this.ffa = this.mode === 'rumble'; this.teams = this.ffa ? P_TEAMS : ['red', 'blue'];
     this.time = 0; this.state = 'countdown'; this.count = 3.99; this.limit = cfg.limit || MODES[this.mode].limits[1]; this.timeLimit = (cfg.minutes || 12) * 60; this.clock = this.timeLimit;
     this.score = {}; for (const t of this.teams) this.score[t] = 0;
@@ -441,7 +442,7 @@ export class Match {
         this.actors.push(a); this.byId.set(a.id, a);
         if (r.id === cfg.you) this.player = a;
       }
-      for (const p of W.PICKUPS) this.addPickup({ ...p });
+      for (const p of W.PICKUPS) { if (['snipers', 'swords', 'fiesta'].includes(this.variant) && !POWER.has(p.id)) continue; this.addPickup({ ...p }); }
       this.nStatic = this.pickups.length;
       if (MODES[this.mode].obj) this.obj = new Objectives(this);
       return;
@@ -468,7 +469,8 @@ export class Match {
     for (const a of this.actors) if ((!a.isPlayer || cfg.autoPlayer) && !a.remote) a.brain = new Brain(a, this, this.diff);
     this.actors.forEach((a) => this.byId.set(a.id, a));
 
-    for (const p of W.PICKUPS) this.addPickup({ ...p });
+    for (const p of W.PICKUPS) { if (['snipers', 'swords', 'fiesta'].includes(this.variant) && !POWER.has(p.id)) continue; this.addPickup({ ...p }); }
+    this.nStatic = this.pickups.length;
     if (MODES[this.mode].obj) this.obj = new Objectives(this);
     const used = { red: 0, blue: 0 };
     let fi = 0;
@@ -476,6 +478,15 @@ export class Match {
     this.bus.emit('state', 'countdown');
   }
 
+  // variant loadouts
+  startWeapons() {
+    const slot = (id) => ({ id, mag: WEAPONS[id].mag, res: WEAPONS[id].reserve });
+    const v = this.variant;
+    if (v === 'snipers') return [slot('sniper')];
+    if (v === 'swords') return [slot('sword'), slot('magnum')];
+    if (v === 'fiesta') { const ids = ['br', 'magnum', 'smg', 'shotgun', 'sniper', 'rocket', 'carbine', 'plasmarifle', 'needler', 'sword', 'hammer']; return [slot(ids[(Math.random() * ids.length) | 0])]; }
+    return [slot('br')];
+  }
   foe(a, b) { return a !== b && (this.ffa || a.team !== b.team); }
   spawnsFor(a) { return this.ffa ? W.SPAWNS.red.concat(W.SPAWNS.blue) : W.SPAWNS[a.team]; }
 
