@@ -2,6 +2,9 @@
 import * as THREE from 'three';
 import { clamp, lerp } from './util.js';
 import { mergeStatic } from './merge.js';
+import { bevelGeo, pylonGeo, concreteSet, quiltSet, floorSet, steelSet, barkSet, normalMap, tex, grassCard, frondCard, vineCard, tufts, vines, scaffold, mossRock, trunkGeo, glowSprite, wind, rnd, seedKit } from './mapkit.js';
+const rr = (a, b) => a + rnd() * (b - a);
+const TAU = Math.PI * 2;
 
 export const STEP = 0.42;
 export const solids = [];
@@ -13,7 +16,8 @@ export let MAP = null;
 export const MAP_LIST = [
   { id: 'lockout', name: 'LOCKOUT', tag: 'Cold storage. Glass deck, drum towers, elbow bridge, void below.' },
   { id: 'cryostat', name: 'CRYOSTAT', tag: 'Night snow station. Twin snipe towers, reactor core, power-ups everywhere.' },
-  { id: 'halcyon', name: 'HALCYON', tag: 'Dusk ruins under a wounded moon. A bridge over the lane, high balconies, a broken arch at each base. Built for blink and nova.' },
+  { id: 'overgrowth', name: 'OVERGROWTH', tag: 'A drowned transit atrium. Ivy, buttressed trees, a skybridge over the lane, warm windows in the haze. Built for blink and nova.' },
+  { id: 'warsat', name: 'WARSAT', tag: 'Io launch facility. A rocket on its gantry, dark pylons, yellow steel, moss-choked hangars under a huge banded planet.' },
   { id: 'mesa', name: 'MESA', tag: 'Sunset canyon. A central plateau, two sniper spires, sandstone bases and long sightlines.' },
 ];
 
@@ -188,9 +192,9 @@ function defineMesa() {
   MAP = { id: 'mesa', nav: { x0: -34, x1: 34, z0: -24, z1: 24 }, obj: { flags: { blue: [30.4, 3, 2.4], red: [-30.4, 3, -2.4] }, ball: [0, 4, -2] } };
 }
 
-// ================= HALCYON: dusk ruins under a wounded moon =================
+// ================= OVERGROWTH: a drowned transit atrium =================
 // Rotationally symmetric. Blue +X, Red -X. A bridge spans the centre lane, balconies flank it, spires hold the power weapons.
-function defineHalcyon() {
+function defineOvergrowth() {
   BOUNDS = { x: 36, z: 26 }; KILL_Y = -60;
   box(-37, 37, -27, 27, -T, 0, 'floor');
   box(-37, 37, 26, 27, 0, 11, 'wall'); box(-37, 37, -27, -26, 0, 11, 'wall'); box(36, 37, -27, 27, 0, 11, 'wall'); box(-37, -36, -27, 27, 0, 11, 'wall');
@@ -204,22 +208,23 @@ function defineHalcyon() {
   pBox(11, 20, 12, 20, 0, 3.6, 'ruin');
   pRamp(4, 11, 14, 18, 0, 'x', 4, 11, 0, 3.6);
   pRamp(20, 27, 13.5, 17, 0, 'x', 27, 20, 0, 3.6);
-  pBox(11, 20, 19.6, 20, 3.6, 4.8, 'rubble'); pBox(19.6, 20, 12, 20, 3.6, 4.8, 'rubble'); pBox(14, 15.4, 15, 16.4, 3.6, 9.5, 'column');
+  pBox(11, 20, 19.6, 20, 3.6, 4.8, 'rail'); pBox(19.6, 20, 12, 20, 3.6, 4.8, 'rail'); pBox(14, 15.4, 15, 16.4, 3.6, 9.5, 'column');
   // the bridge and its ramps
   box(-12, 12, -2.5, 2.5, 4.2, 5, 'bridge');
   pRamp(12, 21, -2.5, 2.5, 0, 'x', 21, 12, 0, 5);
   box(-1.2, 1.2, -1.2, 1.2, 0, 4.2, 'column');
-  box(-12, 12, -2.5, -2.1, 5, 5.9, 'rubble'); box(-12, 12, 2.1, 2.5, 5, 5.9, 'rubble');
+  box(-12, 12, -2.5, -2.1, 5, 5.9, 'rail'); box(-12, 12, 2.1, 2.5, 5, 5.9, 'rail');
   // sniper spires
   pBox(22, 28, -22, -16, 0, 9, 'spire');
   pRamp(6, 22, -21, -17.5, 0, 'x', 6, 22, 0, 9);
-  pBox(22, 28, -22.4, -22, 9, 9.9, 'rubble'); pBox(27.6, 28, -22, -16, 9, 9.9, 'rubble'); pBox(22, 28, -16.4, -16, 9, 9.9, 'rubble');
+  pBox(22, 28, -22.4, -22, 9, 9.9, 'rail'); pBox(27.6, 28, -22, -16, 9, 9.9, 'rail'); pBox(22, 28, -16.4, -16, 9, 9.9, 'rail');
   // floating shard platforms
   pBox(-4, 4, 11, 15, 2.4, 3, 'shard');
   pRamp(4, 9.5, 11.5, 14.5, 0, 'x', 9.5, 4, 0, 3);
   // ground cover
   pBox(12, 14, -10, -6, 0, 1.4, 'rubble'); pBox(16, 17.4, -10, -8.6, 0, 4, 'column'); pBox(8, 9.4, 4, 5.4, 0, 3.2, 'column'); pBox(14, 17, 5, 7, 0, 1.2, 'rubble');
   pBox(30, 32, -16, -14, 0, 1.2, 'rubble'); pBox(4, 6, -12, -10.5, 0, 2, 'rubble');
+  pBox(14.2, 16, -14.8, -13, 0, 17, 'trunk'); pBox(22.2, 24, 9.2, 11, 0, 17, 'trunk');
   const pad = [[28, -4], [28, 0], [28, 4], [31, -6], [31, 6], [33, -3], [33, 3], [30, 0]];
   SPAWNS = { red: pad.map(([x, z]) => ({ x: -x, y: 2.6, z: -z, yaw: -Math.PI / 2 })), blue: pad.map(([x, z]) => ({ x, y: 2.6, z, yaw: Math.PI / 2 })) };
   PICKUPS = mirrorPickups([
@@ -228,12 +233,55 @@ function defineHalcyon() {
     { id: 'needler', x: 0, y: 3, z: 13, t: 45 }, { id: 'shotgun', x: 8, y: 0, z: 9.5, t: 55 }, { id: 'rocket', x: 26, y: 0, z: -12, t: 90 },
     { id: 'sniper', x: 25, y: 9, z: -19, t: 70 }, { id: 'camo', x: 12, y: 0, z: -13, t: 120 }, { id: 'overshield', x: 33.6, y: 2.6, z: -6, t: 120 },
   ], [{ id: 'sword', x: 0, y: 5, z: 1.6, t: 90 }, { id: 'hammer', x: 0, y: 0, z: 21, t: 100 }, { id: 'boost', x: 0, y: 0, z: -21, t: 120 }]);
-  MAP = { id: 'halcyon', nav: { x0: -34, x1: 34, z0: -24, z1: 24 }, obj: { flags: { blue: [33, 2.6, 0], red: [-33, 2.6, 0] }, ball: [0, 5, -0.8] } };
+  MAP = { id: 'overgrowth', nav: { x0: -34, x1: 34, z0: -24, z1: 24 }, obj: { flags: { blue: [33, 2.6, 0], red: [-33, 2.6, 0] }, ball: [0, 5, -0.8] } };
+}
+
+// ================= WARSAT: an Io launch facility =================
+// Rotationally symmetric. Blue +X, Red -X. Central rocket on a ring catwalk, bunkers with roofs, open hangars, sniper spires.
+function defineWarsat() {
+  BOUNDS = { x: 36, z: 26 }; KILL_Y = -60;
+  box(-37, 37, -27, 27, -T, 0, 'floor');
+  box(-37, 37, 26, 27, 0, 14, 'wall'); box(-37, 37, -27, -26, 0, 14, 'wall'); box(36, 37, -27, 27, 0, 14, 'wall'); box(-37, -36, -27, 27, 0, 14, 'wall');
+  // the rocket and its ring catwalk
+  box(-2.2, 2.2, -2.2, 2.2, 0, 15, 'silo');
+  box(-9, 9, -9, -7, 3.4, 4, 'deck'); box(-9, 9, 7, 9, 3.4, 4, 'deck'); box(-9, -7, -7, 7, 3.4, 4, 'deck'); box(7, 9, -7, 7, 3.4, 4, 'deck');
+  pRamp(9, 17, -1.6, 1.6, 0, 'x', 17, 9, 0, 4);
+  pRamp(-1.6, 1.6, 9, 17, 0, 'z', 17, 9, 0, 4);
+  box(-9, -1.8, -9.4, -9, 4, 4.9, 'rail'); box(1.8, 9, -9.4, -9, 4, 4.9, 'rail'); box(-9, -1.8, 9, 9.4, 4, 4.9, 'rail'); box(1.8, 9, 9, 9.4, 4, 4.9, 'rail');
+  box(-9.4, -9, -9, -1.8, 4, 4.9, 'rail'); box(-9.4, -9, 1.8, 9, 4, 4.9, 'rail'); box(9, 9.4, -9, -1.8, 4, 4.9, 'rail'); box(9, 9.4, 1.8, 9, 4, 4.9, 'rail');
+  // bunkers with roofs and a back wall
+  pBox(27, 36, -10, 10, 0, 2.6, 'bunker');
+  pRamp(21, 27, -4, 4, 0, 'x', 21, 27, 0, 2.6);
+  pBox(35, 36, -10, 10, 2.6, 9, 'bunker');
+  pBox(29, 36, -10, 10, 6.6, 7.2, 'roof');
+  pBox(29, 29.8, -10, -9.2, 0, 6.6, 'pylon'); pBox(29, 29.8, 9.2, 10, 0, 6.6, 'pylon');
+  pBox(28, 29.2, -7, -5.6, 2.6, 3.9, 'crate'); pBox(28, 29.2, 5.6, 7, 2.6, 3.9, 'crate');
+  // open hangars with a roof you can climb onto
+  pBox(8, 20, 12, 22, 3.8, 4.4, 'roof');
+  pBox(8, 8.8, 12, 12.8, 0, 3.8, 'pylon'); pBox(19.2, 20, 12, 12.8, 0, 3.8, 'pylon'); pBox(8, 8.8, 21.2, 22, 0, 3.8, 'pylon'); pBox(19.2, 20, 21.2, 22, 0, 3.8, 'pylon');
+  pRamp(20, 28, 15, 19, 0, 'x', 28, 20, 0, 4.4);
+  pBox(8, 20, 21.6, 22, 4.4, 5.3, 'rail'); pBox(8, 8.4, 12, 22, 4.4, 5.3, 'rail');
+  pBox(12, 14, 15, 17, 0, 1.3, 'crate'); pBox(16, 17.4, 18.6, 20, 0, 2.2, 'crate');
+  // sniper spire
+  pBox(28, 34, -22, -16, 0, 8, 'tower');
+  pRamp(12, 28, -21, -17.5, 0, 'x', 12, 28, 0, 8);
+  pBox(28, 34, -22.4, -22, 8, 8.9, 'rail'); pBox(33.6, 34, -22, -16, 8, 8.9, 'rail'); pBox(28, 34, -16.4, -16, 8, 8.9, 'rail');
+  // mid cover
+  pBox(13, 16, -8, -5, 0, 1.4, 'crate'); pBox(22, 24, -14, -12, 0, 2, 'crate'); pBox(12, 13, 6, 8, 0, 3, 'pylon'); pBox(4, 6, -14, -12.4, 0, 1.6, 'crate'); pBox(24, 26, 6, 8, 0, 1.2, 'crate');
+  const pad = [[30, -4], [30, 0], [30, 4], [32, -6], [32, 6], [33.6, -3], [33.6, 3], [31, 8]];
+  SPAWNS = { red: pad.map(([x, z]) => ({ x: -x, y: 2.6, z: -z, yaw: -Math.PI / 2 })), blue: pad.map(([x, z]) => ({ x, y: 2.6, z, yaw: Math.PI / 2 })) };
+  PICKUPS = mirrorPickups([
+    { id: 'br', x: 30.4, y: 2.6, z: 6.6, t: 25 }, { id: 'br', x: 30.4, y: 2.6, z: -6.6, t: 25 }, { id: 'magnum', x: 34, y: 2.6, z: 0, t: 30 },
+    { id: 'smg', x: 15, y: 0, z: -3, t: 30 }, { id: 'carbine', x: 16, y: 4.4, z: 14, t: 45 }, { id: 'plasmarifle', x: 19, y: 0, z: 7.5, t: 40 },
+    { id: 'needler', x: 0, y: 4, z: 8, t: 45 }, { id: 'shotgun', x: 9, y: 0, z: -10, t: 55 }, { id: 'rocket', x: 26, y: 0, z: -10, t: 90 },
+    { id: 'sniper', x: 31, y: 8, z: -19, t: 70 }, { id: 'camo', x: 10, y: 0, z: 10.5, t: 120 }, { id: 'overshield', x: 33.6, y: 2.6, z: -7, t: 120 },
+  ], [{ id: 'sword', x: 8, y: 4, z: 0, t: 90 }, { id: 'hammer', x: 0, y: 0, z: 21, t: 100 }, { id: 'boost', x: 0, y: 0, z: -21, t: 120 }]);
+  MAP = { id: 'warsat', nav: { x0: -34, x1: 34, z0: -24, z1: 24 }, obj: { flags: { blue: [34, 2.6, 0], red: [-34, 2.6, 0] }, ball: [0, 4, -8] } };
 }
 
 export function defineMap(id) {
   solids.length = 0; nav.nodes.length = 0; nav.built = false;
-  if (id === 'cryostat') defineCryostat(); else if (id === 'mesa') defineMesa(); else if (id === 'halcyon') defineHalcyon(); else defineLockout();
+  if (id === 'cryostat') defineCryostat(); else if (id === 'mesa') defineMesa(); else if (id === 'overgrowth') defineOvergrowth(); else if (id === 'warsat') defineWarsat(); else defineLockout();
 }
 
 // ---- collision --------------------------------------------------------------
@@ -443,6 +491,13 @@ function boxGeo(s, tile) {
   return g;
 }
 
+// bevelled visual for ordinary solids; big flat slabs (floors, ground) stay plain
+function solidGeo(s, tile) {
+  const w = s.x1 - s.x0, h = s.y1 - s.y0, d = s.z1 - s.z0;
+  if (s.y0 < -0.05 || h < 0.12 || Math.min(w, d) < 0.2 || (w > 60 && d > 40)) return boxGeo(s, tile);
+  return bevelGeo(s.x0, s.x1, s.y0, s.y1, s.z0, s.z1, Math.min(0.14, Math.min(w, h, d) / 4), tile);
+}
+
 function prismGeo(s, tile) {
   const cs = [[s.x0, s.z0], [s.x1, s.z0], [s.x1, s.z1], [s.x0, s.z1]];
   const T = cs.map(([x, z]) => [x, topAt(s, x, z), z]);
@@ -470,7 +525,7 @@ async function buildLockoutVisuals(scene, renderer, onProgress) {
   };
   const world = new THREE.Group(); root.add(world);
   for (const s of solids) {
-    const m = new THREE.Mesh(s.ramp ? prismGeo(s, 5) : boxGeo(s, 5), mats[s.mat] || mats.wall);
+    const m = new THREE.Mesh(s.ramp ? prismGeo(s, 5) : solidGeo(s, 5), mats[s.mat] || mats.wall);
     if (!s.ramp) m.position.set((s.x0 + s.x1) / 2, (s.y0 + s.y1) / 2, (s.z0 + s.z1) / 2);
     m.castShadow = true; m.receiveShadow = true;
     world.add(m);
@@ -649,7 +704,7 @@ async function buildCryostatVisuals(scene, renderer, onProgress) {
   };
   const world = new THREE.Group(); root.add(world);
   for (const s of solids) {
-    const m = new THREE.Mesh(s.ramp ? prismGeo(s, 5) : boxGeo(s, s.mat === 'snow' ? 8 : 5), mats[s.mat] || mats.wall);
+    const m = new THREE.Mesh(s.ramp ? prismGeo(s, 5) : solidGeo(s, s.mat === 'snow' ? 8 : 5), mats[s.mat] || mats.wall);
     if (!s.ramp) m.position.set((s.x0 + s.x1) / 2, (s.y0 + s.y1) / 2, (s.z0 + s.z1) / 2);
     m.castShadow = true; m.receiveShadow = true; world.add(m);
   }
@@ -781,7 +836,7 @@ async function buildMesaVisuals(scene, renderer, onProgress) {
   };
   const world = new THREE.Group(); root.add(world);
   for (const s of solids) {
-    const m = new THREE.Mesh(s.ramp ? prismGeo(s, 5) : boxGeo(s, s.mat === 'sand' ? 8 : 5), mats[s.mat] || mats.wall);
+    const m = new THREE.Mesh(s.ramp ? prismGeo(s, 5) : solidGeo(s, s.mat === 'sand' ? 8 : 5), mats[s.mat] || mats.wall);
     if (!s.ramp) m.position.set((s.x0 + s.x1) / 2, (s.y0 + s.y1) / 2, (s.z0 + s.z1) / 2);
     m.castShadow = true; m.receiveShadow = true; world.add(m);
   }
@@ -833,95 +888,258 @@ async function buildMesaVisuals(scene, renderer, onProgress) {
   return { root, sky, dir, hemi, mats, glow, snow };
 }
 
-// ---------- HALCYON visuals: violet dusk, a wounded moon, pale ruin marble with gold inlay ----------
-function makeRuinTextures() {
-  const veins = (g, s, n) => { g.strokeStyle = 'rgba(90,80,120,.16)'; g.lineWidth = 1.5; for (let i = 0; i < n; i++) { g.beginPath(); g.moveTo(Math.random() * s, 0); g.bezierCurveTo(Math.random() * s, s * 0.3, Math.random() * s, s * 0.7, Math.random() * s, s); g.stroke(); } };
-  const marble = canvasTex(256, (g, s) => { g.fillStyle = '#d7d0e2'; g.fillRect(0, 0, s, s); speck(g, s, 600, 0.08); veins(g, s, 8); g.strokeStyle = 'rgba(60,44,90,.55)'; g.lineWidth = 4; g.strokeRect(2, 2, s - 4, s - 4); g.fillStyle = 'rgba(232,190,110,.7)'; g.fillRect(0, s * 0.46, s, 5); });
-  const plinth = canvasTex(256, (g, s) => { g.fillStyle = '#bdb4d0'; g.fillRect(0, s / 2 - 0, s, s); g.fillStyle = '#c6bfd8'; g.fillRect(0, 0, s, s); speck(g, s, 500, 0.1); veins(g, s, 5); g.strokeStyle = 'rgba(60,44,90,.6)'; g.lineWidth = 3; g.strokeRect(2, 2, s - 4, s - 4); g.strokeStyle = 'rgba(232,190,110,.85)'; g.lineWidth = 3; g.strokeRect(30, 30, s - 60, s - 60); g.beginPath(); g.moveTo(30, 30); g.lineTo(s - 30, s - 30); g.moveTo(s - 30, 30); g.lineTo(30, s - 30); g.stroke(); });
-  const column = canvasTex(128, (g, s) => { g.fillStyle = '#a99fc0'; g.fillRect(0, 0, s, s); speck(g, s, 300, 0.12); g.fillStyle = 'rgba(40,28,64,.3)'; for (let x = 8; x < s; x += 22) g.fillRect(x, 0, 5, s); g.fillStyle = 'rgba(232,190,110,.8)'; g.fillRect(0, s * 0.1, s, 4); g.fillRect(0, s * 0.86, s, 4); });
-  const floor = canvasTex(256, (g, s) => { g.fillStyle = '#7d7391'; g.fillRect(0, 0, s, s); speck(g, s, 900, 0.1); g.strokeStyle = 'rgba(20,14,36,.55)'; g.lineWidth = 3; g.strokeRect(1.5, 1.5, s - 3, s - 3); g.strokeStyle = 'rgba(20,14,36,.25)'; g.lineWidth = 2; g.beginPath(); g.moveTo(s / 2, 0); g.lineTo(s / 2, s); g.moveTo(0, s / 2); g.lineTo(s, s / 2); g.stroke(); for (let i = 0; i < 6; i++) { g.fillStyle = 'rgba(50,90,60,.12)'; g.beginPath(); g.ellipse(Math.random() * s, Math.random() * s, 18 + Math.random() * 30, 8 + Math.random() * 16, Math.random() * 3, 0, TAUC); g.fill(); } });
-  const rubble = canvasTex(128, (g, s) => { g.fillStyle = '#6e6479'; g.fillRect(0, 0, s, s); speck(g, s, 400, 0.18); g.strokeStyle = 'rgba(15,10,28,.6)'; g.lineWidth = 3; for (let i = 0; i < 5; i++) { g.beginPath(); g.moveTo(Math.random() * s, Math.random() * s); g.lineTo(Math.random() * s, Math.random() * s); g.stroke(); } });
-  const bridge = canvasTex(256, (g, s) => { g.fillStyle = '#3a3448'; g.fillRect(0, 0, s, s); speck(g, s, 500, 0.1); g.fillStyle = 'rgba(232,190,110,.75)'; g.fillRect(0, 0, s, 8); g.fillRect(0, s - 8, s, 8); g.fillStyle = 'rgba(160,130,255,.5)'; g.fillRect(s / 2 - 2, 20, 4, s - 40); });
-  const rampT = canvasTex(256, (g, s) => { g.fillStyle = '#9188a6'; g.fillRect(0, 0, s, s); speck(g, s, 400, 0.1); g.fillStyle = 'rgba(40,28,64,.22)'; for (let i = -s; i < s * 2; i += 64) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i + 32, 0); g.lineTo(i + 32 - s, s); g.lineTo(i - s, s); g.fill(); } });
-  return { marble, plinth, column, floor, rubble, bridge, ramp: rampT };
+// ---------- OVERGROWTH visuals: a drowned transit atrium. Dark teal concrete, ivy, buttressed trees, warm windows in the haze ----------
+function makeFacade() {
+  const H = 256;
+  const c = document.createElement('canvas'); c.width = c.height = H; const g = c.getContext('2d');
+  const e = document.createElement('canvas'); e.width = e.height = H; const eg = e.getContext('2d');
+  g.fillStyle = '#3d4846'; g.fillRect(0, 0, H, H); eg.fillStyle = '#000'; eg.fillRect(0, 0, H, H);
+  for (let i = 0; i < 1600; i++) { g.fillStyle = `rgba(${Math.random() < 0.6 ? '0,0,0' : '160,190,170'},${Math.random() * 0.14})`; g.fillRect(Math.random() * H, Math.random() * H, 1 + Math.random() * 3, 1 + Math.random() * 2); }
+  for (let x = 0; x < 4; x++) for (let y = 0; y < 4; y++) {
+    const px = x * 64 + 10, py = y * 64 + 12, lit = Math.random() < 0.42, warm = Math.random() < 0.7;
+    g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(px - 3, py - 3, 50, 42);
+    g.fillStyle = lit ? (warm ? '#f2a552' : '#5ad6d0') : '#1c2624'; g.fillRect(px, py, 44, 36);
+    if (lit) { eg.fillStyle = warm ? '#e08a3a' : '#3cc4c0'; eg.fillRect(px, py, 44, 36); eg.fillStyle = '#000'; eg.fillRect(px + 21, py, 2, 36); }
+    g.fillStyle = 'rgba(0,0,0,.6)'; g.fillRect(px + 21, py, 2, 36);
+  }
+  g.fillStyle = 'rgba(150,50,44,.9)'; for (let y = 0; y < 4; y++) g.fillRect(0, y * 64 + 55, H, 4);
+  const map = tex(c), emissiveMap = tex(e);
+  const hc = document.createElement('canvas'); hc.width = hc.height = H; const hg = hc.getContext('2d'); hg.fillStyle = '#999'; hg.fillRect(0, 0, H, H);
+  hg.fillStyle = '#000'; for (let x = 0; x < 4; x++) for (let y = 0; y < 4; y++) hg.fillRect(x * 64 + 7, y * 64 + 9, 50, 42);
+  return { map, emissiveMap, normalMap: normalMap(hc, 2.5) };
 }
 
-async function buildHalcyonVisuals(scene, renderer, onProgress) {
-  const root = new THREE.Group(); scene.add(root);
-  const tex = makeRuinTextures();
-  await onProgress(0.15, 'Laying the marble');
-  const M = (map, o = {}) => new THREE.MeshStandardMaterial({ map, roughness: 0.82, metalness: 0.06, ...o });
+async function buildOvergrowthVisuals(scene, renderer, onProgress) {
+  const root = new THREE.Group(); scene.add(root); seedKit(31);
+  await onProgress(0.1, 'Pouring the concrete');
+  const conc = concreteSet({ base: '#46524f', trim: '#a23c36', rows: 4, cols: 2 }), pale = concreteSet({ base: '#7a837d', trim: '#d9dcd4', rows: 3, cols: 2 });
+  const steel = concreteSet({ base: '#2b3332', rows: 2, cols: 5, groove: 'rgba(0,0,0,.7)' }), floorS = floorSet({ base: '#2b3634', tiles: 2 }), fac = makeFacade(), bark = barkSet();
+  const S = (t, o = {}) => new THREE.MeshStandardMaterial({ map: t.map, normalMap: t.normalMap, roughness: 0.85, metalness: 0.04, ...o });
   const mats = {
-    floor: M(tex.floor, { roughness: 0.95 }), wall: M(tex.rubble), ruin: M(tex.marble), plinth: M(tex.plinth), column: M(tex.column), spire: M(tex.marble, { color: 0xe6dcf2 }),
-    rubble: M(tex.rubble), bridge: M(tex.bridge, { metalness: 0.3, roughness: 0.55 }), shard: M(tex.column, { color: 0xc9b8ff }), ramp: M(tex.ramp, { side: THREE.DoubleSide }),
+    floor: S(floorS, { roughness: 0.5, metalness: 0.15 }), wall: new THREE.MeshStandardMaterial({ map: fac.map, emissiveMap: fac.emissiveMap, emissive: 0xffffff, emissiveIntensity: 1.5, normalMap: fac.normalMap, roughness: 0.9 }),
+    ruin: S(conc), plinth: S(pale), column: S(conc), spire: S(pale), bridge: S(steel, { metalness: 0.35, roughness: 0.6 }), shard: S(steel, { metalness: 0.35, roughness: 0.6 }),
+    ramp: S(pale, { side: THREE.DoubleSide }), rail: S(pale, { roughness: 0.6 }), rubble: new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1 }), trunk: S(bark, { roughness: 1 }),
   };
   const world = new THREE.Group(); root.add(world);
+  const rocks = [];
   for (const so of solids) {
-    const m = new THREE.Mesh(so.ramp ? prismGeo(so, 5) : boxGeo(so, so.mat === 'floor' ? 8 : 5), mats[so.mat] || mats.wall);
-    if (!so.ramp) m.position.set((so.x0 + so.x1) / 2, (so.y0 + so.y1) / 2, (so.z0 + so.z1) / 2);
-    m.castShadow = true; m.receiveShadow = true; world.add(m);
+    if (so.mat === 'rubble') { rocks.push(so); continue; }
+    if (so.mat === 'trunk') { const m = new THREE.Mesh(trunkGeo((so.x0 + so.x1) / 2, so.y0, (so.z0 + so.z1) / 2, 17, 1.05), mats.trunk); m.castShadow = m.receiveShadow = true; world.add(m); continue; }
+    const g = so.ramp ? prismGeo(so, 5) : so.mat === 'floor' ? boxGeo(so, 8) : bevelGeo(so.x0, so.x1, so.y0, so.y1, so.z0, so.z1, so.mat === 'wall' ? 0.05 : so.mat === 'rail' ? 0.07 : 0.16, 4);
+    const m = new THREE.Mesh(g, mats[so.mat] || mats.wall); m.castShadow = true; m.receiveShadow = true; world.add(m);
   }
-  await onProgress(0.4, 'Lighting the inlay');
+  await onProgress(0.3, 'Growing the moss');
+  const rockG = new THREE.Group(); root.add(rockG);
+  for (const so of rocks) {
+    const w = so.x1 - so.x0, d = so.z1 - so.z0, h = so.y1 - so.y0;
+    for (let k = 0; k < 2; k++) { const g = mossRock((so.x0 + so.x1) / 2 + (k ? w * 0.18 : 0), so.y0 + h * 0.42, (so.z0 + so.z1) / 2 + (k ? -d * 0.2 : 0), w * (k ? 0.36 : 0.62), h * (k ? 0.5 : 0.72), d * (k ? 0.36 : 0.62), { rock: '#53605a', moss: ['#5f8a34', '#7fa040'] }); const m = new THREE.Mesh(g, mats.rubble); m.castShadow = m.receiveShadow = true; m.userData.keep = true; rockG.add(m); }
+  }
+  // emissive trim + neon
   const glow = (c, i = 2.4) => new THREE.MeshStandardMaterial({ color: 0x050505, emissive: c, emissiveIntensity: i, roughness: 0.4 });
-  const red = glow(0xff3b6a, 2.8), blue = glow(0x4a8dff, 2.8), gold = glow(0xffc46a, 2.6), violet = glow(0xa070ff, 3);
+  const red = glow(0xff3b4a, 2.6), blue = glow(0x4a8dff, 2.8), cyan = glow(0x46e6e0, 3), amber = glow(0xffa64a, 2.6);
   const strip = (m, x, y, z, w, h, d) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(x, y, z); world.add(b); return b; };
   for (const sg of [1, -1]) {
     const tm = sg === 1 ? blue : red;
-    strip(tm, sg * 30.5, 2.62, 0, 10, 0.05, 0.12); strip(tm, sg * 35.8, 4, sg * -4.5, 0.12, 5, 0.12); strip(tm, sg * 35.8, 4, sg * 4.5, 0.12, 5, 0.12);
-    strip(gold, sg * 25, 9.02, sg * -19, 6, 0.05, 0.1); strip(gold, sg * 15.5, 3.62, sg * 12.05, 9, 0.05, 0.1); strip(violet, 0, 3.02, sg * 13, 8, 0.05, 0.1);
+    strip(tm, sg * 31, 2.63, 0, 9, 0.05, 0.12); strip(tm, sg * 35.85, 4.4, sg * -4.5, 0.1, 5.4, 0.1); strip(tm, sg * 35.85, 4.4, sg * 4.5, 0.1, 5.4, 0.1);
+    strip(cyan, sg * 25, 9.02, sg * -19, 6, 0.05, 0.1); strip(amber, sg * 15.5, 3.62, sg * 12.05, 9, 0.05, 0.1);
   }
-  strip(violet, 0, 4.22, 2.52, 24, 0.05, 0.1); strip(violet, 0, 4.22, -2.52, 24, 0.05, 0.1);
+  strip(cyan, 0, 4.22, 2.52, 24, 0.05, 0.1); strip(cyan, 0, 4.22, -2.52, 24, 0.05, 0.1);
+  // steel truss frames (red banded) around the bridge ends and base arches
+  const scaf = new THREE.MeshStandardMaterial({ color: 0x9a3a34, roughness: 0.6, metalness: 0.4 });
+  for (const sg of [1, -1]) {
+    world.add(new THREE.Mesh(scaffold(sg * 12.4, 0, sg * -3.6, 1.2, 5.6, 1.2), scaf));
+    world.add(new THREE.Mesh(scaffold(sg * 12.4, 0, sg * 3.6, 1.2, 5.6, 1.2), scaf));
+    world.add(new THREE.Mesh(scaffold(sg * 24, 0, sg * 10.2, 1.2, 7, 1.2), scaf));
+  }
   mergeStatic(world);
-  // the ring that hangs over the bridge
-  const rift = new THREE.Group(); rift.position.set(0, 15, 0); root.add(rift);
-  const ringM = new THREE.MeshBasicMaterial({ color: 0xb08cff, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
-  const r1 = new THREE.Mesh(new THREE.TorusGeometry(4.2, 0.07, 6, 64), ringM), r2 = new THREE.Mesh(new THREE.TorusGeometry(3.1, 0.05, 6, 64), ringM); r2.rotation.x = 1.1; rift.add(r1, r2);
-  const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 15, 8, 1, true), new THREE.MeshBasicMaterial({ color: 0xa070ff, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, side: THREE.DoubleSide })); beam.position.y = -7.5; rift.add(beam);
+  await onProgress(0.5, 'Seeding the atrium');
+  // foliage: grass on every walkable top, ferns near cover, ivy hanging from ledges
+  const okAt = (x, z) => Math.abs(x) < 34.5 && Math.abs(z) < 24.5;
+  const gtex = grassCard(['#5e8a34', '#7fa040', '#4c7a2c', '#9ab04a']), ftex = frondCard(), vtex = vineCard();
+  const gp = [], fp = [];
+  for (let i = 0; i < 1500; i++) {
+    const x = (rnd() - 0.5) * 70, z = (rnd() - 0.5) * 50; if (!okAt(x, z)) continue;
+    const y = groundAt(x, z, 20); if (!Number.isFinite(y) || y < -1) continue;
+    if (blocked(x, z, y, 0.15, 0.3)) continue;
+    (rnd() < 0.12 ? fp : gp).push({ x, y, z, s: rr(0.7, 1.15) });
+  }
+  tufts(root, gp, gtex, { w: 0.9, h: 0.6, tint: ['#8fb84a', '#7aa63e', '#a5b957', '#6f9a36'] });
+  tufts(root, fp, ftex, { w: 0.9, h: 0.95, sway: 0.08 });
+  const va = [];
+  const perim = (n, f) => { for (let i = 0; i < n; i++) f(i); };
+  perim(26, (i) => va.push({ x: -34 + i * 2.7, y: 10.6, z: -25.6, len: rr(4, 9), rot: 0 }));
+  perim(26, (i) => va.push({ x: -34 + i * 2.7, y: 10.6, z: 25.6, len: rr(4, 9), rot: Math.PI }));
+  perim(18, (i) => va.push({ x: -35.6, y: 10.6, z: -24 + i * 2.7, len: rr(4, 9), rot: Math.PI / 2 }));
+  perim(18, (i) => va.push({ x: 35.6, y: 10.6, z: -24 + i * 2.7, len: rr(4, 9), rot: -Math.PI / 2 }));
+  for (const sg of [1, -1]) {
+    perim(9, (i) => va.push({ x: sg * (11.4 + i), y: 3.55, z: sg * 19.9, len: rr(1.6, 3.4), rot: 0 }));
+    perim(7, (i) => va.push({ x: -11 + i * 3.6, y: 4.2, z: sg * 2.45, len: rr(1.2, 3), rot: 0 }));
+    perim(6, (i) => va.push({ x: sg * (22.6 + i), y: 8.9, z: sg * -21.9, len: rr(2, 4.5), rot: 0 }));
+    perim(6, (i) => va.push({ x: sg * 35.3, y: 10, z: sg * (-9 + i * 0.4), len: rr(3, 6), rot: 1.2 }));
+  }
+  vines(root, va, vtex);
+  // canopies: leaf cards high on each trunk, hanging fronds
+  const lp = [];
+  for (const so of solids.filter((q) => q.mat === 'trunk')) {
+    const cx = (so.x0 + so.x1) / 2, cz = (so.z0 + so.z1) / 2;
+    for (let i = 0; i < 46; i++) { const a = rnd() * TAU, r = rr(1, 5.5), y = rr(11, 17.5); lp.push({ x: cx + Math.cos(a) * r, y, z: cz + Math.sin(a) * r, s: rr(1.6, 2.6) }); }
+  }
+  tufts(root, lp, ftex, { w: 3, h: 3, sway: 0.05 });
+  const lva = []; for (const so of solids.filter((q) => q.mat === 'trunk')) { const cx = (so.x0 + so.x1) / 2, cz = (so.z0 + so.z1) / 2; for (let i = 0; i < 22; i++) { const a = rnd() * TAU, r = rr(0.6, 4.5); lva.push({ x: cx + Math.cos(a) * r, y: rr(11, 15), z: cz + Math.sin(a) * r, len: rr(5, 10) }); } }
+  vines(root, lva, vtex);
+  await onProgress(0.75, 'Lighting the haze');
   const glowTex = haloTex();
-  // sky: violet to amber, a huge cracked moon with a halo ring, stars
+  // window glow sprites along the far facades + god rays through the canopy
+  for (let i = 0; i < 16; i++) { const x = -32 + i * 4.3; root.add(glowSprite(glowTex, i % 3 ? 0xffa050 : 0x46e6e0, 5, x, 7 + (i % 2) * 2, i % 2 ? -25.4 : 25.4, 0.28)); }
+  const shaftM = new THREE.MeshBasicMaterial({ color: 0xffd89a, transparent: true, opacity: 0.11, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false });
+  const shafts = [];
+  for (const [x, z, t] of [[-16, -6, 0.3], [-4, 14, -0.25], [12, -10, 0.2], [26, 6, -0.3], [4, -16, 0.15]]) { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 3.2, 26, 10, 1, true), shaftM); m.position.set(x, 13, z); m.rotation.set(t, 0, t * 0.7); root.add(m); shafts.push(m); }
+  // sky + ruined skyline swallowed by fog
   const skyGeo = new THREE.SphereGeometry(320, 18, 12), col = [], pp = skyGeo.attributes.position, c = new THREE.Color();
-  const top = new THREE.Color(0x2a1a62), mid = new THREE.Color(0x9a4a94), low = new THREE.Color(0xffa060);
-  for (let i = 0; i < pp.count; i++) { const y = pp.getY(i) / 320; c.copy(y > 0 ? low.clone().lerp(mid, clamp(y * 3.2, 0, 1)).lerp(top, clamp((y - 0.16) * 2.1, 0, 1)) : low); col.push(c.r, c.g, c.b); }
+  const top = new THREE.Color(0x2c5450), mid = new THREE.Color(0x4a7c70), low = new THREE.Color(0xa8c8a0);
+  for (let i = 0; i < pp.count; i++) { const y = pp.getY(i) / 320; c.copy(y > 0 ? low.clone().lerp(mid, clamp(y * 3, 0, 1)).lerp(top, clamp((y - 0.2) * 2, 0, 1)) : low); col.push(c.r, c.g, c.b); }
   skyGeo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
   const sky = new THREE.Mesh(skyGeo, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, fog: false, depthWrite: false })); sky.renderOrder = -10; root.add(sky);
-  const stars = []; for (let i = 0; i < 500; i++) { const a = Math.random() * 6.283, e = 0.18 + Math.random() * 1.2, r = 300; stars.push(Math.cos(a) * Math.cos(e) * r, Math.sin(e) * r, Math.sin(a) * Math.cos(e) * r); }
-  const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.Float32BufferAttribute(stars, 3));
-  root.add(new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xffffff, size: 1.6, sizeAttenuation: false, transparent: true, opacity: 0.8, fog: false, depthWrite: false })));
-  const moonPos = new THREE.Vector3(-120, 95, -230);
-  const moon = new THREE.Mesh(new THREE.SphereGeometry(58, 24, 16), new THREE.MeshBasicMaterial({ color: 0xf1ecff, fog: false })); moon.position.copy(moonPos); root.add(moon);
-  for (const [rot, rad, op, w] of [[0.5, 84, 0.5, 1.5], [1.15, 96, 0.3, 1]]) {
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(rad, w, 6, 90, 5.2), new THREE.MeshBasicMaterial({ color: 0xd8c8ff, transparent: true, opacity: op, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
-    ring.position.copy(moonPos); ring.rotation.set(rot, 0.4, 0.2); root.add(ring);
-  }
-  const mh = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0xb8a4ff, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })); mh.scale.setScalar(360); mh.position.copy(moonPos); root.add(mh);
-  const sunPos = new THREE.Vector3(160, 22, 210);
-  const sh = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0xff9a5a, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })); sh.scale.setScalar(300); sh.position.copy(sunPos); root.add(sh);
-  await onProgress(0.7, 'Raising the skyline');
-  // outer ground, fallen skyline, drifting debris
-  const outer = new THREE.Mesh(new THREE.PlaneGeometry(900, 900).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x4a3f5e, roughness: 1 })); outer.position.y = -0.7; outer.receiveShadow = true; root.add(outer);
-  let seed = 23; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
-  const towerM = new THREE.MeshStandardMaterial({ color: 0x3a2f4d, flatShading: true, roughness: 1 }), capM = new THREE.MeshStandardMaterial({ color: 0x8a76a8, flatShading: true, roughness: 1 });
-  const city = new THREE.Group();
-  for (let i = 0; i < 44; i++) {
-    const a = rnd() * 6.283, r = 95 + rnd() * 130, h = 16 + rnd() * 62, w = 6 + rnd() * 12;
-    const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, w * (0.6 + rnd() * 0.8)), towerM); b.position.set(Math.cos(a) * r, h / 2 - 3, Math.sin(a) * r); b.rotation.y = rnd() * 3; b.rotation.z = (rnd() - 0.5) * 0.12; city.add(b);
-    if (rnd() < 0.5) { const cp = new THREE.Mesh(new THREE.BoxGeometry(w * 1.1, 1.6, w * 1.1), capM); cp.position.set(b.position.x, h - 2.2, b.position.z); cp.rotation.copy(b.rotation); city.add(cp); }
-  }
-  for (let i = 0; i < 46; i++) { let x, z; do { x = (rnd() - 0.5) * 240; z = (rnd() - 0.5) * 180; } while (Math.abs(x) < 42 && Math.abs(z) < 32); const s2 = 1 + rnd() * 3.6; const b = new THREE.Mesh(new THREE.DodecahedronGeometry(s2, 0), towerM); b.position.set(x, s2 * 0.5, z); b.rotation.set(rnd() * 3, rnd() * 3, 0); city.add(b); }
-  for (let i = 0; i < 26; i++) { const a = rnd() * 6.283, r = 50 + rnd() * 70, s2 = 1.5 + rnd() * 5; const b = new THREE.Mesh(new THREE.OctahedronGeometry(s2, 0), capM); b.position.set(Math.cos(a) * r, 18 + rnd() * 38, Math.sin(a) * r); b.rotation.set(rnd() * 3, rnd() * 3, rnd() * 3); city.add(b); }
+  root.add(glowSprite(glowTex, 0xfff0c0, 300, 90, 120, -140, 0.85));
+  let seed = 41; const rn = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  const towerM = new THREE.MeshStandardMaterial({ color: 0x33453f, flatShading: true, roughness: 1 }), city = new THREE.Group();
+  for (let i = 0; i < 40; i++) { const a = rn() * 6.283, r = 80 + rn() * 130, h = 30 + rn() * 90, w = 8 + rn() * 14; const b = new THREE.Mesh(bevelGeo(-w / 2, w / 2, 0, h, -w * 0.4, w * 0.4, 0.8, 6), towerM); b.position.set(Math.cos(a) * r, -3, Math.sin(a) * r); b.rotation.y = rn() * 3; city.add(b); }
   root.add(mergeStatic(city));
+  const outer = new THREE.Mesh(new THREE.PlaneGeometry(900, 900).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x2a3a30, roughness: 1 })); outer.position.y = -0.7; root.add(outer);
+  {
+    const envScene = new THREE.Scene();
+    envScene.add(new THREE.Mesh(skyGeo, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide })));
+    const pm = new THREE.PMREMGenerator(renderer); scene.environment = pm.fromScene(envScene, 0.03).texture; scene.environmentIntensity = 0.8; pm.dispose();
+  }
+  scene.fog = new THREE.Fog(0x4c6e62, 14, 120); scene.background = new THREE.Color(0x6f9484);
+  const hemi = new THREE.HemisphereLight(0xa8d0c0, 0x2a3a30, 1.7); root.add(hemi);
+  const dir = new THREE.DirectionalLight(0xffcf94, 3.0); dir.position.set(30, 44, -34); dir.castShadow = true; dir.shadow.mapSize.set(2048, 2048);
+  Object.assign(dir.shadow.camera, { left: -46, right: 46, top: 34, bottom: -34, near: 10, far: 160 }); dir.shadow.bias = -0.0006; dir.shadow.normalBias = 0.04; root.add(dir);
+  const snow = makeSnow(root, 700, 70, 22, 0.09, 0xf0f0c0);
+  snow.extra = (dt, t) => { wind.value = t; shafts.forEach((m, i) => { m.material.opacity = 0.09 + Math.sin(t * 0.6 + i) * 0.03; }); };
+  await onProgress(1, 'Ready');
+  return { root, sky, dir, hemi, mats, glow, snow };
+}
+
+// ---------- WARSAT visuals: safety-yellow steel on charcoal concrete, moss-choked rock, a banded giant in a hazy sky ----------
+function jupiterTex() {
+  const c = document.createElement('canvas'); c.width = 512; c.height = 256; const g = c.getContext('2d');
+  const bands = ['#e9d3a8', '#c98c52', '#f1e3c4', '#b46a3a', '#e4c48c', '#9a5a36', '#f0dcb4', '#c8804a', '#dcb27a'];
+  const bh = 256 / bands.length;
+  bands.forEach((b, i) => { g.fillStyle = b; g.fillRect(0, i * bh, 512, bh + 1); });
+  for (let i = 0; i < 120; i++) { g.strokeStyle = `rgba(${Math.random() < 0.5 ? '255,240,210' : '110,60,30'},${0.05 + Math.random() * 0.12})`; g.lineWidth = 1 + Math.random() * 3; const y = Math.random() * 256; g.beginPath(); g.moveTo(0, y); for (let x = 0; x <= 512; x += 32) g.lineTo(x, y + Math.sin(x * 0.03 + i) * (2 + Math.random() * 4)); g.stroke(); }
+  g.fillStyle = 'rgba(170,60,40,.85)'; g.beginPath(); g.ellipse(340, 150, 34, 16, 0, 0, TAU); g.fill(); g.strokeStyle = 'rgba(240,210,170,.5)'; g.lineWidth = 3; g.stroke();
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+
+async function buildWarsatVisuals(scene, renderer, onProgress) {
+  const root = new THREE.Group(); scene.add(root); seedKit(53);
+  await onProgress(0.1, 'Pouring the slab');
+  const slab = concreteSet({ base: '#524c44', trim: '#e0aa22', rows: 4, cols: 2 }), slab2 = concreteSet({ base: '#5e574d', trim: '#d9a521', rows: 3, cols: 3 }), dark = concreteSet({ base: '#34333a', rows: 2, cols: 4, groove: 'rgba(0,0,0,.75)' });
+  const quilt = quiltSet({ base: '#6a645a' }), floorS = floorSet({ base: '#5a544c', tiles: 2 }), yel = steelSet();
+  const S = (t, o = {}) => new THREE.MeshStandardMaterial({ map: t.map, normalMap: t.normalMap, roughness: 0.82, metalness: 0.08, ...o });
+  quilt.map.repeat.set(1, 1);
+  const mats = {
+    floor: S(floorS, { roughness: 0.9 }), wall: S(slab), bunker: S(slab2), roof: S(quilt, { metalness: 0.3, roughness: 0.6 }), tower: S(slab), deck: S(dark, { metalness: 0.45, roughness: 0.55 }),
+    pylon: S(dark, { metalness: 0.5, roughness: 0.5 }), silo: S(dark, { metalness: 0.5, roughness: 0.45 }), crate: S(yel, { metalness: 0.3, roughness: 0.65 }), rail: S(yel, { metalness: 0.4, roughness: 0.55 }),
+    ramp: S(slab2, { side: THREE.DoubleSide }), rock: new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1 }),
+  };
+  const world = new THREE.Group(); root.add(world);
+  for (const so of solids) {
+    if (so.mat === 'silo') continue;
+    let g;
+    if (so.ramp) g = prismGeo(so, 5);
+    else if (so.mat === 'floor') g = boxGeo(so, 8);
+    else if (so.mat === 'pylon') g = pylonGeo((so.x0 + so.x1) / 2, so.y0, (so.z0 + so.z1) / 2, (so.x1 - so.x0) * 0.85, (so.x1 - so.x0) * 0.55, so.y1 - so.y0, 6, 4);
+    else g = bevelGeo(so.x0, so.x1, so.y0, so.y1, so.z0, so.z1, so.mat === 'wall' ? 0.06 : so.mat === 'rail' ? 0.06 : so.mat === 'roof' ? 0.12 : 0.18, 4);
+    const m = new THREE.Mesh(g, mats[so.mat] || mats.wall); m.castShadow = true; m.receiveShadow = true; world.add(m);
+  }
+  await onProgress(0.3, 'Raising the rocket');
+  // rocket: banded hull, nose cone, engine skirt, boxed in a yellow gantry
+  const hull = new THREE.MeshStandardMaterial({ color: 0xd9d4c8, roughness: 0.45, metalness: 0.5 });
+  const rk = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(1.7, 1.9, 10, 14, 1), hull); body.position.y = 7; rk.add(body);
+  const nose = new THREE.Mesh(new THREE.ConeGeometry(1.7, 4.2, 14), hull); nose.position.y = 14.1; rk.add(nose);
+  const skirt = new THREE.Mesh(new THREE.CylinderGeometry(2.1, 2.5, 2.2, 14), mats.pylon); skirt.position.y = 1.1; rk.add(skirt);
+  for (const y of [4.2, 7.2, 10.2]) { const b = new THREE.Mesh(new THREE.CylinderGeometry(1.92, 1.92, 0.5, 14), new THREE.MeshStandardMaterial({ color: 0xd9a521, roughness: 0.5, metalness: 0.4 })); b.position.y = y; rk.add(b); }
+  world.add(rk);
+  for (const [dx, dz] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) { const p = new THREE.Mesh(pylonGeo(dx * 3.4, 0, dz * 3.4, 0.5, 0.35, 12, 6, 4), mats.pylon); world.add(p); }
+  world.add(new THREE.Mesh(scaffold(0, 0, 0, 7.2, 12, 7.2, 0.16), mats.rail));
+  const glow = (c, i = 2.4) => new THREE.MeshStandardMaterial({ color: 0x050505, emissive: c, emissiveIntensity: i, roughness: 0.4 });
+  const white = glow(0xfff2d0, 3.2), amber = glow(0xffa030, 2.8), red = glow(0xff3b4a, 2.6), blue = glow(0x4a8dff, 2.8), green = glow(0x9aff5a, 3);
+  const strip = (m, x, y, z, w, h, d) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(x, y, z); world.add(b); return b; };
+  for (const sg of [1, -1]) {
+    // sodium strip lights under every roof + team accent on the bunker backs
+    for (let i = 0; i < 4; i++) strip(white, sg * (31 + i * 1.6), 6.55, sg * -6 + sg * i * 4 - sg * 2, 0.14, 0.05, 1.6);
+    for (let i = 0; i < 3; i++) strip(white, sg * 14, 3.75, sg * (14 + i * 3), 5, 0.05, 0.14);
+    strip(sg === 1 ? blue : red, sg * 35.85, 5.2, 0, 0.1, 5, 12); strip(amber, sg * 14, 0.06, sg * 12.1, 12, 0.04, 0.1);
+    strip(amber, sg * 31, 8.02, sg * -19, 5, 0.05, 0.1);
+  }
+  strip(amber, 0, 3.42, 9.02, 18, 0.04, 0.1); strip(amber, 0, 3.42, -9.02, 18, 0.04, 0.1); strip(green, 0, 12, 0, 0.5, 6, 0.5);
+  // pipes: cream trunk lines along the perimeter, clamps in green
+  const pipeM = new THREE.MeshStandardMaterial({ color: 0xd9d2c0, roughness: 0.55, metalness: 0.35 }), clampM = new THREE.MeshStandardMaterial({ color: 0x33403a, roughness: 0.5, metalness: 0.6 });
+  for (const z of [-25.3, 25.3]) { const p = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 72, 12), pipeM); p.rotation.z = Math.PI / 2; p.position.set(0, 2.2, z); world.add(p); for (let x = -32; x <= 32; x += 8) { const c = new THREE.Mesh(new THREE.CylinderGeometry(0.66, 0.66, 0.7, 12), clampM); c.rotation.z = Math.PI / 2; c.position.set(x, 2.2, z); world.add(c); } }
+  for (const x of [-35.4, 35.4]) { const p = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 54, 12), new THREE.MeshStandardMaterial({ color: 0x7fb050, roughness: 0.5, metalness: 0.3 })); p.rotation.x = Math.PI / 2; p.position.set(x, 3.4, 0); world.add(p); }
+  // perimeter gantries
+  for (const sg of [1, -1]) for (let i = 0; i < 5; i++) { world.add(new THREE.Mesh(scaffold(sg * 35.4, 0, -20 + i * 10, 1.4, 12.5, 1.4, 0.15), mats.rail)); }
+  mergeStatic(world);
+  await onProgress(0.5, 'Growing the moss');
+  // organic massing over the hard edges
+  const rockG = new THREE.Group(); root.add(rockG);
+  const lump = (x, y, z, sx, sy, sz) => { const m = new THREE.Mesh(mossRock(x, y, z, sx, sy, sz, { rock: '#6d5a46', moss: ['#8a8a2c', '#b0a63c'] }), mats.rock); m.castShadow = m.receiveShadow = true; m.userData.keep = true; rockG.add(m); };
+  for (const sg of [1, -1]) {
+    lump(sg * 14, 4.3, sg * 17, 6.6, 1.5, 4.4); lump(sg * 11, 4.5, sg * 19.5, 2.6, 1.2, 2.2); lump(sg * 17.6, 4.5, sg * 13.6, 2.4, 1.1, 1.8);
+    lump(sg * 32.5, 7, sg * 0, 4.4, 1.5, 8); lump(sg * 30.5, 7.2, sg * -7, 1.8, 1.0, 2.2); lump(sg * 31, 8, sg * -19, 3, 1.5, 2.8);
+    lump(sg * 26, 0.4, sg * -12, 1.6, 1.4, 1.4); lump(sg * 9, 0.4, sg * 22, 1.8, 1.2, 1.6);
+  }
+  // Io flora: dry grass, dead vines
+  const okAt = (x, z) => Math.abs(x) < 34.8 && Math.abs(z) < 24.8;
+  const gtex = grassCard(['#c8b45a', '#a8a03e', '#d9c870', '#8a8a34']), vtex = vineCard(['#8a7a3a', '#a89448', '#6a5a2c']);
+  const gp = [];
+  for (let i = 0; i < 1300; i++) {
+    const x = (rnd() - 0.5) * 72, z = (rnd() - 0.5) * 52; if (!okAt(x, z)) continue;
+    const y = groundAt(x, z, 20); if (!Number.isFinite(y) || y < -1) continue;
+    if (blocked(x, z, y, 0.15, 0.3)) continue;
+    const near = Math.abs(x) < 3.2 && Math.abs(z) < 3.2; if (near) continue;
+    gp.push({ x, y, z, s: rr(0.7, 1.05) });
+  }
+  tufts(root, gp, gtex, { w: 0.7, h: 0.5, tint: ['#d0bc5c', '#b8a848', '#e0cf78', '#9a9638'] });
+  const va = [];
+  for (const sg of [1, -1]) {
+    for (let i = 0; i < 9; i++) va.push({ x: sg * (8.4 + i * 1.3), y: 4.35, z: sg * 22.1, len: rr(1.5, 3.5), rot: 0 });
+    for (let i = 0; i < 7; i++) va.push({ x: sg * 8.1, y: 4.35, z: sg * (12.4 + i * 1.5), len: rr(1.5, 3.2), rot: Math.PI / 2 });
+    for (let i = 0; i < 10; i++) va.push({ x: sg * (29.4 + i * 0.7), y: 6.55, z: sg * 10.1, len: rr(1.2, 3), rot: 0 });
+    for (let i = 0; i < 12; i++) va.push({ x: -34 + i * 5.6, y: 13.6, z: sg * 25.6, len: rr(3, 8), rot: sg === 1 ? Math.PI : 0 });
+    for (let i = 0; i < 6; i++) va.push({ x: sg * (29 + i), y: 7.9, z: sg * -22.1, len: rr(1.6, 3.6), rot: 0 });
+  }
+  vines(root, va, vtex);
+  await onProgress(0.75, 'Hanging Jupiter');
+  const glowTex = haloTex();
+  // sky: pale sulfur haze, hard white sun, banded planet
+  const skyGeo = new THREE.SphereGeometry(320, 18, 12), col = [], pp = skyGeo.attributes.position, c = new THREE.Color();
+  const top = new THREE.Color(0x5a6a8a), mid = new THREE.Color(0xc4b898), low = new THREE.Color(0xf0e0b0);
+  for (let i = 0; i < pp.count; i++) { const y = pp.getY(i) / 320; c.copy(y > 0 ? low.clone().lerp(mid, clamp(y * 3, 0, 1)).lerp(top, clamp((y - 0.25) * 2, 0, 1)) : low); col.push(c.r, c.g, c.b); }
+  skyGeo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  const sky = new THREE.Mesh(skyGeo, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, fog: false, depthWrite: false })); sky.renderOrder = -10; root.add(sky);
+  const jup = new THREE.Mesh(new THREE.SphereGeometry(85, 32, 20), new THREE.MeshBasicMaterial({ map: jupiterTex(), fog: false })); jup.position.set(-170, 105, -250); jup.rotation.set(0.3, 0, 0.12); root.add(jup);
+  root.add(glowSprite(glowTex, 0xffc890, 260, -170, 105, -250, 0.35));
+  root.add(glowSprite(glowTex, 0xfff4d0, 340, 150, 90, 190, 0.95));
+  let seed = 67; const rn = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  const mesaM = new THREE.MeshStandardMaterial({ color: 0x9a8752, flatShading: true, roughness: 1 }), mesaCap = new THREE.MeshStandardMaterial({ color: 0xb8a866, flatShading: true, roughness: 1 }), mesas = new THREE.Group();
+  for (let i = 0; i < 30; i++) { const a = rn() * 6.283, r = 110 + rn() * 130, h = 14 + rn() * 34, w = 14 + rn() * 26; const b = new THREE.Mesh(bevelGeo(-w / 2, w / 2, 0, h, -w * 0.35, w * 0.35, 2.4, 8), mesaM); b.position.set(Math.cos(a) * r, -3, Math.sin(a) * r); b.rotation.y = rn() * 3; mesas.add(b); }
+  root.add(mergeStatic(mesas));
+  const outer = new THREE.Mesh(new THREE.PlaneGeometry(900, 900).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xd8cfb0, roughness: 1 })); outer.position.y = -0.7; outer.receiveShadow = true; root.add(outer);
   {
     const envScene = new THREE.Scene();
     envScene.add(new THREE.Mesh(skyGeo, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide })));
     const pm = new THREE.PMREMGenerator(renderer); scene.environment = pm.fromScene(envScene, 0.03).texture; scene.environmentIntensity = 0.9; pm.dispose();
   }
-  scene.fog = new THREE.Fog(0x8f5f96, 34, 180); scene.background = new THREE.Color(0xc07a7a);
-  const hemi = new THREE.HemisphereLight(0xc4b4ff, 0x6a4a5e, 1.9); root.add(hemi);
-  const dir = new THREE.DirectionalLight(0xffb480, 3.1); dir.position.set(40, 34, 48); dir.castShadow = true; dir.shadow.mapSize.set(2048, 2048);
+  scene.fog = new THREE.Fog(0xd8cc9c, 30, 170); scene.background = new THREE.Color(0xe8d8a8);
+  const hemi = new THREE.HemisphereLight(0xdfe6ff, 0x8a7a50, 1.7); root.add(hemi);
+  const dir = new THREE.DirectionalLight(0xffe4a8, 3.4); dir.position.set(40, 40, 46); dir.castShadow = true; dir.shadow.mapSize.set(2048, 2048);
   Object.assign(dir.shadow.camera, { left: -46, right: 46, top: 34, bottom: -34, near: 10, far: 160 }); dir.shadow.bias = -0.0006; dir.shadow.normalBias = 0.04; root.add(dir);
-  const rim = new THREE.DirectionalLight(0x9cb0ff, 1.1); rim.position.set(-40, 30, -50); root.add(rim);
-  const snow = makeSnow(root, 900, 70, 22, 0.1, 0xffe0b8);
-  snow.extra = (dt, t) => { r1.rotation.z += dt * 0.6; r2.rotation.y += dt * 0.9; r2.rotation.z -= dt * 0.4; rift.position.y = 15 + Math.sin(t * 0.8) * 0.4; beam.material.opacity = 0.2 + Math.sin(t * 2.2) * 0.06; };
+  const snow = makeSnow(root, 800, 70, 22, 0.1, 0xfff4d0);
+  snow.extra = (dt, t) => { wind.value = t; jup.rotation.y += dt * 0.004; };
   await onProgress(1, 'Ready');
   return { root, sky, dir, hemi, mats, glow, snow };
 }
@@ -939,6 +1157,6 @@ export function disposeMap(scene) {
 export async function loadMap(scene, renderer, id, onProgress = () => {}) {
   disposeMap(scene);
   defineMap(id); buildNav();
-  current = id === 'cryostat' ? await buildCryostatVisuals(scene, renderer, onProgress) : id === 'mesa' ? await buildMesaVisuals(scene, renderer, onProgress) : id === 'halcyon' ? await buildHalcyonVisuals(scene, renderer, onProgress) : await buildLockoutVisuals(scene, renderer, onProgress);
+  current = id === 'cryostat' ? await buildCryostatVisuals(scene, renderer, onProgress) : id === 'mesa' ? await buildMesaVisuals(scene, renderer, onProgress) : id === 'overgrowth' ? await buildOvergrowthVisuals(scene, renderer, onProgress) : id === 'warsat' ? await buildWarsatVisuals(scene, renderer, onProgress) : await buildLockoutVisuals(scene, renderer, onProgress);
   return current;
 }

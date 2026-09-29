@@ -107,10 +107,11 @@ Weapon skins (tints) are unlocked with level and credits.
 
 ## Maps
 
-Both are rotationally symmetric about the origin (Red -X, Blue +X) with mirrored spawns and pickups. Pick in Deployment -> Map (or `?map=lockout|cryostat|mesa|halcyon`).
+Both are rotationally symmetric about the origin (Red -X, Blue +X) with mirrored spawns and pickups. Pick in Deployment -> Map (or `?map=lockout|cryostat|mesa|overgrowth|warsat`).
 
 - **Lockout** - two raised bases, catwalk bridges, central tower with ramps to every height, sniper ledges at the top, dense cover and rails. No floor: fall and you die.
-- **Halcyon** - violet dusk ruins under a cracked moon. A raised bridge over the centre lane, side balconies, floating shard platforms, a broken arch at each base and a sniper spire per side. Tuned for Warlock Hunt: blink between levels, glide the gaps, nova down the long lane.
+- **Overgrowth** - a drowned transit atrium in the style of an overgrown Venus subway: dark teal concrete, ivy, buttressed trees, red steel trusses, a skybridge over the centre lane, lit windows in the haze.
+- **Warsat** - an Io launch facility in the style of a Warmind bunker: a rocket on its yellow gantry, charcoal slab walls, tapered pylons, moss-choked hangars, cream pipes and a banded giant in a pale sky.
 - **Mesa** - sunset canyon. Central plateau with four ramps, one sniper spire per side reached by a long ramp, sandstone bases, side pods, big sightlines.
 - **Cryostat** - night snow yard. Two sniper towers (one per side, one rifle each), central reactor deck, base pads, skybridges, ramps to every level, lots of spawn pads, camo, damage boost, overshield, sword, hammer. Aurora, moon, drifting snow.
 
@@ -133,6 +134,7 @@ js/audio.js    synthesized SFX + ambient music
 js/merge.js    merges static meshes per material (draw-call budget)
 js/net.js      PeerJS lobby + transport
 js/touch.js    on-screen controls for phones
+js/mapkit.js   environment art kit (bevelled architecture, normal-mapped panels, scaffolds, foliage, vines, trees)
 js/modes.js    game modes + CTF / Oddball objective layer
 js/profile.js  callsign, XP, credits, unlocks (localStorage)
 js/catalog.js  operators, halos, emblems, titles, badges, codex data
