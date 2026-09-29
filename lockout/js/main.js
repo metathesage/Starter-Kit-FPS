@@ -209,10 +209,11 @@ function showTitle() {
 // random mode + map, saved settings otherwise; does not overwrite your custom-game choices
 function quickPlay() {
   const modes = Object.keys(MODES), maps = World.MAP_LIST.map((x) => x.id);
-  const keep = { mode: loadout.mode, map: loadout.map };
+  const keep = { mode: loadout.mode, map: loadout.map, variant: loadout.variant };
   loadout.mode = modes[(Math.random() * modes.length) | 0]; loadout.map = maps[(Math.random() * maps.length) | 0];
-  UI.toast(`${MODES[loadout.mode].name} · ${World.MAP_LIST.find((x) => x.id === loadout.map).name}`, 1800);
-  startMatch().then(() => { loadout.mode = keep.mode; loadout.map = keep.map; });
+  loadout.variant = Math.random() < 0.65 ? 'standard' : VARIANTS[1 + ((Math.random() * (VARIANTS.length - 1)) | 0)][0];
+  UI.toast(`${MODES[loadout.mode].name} · ${World.MAP_LIST.find((x) => x.id === loadout.map).name}${loadout.variant !== 'standard' ? ' · ' + VARIANTS.find((v) => v[0] === loadout.variant)[1] : ''}`, 2200);
+  startMatch().then(() => { loadout.mode = keep.mode; loadout.map = keep.map; loadout.variant = keep.variant; });
 }
 
 function renderPCard() {

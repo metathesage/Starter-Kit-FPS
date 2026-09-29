@@ -849,6 +849,10 @@ export class Match {
     if (a.lastKiller === v.id) { M('REVENGE', 'skull'); a.lastKiller = -1; }
     if (a.streak === 5) M('KILLING SPREE', 'flame'); if (a.streak === 10) M('KILLING FRENZY', 'flame'); if (a.streak === 15) M('RUNNING RIOT', 'flame'); if (a.streak === 20) M('RAMPAGE', 'flame');
     if (v.streak >= 5) M('SPREE ENDED', 'skull');
+    // streak rewards: keep the fun loop rolling
+    if (a.streak === 5) { a.gren.frag = Math.min(4, a.gren.frag + 2); a.gren.plasma = Math.min(4, a.gren.plasma + 2); this.bus.emit('announce', a.isPlayer ? 'STREAK REWARD: GRENADES' : `${a.name} IS ON A SPREE`, a.team); }
+    else if (a.streak === 8) { a.boostT = 15; this.sfx('power', a, 0.9); this.bus.emit('announce', a.isPlayer ? 'STREAK REWARD: DAMAGE BOOST' : `${a.name} IS ON FIRE`, a.team); }
+    else if (a.streak === 12) { a.over = 200; a.overT = 20; a.shield = SHIELD_MAX + 200; a.lastHit = 99; this.sfx('power', a, 0.9); this.bus.emit('announce', a.isPlayer ? 'STREAK REWARD: OVERSHIELD' : `${a.name} IS UNSTOPPABLE`, a.team); }
   }
 
   checkLead(a) {
