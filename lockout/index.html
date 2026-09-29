@@ -40,7 +40,7 @@
 <!-- TITLE -->
 <section id="title" class="screen" data-screen="title">
   <header class="title-top">
-    <div class="tag">COLD STORAGE <b>/</b> NIGHT SNOW</div>
+    <div class="tag"></div>
     <div class="top-actions">
       <button class="chip" id="btnFull" aria-label="Fullscreen"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
       <button class="chip" id="btnMute" aria-label="Mute"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z M17 9c1.5 1.5 1.5 4.500 0 6"/></svg></button>
@@ -51,6 +51,7 @@
     <h1 class="logo" aria-label="Lockout"><span class="l1">LOCK</span><span class="l2">OUT</span></h1>
     <nav class="menu" id="titleMenu"></nav>
   </div>
+  <div class="pcard" id="pCard"></div>
   <aside class="hero-card" id="heroCard">
     <div class="hc-role" id="hcRole">VANGUARD</div>
     <div class="hc-name" id="hcName">AOI</div>
@@ -69,6 +70,29 @@
     <div class="panel-foot"><button class="btn primary" id="btnDrop"><span>DROP IN</span><i></i></button></div>
   </div>
   <footer class="prompts" id="setupPrompts"></footer>
+</section>
+
+<!-- ARMORY -->
+<section id="armory" class="screen" data-screen="armory">
+  <div class="panel wide armory">
+    <div class="panel-head"><span class="idx">03</span><h2>ARMORY</h2><span class="sub">Locker, shop and codex. Everything in the yard, in one place.</span><div class="arm-wallet" id="armWallet"></div></div>
+    <div class="arm-tabs" id="armTabs"></div>
+    <div class="arm-body"><div class="arm-grid" id="armGrid"></div><aside class="arm-detail" id="armDetail"></aside></div>
+    <div class="panel-foot"><button class="btn" id="btnArmBack"><span>BACK</span><i></i></button></div>
+  </div>
+</section>
+
+<!-- SERVICE RECORD -->
+<section id="record" class="screen" data-screen="record">
+  <div class="panel wide record">
+    <div class="panel-head"><span class="idx">04</span><h2>SERVICE RECORD</h2><span class="sub">Your callsign, rank and everything you have done with it.</span></div>
+    <div class="rc-top"><div class="rc-head" id="recHead"></div><div class="rc-xp" id="recXp"></div></div>
+    <div class="opts" id="recOpts"></div>
+    <div class="rc-stats" id="recStats"></div>
+    <h3 class="rc-h">SERVICE BADGES</h3><div class="rc-badges" id="recBadges"></div>
+    <h3 class="rc-h">MEDALS</h3><div class="res-medals" id="recMedals"></div>
+    <div class="panel-foot"><button class="btn" id="btnRecBack"><span>BACK</span><i></i></button></div>
+  </div>
 </section>
 
 <!-- CONTROLS -->
@@ -133,6 +157,7 @@
   <div class="panel wide results">
     <div class="res-banner" id="resBanner"><div class="res-kicker" id="resKicker"></div><div class="res-title" id="resTitle"></div><div class="res-score" id="resScore"></div></div>
     <div class="res-table" id="resTable"></div>
+    <div class="res-xp" id="resXp"></div>
     <div class="res-medals" id="resMedals"></div>
     <div class="panel-foot" id="resBtns"></div>
   </div>

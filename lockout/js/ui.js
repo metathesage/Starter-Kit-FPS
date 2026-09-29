@@ -37,8 +37,9 @@ export const UI = {
   tick() {
     if (!this.cur || !this.rows.length) return;
     const N = Input.nav;
-    if (N.up) { this.focus((this.fi + this.rows.length - 1) % this.rows.length); Sound.play('menuMove', { vol: 0.6 }); }
-    if (N.down) { this.focus((this.fi + 1) % this.rows.length); Sound.play('menuMove', { vol: 0.6 }); }
+    const cur = this.rows[this.fi];
+    if (N.up) { if (cur && cur._vert && cur._vert(-1)) Sound.play('menuMove', { vol: 0.6 }); else { this.focus((this.fi + this.rows.length - 1) % this.rows.length); Sound.play('menuMove', { vol: 0.6 }); } }
+    else if (N.down) { if (cur && cur._vert && cur._vert(1)) Sound.play('menuMove', { vol: 0.6 }); else { this.focus((this.fi + 1) % this.rows.length); Sound.play('menuMove', { vol: 0.6 }); } }
     const r = this.rows[this.fi];
     if (r) {
       if (N.left && r._adj) { r._adj(-1); Sound.play('menuMove', { vol: 0.6 }); }

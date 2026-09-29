@@ -9,6 +9,8 @@ import { WEAPONS, loadWeaponModels } from './weapons.js';
 import { loadAngel } from './angel.js';
 import { Profile, rollCallsign } from './profile.js';
 import { MODES } from './modes.js';
+import { showArmory, showRecord, emblemHtml, titleText } from './armory.js';
+import * as C from './catalog.js';
 import { FX } from './fx.js';
 import { Viewmodel } from './fps.js';
 import { Match, DIFFICULTY } from './match.js';
@@ -23,7 +25,9 @@ const loadout = Object.assign({ waifu: 0, team: 'blue', diff: 'normal', limit: 2
 if (!MODES[loadout.mode]) loadout.mode = 'slayer';
 if (Q.get('mode') && MODES[Q.get('mode')]) loadout.mode = Q.get('mode');
 const limitOf = () => { const l = MODES[loadout.mode].limits, v = loadout.limits && loadout.limits[loadout.mode]; return l.includes(v) ? v : l[1]; };
-const matchCfg = () => ({ mode: loadout.mode, limit: limitOf() });
+const haloHex = (id) => { const h = C.HALOS.find((x) => x.id === (id || Profile.d.eq.halo)); return h ? h.color : undefined; };
+const matchCfg = () => ({ mode: loadout.mode, limit: limitOf(), haloColor: haloHex() });
+{ const i = WAIFUS.findIndex((w) => w.id === Profile.d.eq.operator); if (i >= 0) loadout.waifu = i; else loadout.waifu = 0; }
 if (Q.get('map')) loadout.map = Q.get('map');
 if (!['lockout', 'cryostat'].includes(loadout.map)) loadout.map = 'lockout';
 const persist = () => { save('settings', settings); save('loadout', loadout); };
@@ -67,7 +71,7 @@ addEventListener('resize', resize);
 // ---- state ----------------------------------------------------------------------------
 let state = 'splash', world = null, fx = null, viewmodel = null, hud = null, match = null, showcase = null;
 let trauma = 0, camKick = 0, fovCur = 62, menuT = 0, last = performance.now(), padCrouch = false, fpsAcc = 0, fpsN = 0, showFps = Q.has('fps'), muted = false;
-let lastDevice = 'kbm', endShown = false, quick = Q.has('quick'), fast = Q.has('fast') || Q.has('quick'), netAcc = 0, netEdges = 0;
+let mstats = null, lastDevice = 'kbm', endShown = false, quick = Q.has('quick'), fast = Q.has('fast') || Q.has('quick'), netAcc = 0, netEdges = 0;
 const shakeN = { t: 0 };
 window.__game = { Net, hostLobby: () => hostLobby(), joinLobby: (c) => joinLobby(c), startOnlineHost: () => startOnlineHost(), renderer, get fx() { return fx; }, get match() { return match; }, get state() { return state; }, get scene() { return scene; }, get camera() { return camera; }, start: () => startMatch(), Input, THREE };
 
@@ -151,10 +155,10 @@ function refreshPrompts() {
   UI.prompts($('#setupPrompts'), [['left+right', 'CHANGE'], ['confirm', 'CONFIRM'], ['back', 'BACK']]);
 }
 
-function rebuildShowcase() {
+function rebuildShowcase(pv = {}) {
   if (showcase) { scene.remove(showcase.root); disposeRig(showcase); }
-  const w = WAIFUS[loadout.waifu];
-  showcase = buildWaifu({ team: loadout.team, hair: w.hair, eye: w.eye, helmet: loadout.helmet });
+  const w = WAIFUS.find((x) => x.id === pv.operator) || WAIFUS[loadout.waifu];
+  showcase = buildWaifu({ team: loadout.team, hair: w.hair, eye: w.eye, helmet: loadout.helmet, haloColor: haloHex(pv.halo) });
   showcase.root.position.set(...MENU[loadout.map].show); showcase.root.rotation.y = 1.75; scene.add(showcase.root);
 }
 
@@ -174,9 +178,12 @@ function showTitle() {
   const rows = [
     UI.item(menu, 'Play Match', '01', () => showSetup()),
     UI.item(menu, 'Play Online', '02', () => openOnline()),
-    UI.item(menu, 'Controls', '03', () => showControls('title')),
-    UI.item(menu, 'Settings', '04', () => showSettings(() => showTitle())),
+    UI.item(menu, 'Armory', '03', () => openArmory()),
+    UI.item(menu, 'Service Record', '04', () => openRecord()),
+    UI.item(menu, 'Controls', '05', () => showControls('title')),
+    UI.item(menu, 'Settings', '06', () => showSettings(() => showTitle())),
   ];
+  renderPCard();
   UI.show('title', { rows });
   $('#btnFull').onclick = () => { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen && document.documentElement.requestFullscreen().catch(() => {}); };
   $('#btnMute').onclick = () => { muted = !muted; applySettings(); UI.toast(muted ? 'AUDIO MUTED' : 'AUDIO ON'); };
@@ -184,6 +191,19 @@ function showTitle() {
   Sound.music('menu');
   $('#hero-fallback')?.remove();
 }
+
+function renderPCard() {
+  const d = Profile.d;
+  $('#pCard').innerHTML = `${emblemHtml(d.eq.emblem, 58)}<div><div class="rc-tag">${Profile.callsign}</div><div class="rc-title">${titleText(d.eq.title)}</div><div class="rc-rank">${Profile.rank} · LVL ${Profile.level}</div><div class="xp-bar"><i style="width:${Profile.progress() * 100}%"></i></div></div>`;
+}
+function openArmory() {
+  showArmory({
+    back: () => { rebuildShowcase(); setHero(); showTitle(); },
+    preview: (p) => { if (p.reset) rebuildShowcase(); else rebuildShowcase(p); },
+    onEquip: (cat, id) => { if (cat === 'operator') { loadout.waifu = Math.max(0, WAIFUS.findIndex((w) => w.id === id)); persist(); } rebuildShowcase(); renderPCard(); },
+  });
+}
+function openRecord() { showRecord({ back: () => showTitle(), onChange: () => renderPCard() }); }
 
 function showControls(from) {
   const b = $('#btnCtrlBack'); UI.button(b, () => back());
@@ -235,14 +255,17 @@ function showSetup(focusRow) {
   const cards = $('#waifuCards'); cards.innerHTML = '';
   cardEls = WAIFUS.map((w, i) => {
     const c = document.createElement('div'); c.className = 'card'; c.style.setProperty('--c', '#' + new THREE.Color(w.hair).getHexString());
-    c.innerHTML = `<div class="cr">${w.role}</div><div class="cn">${w.name}</div><div class="cb">${w.blurb}</div>`;
-    c.onclick = (e) => { e.stopPropagation(); select(i); Sound.unlock(); Sound.play('menuMove', { vol: 0.6 }); };
+    const need = C.OPERATOR_UNLOCK[w.id] || 1, locked = Profile.level < need; c.classList.toggle('locked', locked);
+    c.innerHTML = `<div class="cr">${w.role}</div><div class="cn">${w.name}</div><div class="cb">${w.blurb}</div>${locked ? `<div class="lk">LEVEL ${need}</div>` : ''}`;
+    c.onclick = (e) => { e.stopPropagation(); select(i, 0); Sound.unlock(); Sound.play('menuMove', { vol: 0.6 }); };
     cards.appendChild(c); return c;
   });
-  const select = (i) => { const prev = loadout.waifu; loadout.waifu = (i + WAIFUS.length) % WAIFUS.length; cardEls.forEach((c, k) => c.classList.toggle('sel', k === loadout.waifu)); if (prev !== loadout.waifu) rebuildShowcase(); setHero(); persist(); };
+  const isLocked = (i) => Profile.level < (C.OPERATOR_UNLOCK[WAIFUS[i].id] || 1);
+  const select = (i, dir = 1) => { i = (i + WAIFUS.length) % WAIFUS.length; let n = 0; while (isLocked(i) && n++ < WAIFUS.length) { if (dir === 0) { UI.toast(`LEVEL ${C.OPERATOR_UNLOCK[WAIFUS[i].id]} REQUIRED`); return; } i = (i + dir + WAIFUS.length) % WAIFUS.length; }
+    const prev = loadout.waifu; loadout.waifu = i; Profile.equip('operator', WAIFUS[i].id); cardEls.forEach((c, k) => c.classList.toggle('sel', k === loadout.waifu)); if (prev !== loadout.waifu) rebuildShowcase(); setHero(); persist(); };
   const box = $('#setupOpts'); box.innerHTML = '';
   cardsRow = document.createElement('div'); cardsRow.className = 'opt cardsrow'; cardsRow.appendChild(cards); box.appendChild(cardsRow);
-  cardsRow._adj = (d) => select(loadout.waifu + d);
+  cardsRow._adj = (d) => select(loadout.waifu + d, d);
   select(loadout.waifu);
   const rows = [cardsRow];
   rows.push(modeRow(box, () => showSetup(1)));
@@ -427,6 +450,10 @@ function beginMatch(m, w) {
   const st = w || match.player.style;
   viewmodel.setup(match.player.team, st.hair, st.eye);
   hud.root.classList.remove('hidden'); hud.bind(match);
+  mstats = { kills: 0, heads: 0, perfects: 0, sniper: 0, sword: 0, grenade: 0, caps: 0, ballSec: 0, medals: {}, streakBest: 0, awarded: false };
+  match.bus.on('kill', (r) => { if (r.killer === match.player && !r.suicide) { mstats.kills++; if (r.head) mstats.heads++; if (r.weapon === 'sniper') mstats.sniper++; if (r.weapon === 'sword') mstats.sword++; if (r.weapon === 'frag' || r.weapon === 'plasma') mstats.grenade++; mstats.streakBest = Math.max(mstats.streakBest, match.player.streak); } });
+  match.bus.on('medal', (a, n) => { if (a === match.player) { mstats.medals[n] = (mstats.medals[n] || 0) + 1; if (n === 'PERFECT') mstats.perfects++; } });
+  match.bus.on('obj', (t, a) => { if (a === match.player) { if (t === 'cap') mstats.caps++; else if (t === 'ballsec') mstats.ballSec++; } });
   match.bus.on('shake', (a) => { trauma = Math.min(1, trauma + a); });
   match.bus.on('shot', (a, def) => { if (a === match.player && def) { viewmodel.kickNow(0.4 + def.kick * 8); camKick = Math.min(0.06, camKick + def.kick * 0.35); } });
   match.bus.on('state', (s) => { if (s === 'ended') onMatchEnd(); });
@@ -463,6 +490,7 @@ function showResults() {
   const order = m.ffa ? null : m.score.blue >= m.score.red ? ['blue', 'red'] : ['red', 'blue'];
   const ranked = m.ranking();
   $('#resTable').innerHTML = `<table class="tbl">${head}${m.ffa ? rows(ranked) : order.map((t) => rows(ranked.filter((a) => a.team === t))).join('')}</table>`;
+  award(m, p, won, win === 'tie');
   const med = Object.entries(p.medals);
   $('#resMedals').innerHTML = med.length ? med.map(([n, c]) => `<span class="rm">${svg(MEDAL_ICONS.star)}${n}${c > 1 ? ' x' + c : ''}</span>`).join('') : '<span class="rm" style="opacity:.5">NO MEDALS</span>';
   const btns = $('#resBtns'); btns.innerHTML = '';
@@ -482,9 +510,33 @@ function showResults() {
   Sound.music('menu');
 }
 
+// XP, credits, stats, unlocks and badges for a finished match (once)
+function award(m, p, won, tie) {
+  const box = $('#resXp'); box.innerHTML = '';
+  if (!mstats || mstats.awarded) return; mstats.awarded = true;
+  const S = mstats, medalN = Object.values(S.medals).reduce((a, b) => a + b, 0);
+  const parts = [['KILLS', S.kills * 10], ['HEADSHOTS', S.heads * 5], ['PERFECTS', S.perfects * 40], ['ASSISTS', p.assists * 4], ['MEDALS', medalN * 8], ['CAPTURES', S.caps * 60], ['BALL TIME', Math.round(S.ballSec * 1.5)], [won ? 'VICTORY' : tie ? 'DRAW' : 'COMPLETION', won ? 120 : tie ? 70 : 40]].filter((x) => x[1] > 0);
+  const xp = parts.reduce((a, b) => a + b[1], 0), cr = Math.round(xp * 0.55);
+  const before = { level: Profile.level, xp: Profile.xp, need: Profile.level >= 50 ? 1 : (function () { return 0; })() };
+  const fromLevel = Profile.level;
+  const d = Profile.d, st = d.stats;
+  st.kills += S.kills; st.deaths += p.deaths; st.assists += p.assists; st.headshots += S.heads; st.perfects += S.perfects; st.sniper += S.sniper; st.sword += S.sword; st.grenade += S.grenade;
+  st.caps += S.caps; st.ballTime += S.ballSec; st.matches++; if (won) st.wins++; st.streakBest = Math.max(st.streakBest, S.streakBest);
+  for (const [n, c] of Object.entries(S.medals)) d.medals[n] = (d.medals[n] || 0) + c;
+  const res = Profile.addXp(xp, cr);
+  const news = C.newlyUnlocked(fromLevel, Profile.level, WAIFUS), badges = C.newBadges();
+  void before;
+  box.innerHTML = `<div class="rx-h"><span>${Profile.callsign} · ${Profile.rank} · LVL ${Profile.level}</span><b>+${xp} XP  +${cr} CR</b></div>`
+    + parts.map(([k, v]) => `<div class="rx-r"><span>${k}</span><b>+${v}</b></div>`).join('')
+    + `<div class="xp-bar"><i style="width:${Profile.progress() * 100}%"></i></div>`
+    + (res.levels.length ? `<div class="rx-up">LEVEL UP  ${fromLevel} > ${Profile.level}</div>` : '')
+    + (news.length || badges.length ? `<div class="rx-new">${news.map((n) => `<span class="rm">${n.cat}: ${n.name}</span>`).join('')}${badges.map((b) => `<span class="rm">BADGE: ${b.name}</span>`).join('')}</div>` : '');
+  if (res.levels.length) Sound.play('win', { vol: 0.6 });
+}
+
 function endMatchToMenu() {
   if (match) { match.dispose(); match = null; }
-  showcase.root.visible = true;
+  showcase.root.visible = true; renderPCard();
   UI.hide('pause'); UI.hide('results');
 }
 

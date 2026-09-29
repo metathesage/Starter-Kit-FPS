@@ -9,6 +9,11 @@ export const WAIFUS = [
   { id: 'kira', name: 'KIRA', role: 'MARKSMAN', hair: 0xdfe9ff, eye: 0xff5b8a, blurb: 'Patient. Owns the tower.' },
   { id: 'nova', name: 'NOVA', role: 'BREACHER', hair: 0x5df2be, eye: 0xffd15b, blurb: 'Close range, no manners.' },
   { id: 'yuna', name: 'YUNA', role: 'PHANTOM', hair: 0xb28cff, eye: 0xff9ab8, blurb: 'Flanks. Always flanks.' },
+  { id: 'mira', name: 'MIRA', role: 'ENFORCER', hair: 0xff5b6e, eye: 0xffd15b, blurb: 'Holds the line. Never blinks first.' },
+  { id: 'ivy', name: 'IVY', role: 'SENTINEL', hair: 0x2fd6c0, eye: 0xb28cff, blurb: 'Quiet. Counts your reloads.' },
+  { id: 'hana', name: 'HANA', role: 'SKIRMISHER', hair: 0xffb347, eye: 0x7cc7ff, blurb: 'Fast hands, faster mouth.' },
+  { id: 'zero', name: 'ZERO', role: 'WRAITH', hair: 0xe6e0ff, eye: 0xff4a58, blurb: 'You will not see the second shot.' },
+  { id: 'eos', name: 'EOS', role: 'ARCHANGEL', hair: 0xffd166, eye: 0xfff0c4, blurb: 'First light. Last word.' },
 ];
 export const BOT_STYLES = [
   { name: 'HIKARI', hair: 0xffd166, eye: 0x6ab8ff }, { name: 'RIN', hair: 0xff5b5b, eye: 0xffe36a },
@@ -167,8 +172,9 @@ export function makeMats(team, hair, eye) {
 
 const rnd01 = (() => { let sd = 3; return () => ((sd = (sd * 16807) % 2147483647) / 2147483647); })();
 
-export function buildWaifu({ team = 'blue', hair = 0xff86c2, eye = 0x5ce1ff, scale = 1.04, helmet = false, angel = true } = {}) {
+export function buildWaifu({ team = 'blue', hair = 0xff86c2, eye = 0x5ce1ff, scale = 1.04, helmet = false, angel = true, haloColor = null } = {}) {
   const mats = makeMats(team, hair, eye);
+  if (haloColor != null) mats.halo.color.setHex(haloColor);
   const root = new THREE.Group(); root.rotation.order = 'YXZ';
   const model = new THREE.Group(); model.scale.setScalar(scale); root.add(model);
 
