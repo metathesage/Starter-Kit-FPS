@@ -17,8 +17,10 @@ var _ability_label: Label
 var _prompt_label: Label
 var _banner_label: Label
 var _countdown_label: Label
+var _hint_label: Label
 var _results: PanelContainer
 var _flash := 0.0
+var _pad := false
 
 const CYAN := Color(0.35, 0.9, 1.0)
 const GOLD := Color(1.0, 0.8, 0.2)
@@ -55,6 +57,24 @@ func _ready() -> void:
 	_banner_label = _label("", Vector2(0, -80), 44, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, true)
 	_countdown_label = _label("", Vector2(0, -130), 26, CYAN, HORIZONTAL_ALIGNMENT_CENTER, true)
 	_banner_label.modulate.a = 0.0
+
+	# Crosshair: center dot + four serif ticks, honest gap.
+	_cross(Vector2(-2, -2), Vector2(4, 4), Color(1, 1, 1, 0.9))
+	_cross(Vector2(-1, -16), Vector2(2, 10), Color(1, 1, 1, 0.7))
+	_cross(Vector2(-1, 6), Vector2(2, 10), Color(1, 1, 1, 0.7))
+	_cross(Vector2(-16, -1), Vector2(10, 2), Color(1, 1, 1, 0.7))
+	_cross(Vector2(6, -1), Vector2(10, 2), Color(1, 1, 1, 0.7))
+
+	_hint_label = Label.new()
+	_hint_label.add_theme_font_size_override("font_size", 14)
+	_hint_label.add_theme_color_override("font_color", Color(0.6, 0.55, 0.7))
+	_hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	add_child(_hint_label)
+	_hint_label.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	_hint_label.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	_hint_label.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	_hint_label.offset_right = -16
+	_hint_label.offset_bottom = -12
 
 	_results = PanelContainer.new()
 	_results.set_anchors_preset(Control.PRESET_CENTER)
@@ -93,6 +113,17 @@ func _process(delta: float) -> void:
 	if _flash > 0.0:
 		_flash -= delta
 		_salvage_label.modulate = Color(1.4, 1.1, 0.4) if _flash > 0.0 else Color.WHITE
+	# Controller glyphs everywhere the moment a pad is connected.
+	var pad := Input.get_connected_joypads().size() > 0
+	if pad != _pad:
+		_pad = pad
+		_hint_label.text = _hint_text(pad)
+
+
+func _hint_text(pad: bool) -> String:
+	if pad:
+		return "(A) JUMP   (B) DASH   (X) RELOAD   (Y) BUY\n(LB) PULSE   (RT) FIRE   (LT) AIM   (LS) SPRINT"
+	return "WASD MOVE   SPACE JUMP   SHIFT SPRINT\nE BUY   X PULSE   Q DASH   R RELOAD   LMB FIRE   RMB AIM"
 
 
 func set_wave_info(wave: int, remaining: int) -> void:
@@ -112,7 +143,11 @@ func banner(text: String) -> void:
 
 
 func prompt(text: String) -> void:
-	_prompt_label.text = text
+	if text == "":
+		_prompt_label.text = ""
+		return
+	var key := "(Y)" if _pad else "(E)"
+	_prompt_label.text = "%s  %s" % [key, text]
 
 
 func show_results(wave: int, kills: int, earned: int, best_wave: int, best_score: int) -> void:
@@ -161,6 +196,14 @@ func _label(text: String, pos: Vector2, size: int, color: Color, align: int, bot
 	else:
 		l.position = pos
 	return l
+
+
+func _cross(pos: Vector2, size: Vector2, color: Color) -> void:
+	var c := ColorRect.new()
+	c.color = color
+	c.size = size
+	c.position = Vector2(640, 360) + pos
+	add_child(c)
 
 
 func _bar(pos: Vector2, width: float, color: Color) -> ProgressBar:

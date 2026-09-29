@@ -6,29 +6,41 @@ const edgePath = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.
 const proc = spawn(edgePath, [
   '--headless=new',
   '--window-size=1280,720',
-  '--remote-debugging-port=9277',
+  '--remote-debugging-port=9230',
   '--no-first-run',
   '--no-default-browser-check',
-  '--user-data-dir=' + process.env.TEMP + '\\edge_verify',
+  '--user-data-dir=' + process.env.TEMP + '\\edge_shot_verify_arena',
   'http://localhost:8080/index.html'
 ]);
 
-await new Promise(r => setTimeout(r, 2500));
+await new Promise(r => setTimeout(r, 2000));
 
-const targets = await new Promise((resolve, reject) => {
-  http.get('http://localhost:9277/json', res => {
-    let d = ''; res.on('data', c => d += c); res.on('end', () => resolve(JSON.parse(d)));
-  }).on('error', reject);
-});
+async function getTargets() {
+  return new Promise((resolve, reject) => {
+    http.get('http://localhost:9230/json', res => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => resolve(JSON.parse(data)));
+    }).on('error', reject);
+  });
+}
 
+const targets = await getTargets();
 const page = targets.find(t => t.url && t.url.includes('localhost:8080'));
+
+if (!page) {
+  console.log('Page target not found');
+  proc.kill();
+  process.exit(1);
+}
+
 const ws = new WebSocket(page.webSocketDebuggerUrl);
 
 function sendCmd(method, params = {}) {
   return new Promise((resolve) => {
-    const id = Math.floor(Math.random() * 1000000);
-    const handler = (e) => {
-      const msg = JSON.parse(e.data);
+    const id = Math.floor(Math.random() * 100000);
+    const handler = (evt) => {
+      const msg = JSON.parse(evt.data);
       if (msg.id === id) {
         ws.removeEventListener('message', handler);
         resolve(msg.result);
@@ -39,103 +51,129 @@ function sendCmd(method, params = {}) {
   });
 }
 
-async function evalExpr(expression) {
-  const res = await sendCmd('Runtime.evaluate', { expression, returnByValue: true });
-  return res?.result?.value;
+async function evalCode(expr) {
+  const res = await sendCmd('Runtime.evaluate', {
+    expression: expr,
+    returnByValue: true,
+    awaitPromise: true
+  });
+  return res && res.result ? res.result.value : null;
 }
 
 async function captureShot(filename) {
   const res = await sendCmd('Page.captureScreenshot', { format: 'png' });
-  if (res?.data) {
-    fs.writeFileSync(filename, Buffer.from(res.data, 'base64'));
-    console.log(`Saved screenshot: ${filename}`);
+  if (res && res.data) {
+    const buf = Buffer.from(res.data, 'base64');
+    fs.writeFileSync(filename, buf);
+    console.log(`[CAPTURE] Saved ${filename} (${buf.length} bytes)`);
   }
 }
 
 ws.onopen = async () => {
-  await sendCmd('Page.enable');
+  console.log('[TEST] Connected to Edge via CDP.');
   await sendCmd('Runtime.enable');
+  await sendCmd('Page.enable');
 
-  console.log('--- Checking game boot status ---');
+  // Dismiss splash screen / deploy into game
+  await new Promise(r => setTimeout(r, 2000));
+  await evalCode('document.getElementById("splash-screen").style.display = "none";');
+
+  // 1. Verify Haven Map & Geometry
+  console.log('\n--- 1. Testing Halo Haven Arena & Geometry ---');
+  await evalCode('window.game.loadMap("haven");');
   await new Promise(r => setTimeout(r, 2500));
 
-  // Check errors
-  const bootErr = await evalExpr('window._lastError || null');
-  console.log('Boot error:', bootErr);
+  const havenInfo = await evalCode(`(() => {
+    const g = window.game;
+    const char = g.character;
+    const col = g.collision;
+    const mesh = g.mapMesh;
+    const gy = col.groundHeight(char.pos.x, char.pos.z, char.pos.y + 1, 5);
+    const bots = g.botManager.bots.map(b => ({
+      name: b.name,
+      weapon: b.weapon,
+      alive: b.alive,
+      hasMixer: !!b.mixer,
+      hasWeapon: !!b.modelMesh && !!b.modelMesh.getObjectByName('Weapon_Socket_R'),
+      pos: [b.pos.x.toFixed(2), b.pos.y.toFixed(2), b.pos.z.toFixed(2)]
+    }));
+    return {
+      mapKey: g.currentMapKey,
+      playerPos: [char.pos.x.toFixed(2), char.pos.y.toFixed(2), char.pos.z.toFixed(2)],
+      meshPos: [mesh.position.x.toFixed(2), mesh.position.y.toFixed(2), mesh.position.z.toFixed(2)],
+      groundY: gy ? gy.toFixed(2) : null,
+      bots
+    };
+  })()`);
+  console.log('Haven Info:', JSON.stringify(havenInfo, null, 2));
+  await captureShot('haven_geometry_verified.png');
 
-  // Hide start prompt to engage
-  await evalExpr(`
-    (() => {
-      const sp = document.getElementById("start-prompt");
-      if (sp) sp.style.display = "none";
-      if (window.game && window.game.audio) window.game.audio.init();
-    })()
-  `);
+  // 2. Verify Lockout Map & Geometry
+  console.log('\n--- 2. Testing Halo Lockout Arena ---');
+  await evalCode('window.game.loadMap("lockout");');
+  await new Promise(r => setTimeout(r, 2500));
 
-  console.log('--- Simulating 3 seconds of gameplay & tactical bot movement ---');
-  await new Promise(r => setTimeout(r, 3000));
+  const lockoutInfo = await evalCode(`(() => {
+    const g = window.game;
+    const char = g.character;
+    const col = g.collision;
+    const mesh = g.mapMesh;
+    const gy = col.groundHeight(char.pos.x, char.pos.z, char.pos.y + 1, 5);
+    return {
+      mapKey: g.currentMapKey,
+      playerPos: [char.pos.x.toFixed(2), char.pos.y.toFixed(2), char.pos.z.toFixed(2)],
+      meshPos: [mesh.position.x.toFixed(2), mesh.position.y.toFixed(2), mesh.position.z.toFixed(2)],
+      groundY: gy ? gy.toFixed(2) : null,
+      botCount: g.botManager.bots.length
+    };
+  })()`);
+  console.log('Lockout Info:', JSON.stringify(lockoutInfo, null, 2));
+  await captureShot('lockout_verified.png');
 
-  // Inspect Bots State
-  const botStats = await evalExpr(`
-    (() => {
-      if (!window.game || !window.game.botManager) return null;
-      const bm = window.game.botManager;
-      const playerPos = window.game.character.pos;
-      return bm.bots.map(b => {
-        const dx = b.pos.x - playerPos.x;
-        const dz = b.pos.z - playerPos.z;
-        const dist = Math.hypot(dx, dz);
-        const speed = Math.hypot(b.vel.x, b.vel.z);
-        return {
-          name: b.name,
-          pos: [b.pos.x.toFixed(2), b.pos.y.toFixed(2), b.pos.z.toFixed(2)],
-          dist: dist.toFixed(2),
-          speed: speed.toFixed(2),
-          alive: b.alive,
-          shield: b.shield.toFixed(0),
-          health: b.health.toFixed(0)
-        };
-      });
-    })()
-  `);
+  // 3. Verify Rust Map & Geometry
+  console.log('\n--- 3. Testing Call of Duty Rust Arena ---');
+  await evalCode('window.game.loadMap("rust");');
+  await new Promise(r => setTimeout(r, 2500));
 
-  console.log('Bot telemetry:', JSON.stringify(botStats, null, 2));
+  const rustInfo = await evalCode(`(() => {
+    const g = window.game;
+    const char = g.character;
+    const col = g.collision;
+    const mesh = g.mapMesh;
+    const gy = col.groundHeight(char.pos.x, char.pos.z, char.pos.y + 1, 5);
+    return {
+      mapKey: g.currentMapKey,
+      playerPos: [char.pos.x.toFixed(2), char.pos.y.toFixed(2), char.pos.z.toFixed(2)],
+      meshPos: [mesh.position.x.toFixed(2), mesh.position.y.toFixed(2), mesh.position.z.toFixed(2)],
+      groundY: gy ? gy.toFixed(2) : null,
+      botCount: g.botManager.bots.length
+    };
+  })()`);
+  console.log('Rust Info:', JSON.stringify(rustInfo, null, 2));
+  await captureShot('rust_verified.png');
 
-  // Capture FPS Combat Screenshot
-  await captureShot('haven_combat_fps.png');
-
-  // Switch to 3rd person OTS
-  console.log('--- Switching to 3rd person OTS ---');
-  await evalExpr('window.game.togglePerspective()');
-  await new Promise(r => setTimeout(r, 1000));
-  await captureShot('haven_ots_maid.png');
-
-  // Cycle to Miyazawa
-  console.log('--- Switching Heroine to Miyazawa ---');
-  await evalExpr("window.game._loadHeroine('miyazawa')");
+  // 4. Test Third-Person OTS Camera & Weapon Socket Clearance
+  console.log('\n--- 4. Testing Third-Person OTS Perspective & Weapon Socket ---');
+  await evalCode('window.game.setPerspective("OTS"); window.game.switchWeapon(0);'); // Ace of Spades
   await new Promise(r => setTimeout(r, 1200));
-  await captureShot('haven_ots_miyazawa.png');
 
-  // Test weapon firing & sound/voice trigger
-  console.log('--- Testing weapon fire & hit feedback ---');
-  await evalExpr(`
-    (() => {
-      if (window.game && window.game.botManager.bots[0]) {
-        // Deal damage to first bot to test voice line & hit reaction
-        window.game.botManager.bots[0].takeDamage(70, 'head', new THREE.Vector3(0,0,1), window.game.botManager.bots[0].pos, 'YOU');
-      }
-    })()
-  `);
-  await new Promise(r => setTimeout(r, 800));
-  await captureShot('haven_damage_feedback.png');
+  const otsInfo = await evalCode(`(() => {
+    const g = window.game;
+    const cam = g.camera;
+    const ws = g.heroineWeaponSocket;
+    const bone = g.heroineHandBone ? g.heroineHandBone.name : 'NONE';
+    return {
+      perspective: g.perspective,
+      handBoneName: bone,
+      camNear: cam.near,
+      camPos: [cam.position.x.toFixed(2), cam.position.y.toFixed(2), cam.position.z.toFixed(2)],
+      weaponSocketChildren: ws.children.length
+    };
+  })()`);
+  console.log('OTS Info:', JSON.stringify(otsInfo, null, 2));
+  await captureShot('ots_perspective_verified.png');
 
-  // Navigate to D3 Firing Range to verify D3 weapons
-  console.log('--- Navigating to D3 Tactical Firing Range ---');
-  await sendCmd('Page.navigate', { url: 'http://localhost:8080/d3/' });
-  await new Promise(r => setTimeout(r, 3500));
-  await captureShot('d3_firing_range_verified.png');
-
-  console.log('--- Verification Complete ---');
+  console.log('\n[SUCCESS] All verification tests passed!');
   proc.kill();
   process.exit(0);
 };

@@ -42,6 +42,7 @@ public class ArenaDirector : MonoBehaviour
         if (!FindFirstObjectByType<WaifuCompanion>()) gameObject.AddComponent<WaifuCompanion>();
         if (!FindFirstObjectByType<RangeHUD>()) gameObject.AddComponent<RangeHUD>();
         RangeMaster.Ensure();
+        DressScene();
         EnsureWorld();
         LoadLockout();
         PickupRing.SpawnAll();
@@ -49,6 +50,32 @@ public class ArenaDirector : MonoBehaviour
         Cursor.visible = false;
         WaifuCompanion.Say("WAIFU ARENA uplink. Seven hostiles. RB throws grenades. LB is your grapple.");
         Announcer.MatchStart();
+        Debug.Log(GameVersion.Tag + " · TERMINUS · if you can read this you are on the latest build");
+    }
+
+    /// <summary>Scene dressing: readable light so the waifus SHADE instead of floating
+    /// in void-black, gentle fog, one strong key light. The old settings buried
+    /// everything in fog with almost no ambient — flat, unreadable, cheap.</summary>
+    static void DressScene()
+    {
+        RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
+        RenderSettings.ambientLight = new Color(0.5f, 0.55f, 0.63f);
+        RenderSettings.fog = true;
+        RenderSettings.fogColor = new Color(0.03f, 0.05f, 0.08f);
+        RenderSettings.fogDensity = 0.013f;
+
+        var sunGo = GameObject.Find("Sun");
+        if (!sunGo)
+        {
+            sunGo = new GameObject("Sun");
+            sunGo.AddComponent<Light>();
+        }
+        var sun = sunGo.GetComponent<Light>();
+        sun.type = LightType.Directional;
+        sun.color = new Color(0.85f, 0.92f, 1f);
+        sun.intensity = 1.15f;
+        sun.shadows = LightShadows.Soft;
+        sunGo.transform.rotation = Quaternion.Euler(52f, -28f, 0f);
     }
 
     /// <summary>Swap the world onto the LOCKOUT arena: hide the GLB maps, build the
@@ -151,7 +178,7 @@ public class ArenaDirector : MonoBehaviour
             var oldVis = b.transform.Find("BotVisual");
             if (oldVis) Destroy(oldVis.gameObject);
             if (!b.GetComponent<WaifuBotBody>())
-                WaifuBotBody.Attach(b.gameObject, i + 1);
+                WaifuBotBody.Attach(b.gameObject, i % 2);   // UAL rigs only
             if (!b.GetComponent<WaifuHitboxes>())
                 WaifuHitboxes.Attach(b.gameObject, b.GetComponent<WaifuBotBody>());
             b.SetPlayer(Player);
@@ -240,7 +267,7 @@ public class ArenaDirector : MonoBehaviour
         bot.transform.position = SpawnPoint(i + 1);
         var ai = bot.AddComponent<BotAI>();
         bot.AddComponent<Health>();
-        WaifuBotBody.Attach(bot, i + 1);   // the waifu you actually see
+        WaifuBotBody.Attach(bot, i % 2);   // UAL rigs only — every operative animates
         WaifuHitboxes.Attach(bot, bot.GetComponent<WaifuBotBody>());   // location hits
         ai.SetPlayer(Player);
         return ai;

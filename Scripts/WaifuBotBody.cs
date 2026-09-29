@@ -55,6 +55,7 @@ public class WaifuBotBody : MonoBehaviour
 
         string[] keys = Roster();
         string key = keys[Mathf.Clamp(modelIndex, 0, keys.Length - 1)];
+        rigKey = key;
         var prefab = Resources.Load<GameObject>(key);
         if (!prefab)
         {
@@ -153,7 +154,6 @@ public class WaifuBotBody : MonoBehaviour
     {
         "Characters/kasumi_tactical_sailor_aaa_100k",   // VRoid — UAL locomotion
         "Characters/scifi_waifu_soldier",               // VRoid — UAL locomotion
-        "Characters/mai_maid",                          // 13 embedded clips
     };
 
     static string[] Roster()
@@ -251,24 +251,45 @@ public class WaifuBotBody : MonoBehaviour
         if (idleClip == null)
         {
             agent = GetComponent<NavMeshAgent>();
-            waifu = new WaifuAnimator(visual.gameObject);
+            waifu = new WaifuAnimator(visual.gameObject, rigKey);
             if (waifu.Ok)
                 Debug.Log("[WBOT] operative " + modelIndex + " ← UAL live locomotion (idle/jog/sprint/shoot/death)");
+            else
+            {
+                // one-line rig dump so a silent retarget failure is diagnosable
+                int jBips = 0; string first = "";
+                foreach (var t in visual.GetComponentsInChildren<Transform>(true))
+                {
+                    if (!t.name.StartsWith("J_Bip")) continue;
+                    if (jBips == 0) first = t.name;
+                    jBips++;
+                }
+                Debug.LogWarning("[WBOT] operative " + modelIndex + " NO rig — J_Bip bones: " + jBips + " (" + first + "), armature: " + (visual.Find("Armature") ? "yes" : "no"));
+            }
         }
     }
+
+    float stride;   // procedural gait phase
+    string rigKey;  // roster key of the loaded model (drives baked clip lookup)
 
     void Update()
     {
         if (!visual) return;
         if (!clipSearched && Time.unscaledTime > clipSearchAt) DiscoverClips();
 
-        // ground snap: keep her soles on the floor (UV-animated water & stairs)
-        if (!dying && Physics.Raycast(transform.position + Vector3.up * 1.2f, Vector3.down,
-                out var ghit, 2.2f, ~0, QueryTriggerInteraction.Ignore))
+        // emergency ground recovery ONLY: the NavMeshAgent grounds her, and
+        // frame-by-frame snapping fights it (reads as jitter/float, yanks on
+        // ramps and trim lips). Correct only real falls or teleports (>0.8 m).
+        if (!dying && Physics.Raycast(transform.position + Vector3.up * 2f, Vector3.down,
+                out var ghit, 30f, ~0, QueryTriggerInteraction.Ignore))
         {
-            var p = transform.position;
-            p.y = Mathf.Lerp(p.y, ghit.point.y, 1f - Mathf.Exp(-10f * Time.deltaTime));
-            transform.position = p;
+            float err = (ghit.point.y + 0.05f) - transform.position.y;
+            if (Mathf.Abs(err) > 0.8f)
+            {
+                var p = transform.position;
+                p.y = Mathf.MoveTowards(p.y, ghit.point.y, 12f * Time.deltaTime);
+                transform.position = p;
+            }
         }
 
         if (dying)
@@ -312,18 +333,22 @@ public class WaifuBotBody : MonoBehaviour
             return;
         }
 
-        // procedural idle: breathing bob + sway, so rigs without usable clips
-        // still read as alive instead of frozen mannequins; her gun rides along
-        float t = Time.unscaledTime * 1.7f + modelIndex * 1.3f;
-        var rest = new Vector3(Mathf.Sin(t * 6.3f) * 0.004f, Mathf.Sin(t) * 0.015f, Mathf.Cos(t * 0.6f) * 0.008f);
-        visual.localPosition = Vector3.Lerp(visual.localPosition, rest, 1f - Mathf.Exp(-8f * Time.deltaTime));
+        // procedural locomotion: gait bob + body lean driven by agent speed —
+        // reads as a march instead of a gliding statue; her gun rides the stride
+        float v = agent ? agent.velocity.magnitude : 0f;
+        stride += Time.deltaTime * (2.2f + v * 1.4f);
+        float amp = Mathf.Min(0.06f, 0.012f + v * 0.006f);
+        float bob = Mathf.Abs(Mathf.Sin(stride)) * amp + (v < 0.3f ? Mathf.Sin(Time.unscaledTime * 1.7f + modelIndex) * 0.008f : 0f);
+        float sway = Mathf.Sin(stride) * amp * 0.8f;
+        float lean = Mathf.Min(6f, v * 0.7f);
+        visual.localPosition = Vector3.Lerp(visual.localPosition, new Vector3(sway, bob, 0f), 1f - Mathf.Exp(-10f * Time.deltaTime));
         visual.localRotation = Quaternion.Slerp(visual.localRotation,
-            Quaternion.Euler(Mathf.Sin(t * 0.9f) * 2f, 0f, Mathf.Cos(t * 0.7f) * 1.5f),
-            1f - Mathf.Exp(-6f * Time.deltaTime));
+            Quaternion.Euler(lean, Mathf.Sin(stride * 0.5f) * 2.5f, Mathf.Cos(stride) * 2f),
+            1f - Mathf.Exp(-8f * Time.deltaTime));
         if (botGun)
         {
-            botGun.localPosition = new Vector3(0.22f, 1.24f + rest.y * 0.6f, 0.3f);
-            botGun.localRotation = Quaternion.Euler(Mathf.Sin(t * 0.9f) * 1.5f, 0f, 0f);
+            botGun.localPosition = new Vector3(0.22f, 1.24f + bob, 0.3f + Mathf.Sin(stride) * 0.015f);
+            botGun.localRotation = Quaternion.Euler(Mathf.Cos(stride) * 1.5f, 0f, 0f);
         }
         UpdateLasers();
     }

@@ -32,23 +32,57 @@ export class Viewmodel {
     this.adsFactor = 0;
 
     // Dynamic Muzzle Flash
-    this.flashLight = new THREE.PointLight(0xffcc66, 0, 8);
+    this.flashLight = new THREE.PointLight(0xffb74d, 0, 7);
     this.flashLight.position.set(0, 0, -0.6);
     this.root.add(this.flashLight);
 
-    const flashGeo = new THREE.PlaneGeometry(0.18, 0.18);
-    const flashMat = new THREE.MeshBasicMaterial({
-      color: 0xffffff,
+    const flashTex = this._createMuzzleFlashTexture();
+    const flashMat = new THREE.SpriteMaterial({
+      map: flashTex,
       transparent: true,
       opacity: 0,
       blending: THREE.AdditiveBlending,
-      side: THREE.DoubleSide,
-      depthTest: false
+      depthTest: true,
+      depthWrite: false
     });
-    this.flashMesh = new THREE.Mesh(flashGeo, flashMat);
+    this.flashMesh = new THREE.Sprite(flashMat);
+    this.flashMesh.scale.set(0.24, 0.24, 1);
     this.flashMesh.position.set(0, 0, -0.6);
     this.root.add(this.flashMesh);
     this.flashTimer = 0;
+  }
+
+  _createMuzzleFlashTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 128;
+    canvas.height = 128;
+    const ctx = canvas.getContext('2d');
+
+    // 1. Warm plasma fiery radial core
+    const grad = ctx.createRadialGradient(64, 64, 2, 64, 64, 60);
+    grad.addColorStop(0.0, 'rgba(255, 255, 245, 1.0)');
+    grad.addColorStop(0.18, 'rgba(255, 215, 80, 0.95)');
+    grad.addColorStop(0.42, 'rgba(255, 110, 20, 0.50)');
+    grad.addColorStop(0.70, 'rgba(210, 45, 5, 0.15)');
+    grad.addColorStop(1.0, 'rgba(0, 0, 0, 0.0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 128, 128);
+
+    // 2. Crisp 4-point star spike flare
+    ctx.save();
+    ctx.translate(64, 64);
+    for (let i = 0; i < 4; i++) {
+      ctx.rotate(Math.PI / 4);
+      const spikeGrad = ctx.createLinearGradient(0, -56, 0, 56);
+      spikeGrad.addColorStop(0.0, 'rgba(0, 0, 0, 0)');
+      spikeGrad.addColorStop(0.5, 'rgba(255, 240, 190, 0.85)');
+      spikeGrad.addColorStop(1.0, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = spikeGrad;
+      ctx.fillRect(-2, -56, 4, 112);
+    }
+    ctx.restore();
+
+    return new THREE.CanvasTexture(canvas);
   }
 
   loadWeapon(key, def) {
@@ -113,10 +147,12 @@ export class Viewmodel {
   }
 
   triggerFlash() {
-    this.flashLight.intensity = 2.4;
+    this.flashLight.intensity = 2.8;
     this.flashMesh.material.opacity = 0.95;
-    this.flashMesh.rotation.z = Math.random() * Math.PI * 2;
-    this.flashTimer = 0.05;
+    this.flashMesh.material.rotation = Math.random() * Math.PI * 2;
+    const s = this.adsFactor > 0.5 ? 0.14 : 0.24;
+    this.flashMesh.scale.set(s, s, 1);
+    this.flashTimer = 0.045;
   }
 
   update(dt, playerSpeed, isGrounded, isSprinting, adsTarget, kickPos, kickRot, mouseDX, mouseDY) {

@@ -79,37 +79,51 @@ export class AudioEngine {
     const snapOsc = this.ctx.createOscillator();
     const snapGain = this.ctx.createGain();
     snapOsc.type = 'triangle';
-    snapOsc.frequency.setValueAtTime(type === 'ace' ? 1400 : type === 'outbreak' ? 2200 : 950, t0);
-    snapOsc.frequency.exponentialRampToValueAtTime(80, t0 + 0.045);
+    const snapFreq = (type === 'ak47') ? 1600 : (type === 'm4a1') ? 1900 : (type === 'smg') ? 2400 : (type === 'ace' || type === 'hawkmoon') ? 1400 : 1200;
+    snapOsc.frequency.setValueAtTime(snapFreq, t0);
+    snapOsc.frequency.exponentialRampToValueAtTime(75, t0 + 0.04);
 
-    snapGain.gain.setValueAtTime(0.7, t0);
-    snapGain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.045);
+    snapGain.gain.setValueAtTime(0.85, t0);
+    snapGain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.04);
 
     snapOsc.connect(snapGain);
     snapGain.connect(this.sfxGain);
     snapOsc.start(t0);
-    snapOsc.stop(t0 + 0.05);
+    snapOsc.stop(t0 + 0.045);
 
-    // --- 2. Body Punch (Sub-bass thud + powder combustion)
+    // --- 2. Body Punch (Heavy sub-bass thud + powder combustion distortion)
     const bodyOsc = this.ctx.createOscillator();
     const bodyGain = this.ctx.createGain();
     const bodyDist = this.ctx.createWaveShaper();
-    bodyDist.curve = this._makeDistortionCurve(18);
+    bodyDist.curve = this._makeDistortionCurve(type === 'ak47' ? 24 : 18);
 
     bodyOsc.type = 'sawtooth';
-    const startFreq = (type === 'ace' || type === 'hawkmoon') ? 220 : type === 'chaperone' ? 160 : type === 'launcher' ? 95 : 280;
+    const startFreq = (type === 'ak47') ? 180 : (type === 'm4a1') ? 220 : (type === 'chaperone') ? 150 : (type === 'launcher') ? 90 : 250;
     bodyOsc.frequency.setValueAtTime(startFreq, t0);
-    bodyOsc.frequency.exponentialRampToValueAtTime(35, t0 + 0.16);
+    bodyOsc.frequency.exponentialRampToValueAtTime(32, t0 + 0.17);
 
-    const bodyVol = (type === 'chaperone' || type === 'launcher') ? 0.95 : 0.75;
+    const bodyVol = (type === 'ak47' || type === 'chaperone' || type === 'launcher') ? 0.95 : 0.80;
     bodyGain.gain.setValueAtTime(bodyVol, t0);
-    bodyGain.gain.exponentialRampToValueAtTime(0.001, t0 + (type === 'launcher' ? 0.35 : 0.18));
+    bodyGain.gain.exponentialRampToValueAtTime(0.001, t0 + (type === 'launcher' ? 0.35 : 0.19));
 
     bodyOsc.connect(bodyDist);
     bodyDist.connect(bodyGain);
     bodyGain.connect(this.sfxGain);
     bodyOsc.start(t0);
     bodyOsc.stop(t0 + 0.2);
+
+    // Sub-bass 45Hz chest thump
+    const subOsc = this.ctx.createOscillator();
+    const subGain = this.ctx.createGain();
+    subOsc.type = 'sine';
+    subOsc.frequency.setValueAtTime(65, t0);
+    subOsc.frequency.exponentialRampToValueAtTime(28, t0 + 0.14);
+    subGain.gain.setValueAtTime(0.7, t0);
+    subGain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.14);
+    subOsc.connect(subGain);
+    subGain.connect(this.sfxGain);
+    subOsc.start(t0);
+    subOsc.stop(t0 + 0.15);
 
     // --- 3. Metallic Mech Chamber / SIVA Digital Chirp
     if (type === 'outbreak') {
@@ -158,6 +172,80 @@ export class AudioEngine {
   }
 
   /**
+   * 3D Positional Gunshot for Bot AI & Spatial Combat
+   */
+  playPositionalGunshot(type = 'outbreak', sourcePos = null, listenerPos = null) {
+    if (!this.initialized || this.muted) return;
+    this.resume();
+
+    let dist = 1;
+    let pan = 0;
+    if (sourcePos && listenerPos) {
+      const dx = sourcePos.x - listenerPos.x;
+      const dz = sourcePos.z - listenerPos.z;
+      dist = Math.hypot(dx, dz);
+      pan = Math.max(-0.85, Math.min(0.85, dx / (dist + 1.0)));
+    }
+
+    const t0 = this.ctx.currentTime;
+    const vol = Math.max(0.12, Math.min(0.85, 1.4 / (1.0 + dist * 0.045)));
+
+    // Create localized stereo panner and gain
+    let outNode = this.sfxGain;
+    if (this.ctx.createStereoPanner) {
+      const panner = this.ctx.createStereoPanner();
+      panner.pan.setValueAtTime(pan, t0);
+      const distGain = this.ctx.createGain();
+      distGain.gain.setValueAtTime(vol, t0);
+      distGain.connect(panner);
+      panner.connect(this.sfxGain);
+      outNode = distGain;
+    }
+
+    // 1. Transient snap
+    const snapOsc = this.ctx.createOscillator();
+    const snapGain = this.ctx.createGain();
+    snapOsc.type = 'triangle';
+    snapOsc.frequency.setValueAtTime(type === 'ace' ? 1200 : 1800, t0);
+    snapOsc.frequency.exponentialRampToValueAtTime(100, t0 + 0.035);
+    snapGain.gain.setValueAtTime(0.6 * vol, t0);
+    snapGain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.035);
+    snapOsc.connect(snapGain);
+    snapGain.connect(outNode);
+    snapOsc.start(t0);
+    snapOsc.stop(t0 + 0.04);
+
+    // 2. Punch
+    const bodyOsc = this.ctx.createOscillator();
+    const bodyGain = this.ctx.createGain();
+    bodyOsc.type = 'sawtooth';
+    bodyOsc.frequency.setValueAtTime(220, t0);
+    bodyOsc.frequency.exponentialRampToValueAtTime(55, t0 + 0.08);
+    bodyGain.gain.setValueAtTime(0.7 * vol, t0);
+    bodyGain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.08);
+    bodyOsc.connect(bodyGain);
+    bodyGain.connect(outNode);
+    bodyOsc.start(t0);
+    bodyOsc.stop(t0 + 0.09);
+
+    // 3. Reverb tail
+    const noiseBuffer = this._createNoiseBuffer(0.2);
+    const noiseSource = this.ctx.createBufferSource();
+    noiseSource.buffer = noiseBuffer;
+    const noiseFilter = this.ctx.createBiquadFilter();
+    noiseFilter.type = 'bandpass';
+    noiseFilter.frequency.setValueAtTime(900, t0);
+    noiseFilter.Q.value = 1.0;
+    const noiseGain = this.ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.3 * vol, t0);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.2);
+    noiseSource.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(this.reverbNode);
+    noiseSource.start(t0);
+  }
+
+  /**
    * Energy Sword / Lament Melee Slash
    */
   playMelee(isLament = false) {
@@ -181,33 +269,70 @@ export class AudioEngine {
   }
 
   /**
-   * Destiny 2 Hitmarker Confirmation Chime
+   * Tactical Shooter Hitmarker Tick & Headshot Dink (CS2 / Destiny 2 Style)
    */
   playHitmarker(isCrit = false) {
     if (!this.initialized || this.muted) return;
     this.resume();
     const t0 = this.ctx.currentTime;
 
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    osc.type = 'sine';
-
     if (isCrit) {
-      // Golden Crit Ding (rich, punchy bell harmonic)
-      osc.frequency.setValueAtTime(2637, t0); // E7
-      gain.gain.setValueAtTime(0.65, t0);
-      gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.12);
-    } else {
-      // White Body Hit Tick
-      osc.frequency.setValueAtTime(1480, t0);
-      gain.gain.setValueAtTime(0.4, t0);
-      gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.05);
-    }
+      // High-frequency metallic headshot dink chime + heavy helmet crack
+      const dinkOsc = this.ctx.createOscillator();
+      const dinkGain = this.ctx.createGain();
+      dinkOsc.type = 'triangle';
+      dinkOsc.frequency.setValueAtTime(3200, t0);
+      dinkOsc.frequency.exponentialRampToValueAtTime(1400, t0 + 0.12);
+      dinkGain.gain.setValueAtTime(0.85, t0);
+      dinkGain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.12);
+      dinkOsc.connect(dinkGain);
+      dinkGain.connect(this.sfxGain);
+      dinkOsc.start(t0);
+      dinkOsc.stop(t0 + 0.13);
 
-    osc.connect(gain);
-    gain.connect(this.sfxGain);
-    osc.start(t0);
-    osc.stop(t0 + (isCrit ? 0.15 : 0.06));
+      const bellOsc = this.ctx.createOscillator();
+      const bellGain = this.ctx.createGain();
+      bellOsc.type = 'sine';
+      bellOsc.frequency.setValueAtTime(2637, t0); // E7
+      bellGain.gain.setValueAtTime(0.6, t0);
+      bellGain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.18);
+      bellOsc.connect(bellGain);
+      bellGain.connect(this.sfxGain);
+      bellOsc.start(t0);
+      bellOsc.stop(t0 + 0.19);
+    } else {
+      // Tactile broadband mechanical snap / hit click (CS2 / CoD tick)
+      const tickBuffer = this._createNoiseBuffer(0.025);
+      const tickSource = this.ctx.createBufferSource();
+      tickSource.buffer = tickBuffer;
+
+      const tickFilter = this.ctx.createBiquadFilter();
+      tickFilter.type = 'bandpass';
+      tickFilter.frequency.setValueAtTime(2800, t0);
+      tickFilter.Q.value = 3.5;
+
+      const tickGain = this.ctx.createGain();
+      tickGain.gain.setValueAtTime(0.75, t0);
+      tickGain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.025);
+
+      tickSource.connect(tickFilter);
+      tickFilter.connect(tickGain);
+      tickGain.connect(this.sfxGain);
+      tickSource.start(t0);
+
+      // Sub-transient pop
+      const popOsc = this.ctx.createOscillator();
+      const popGain = this.ctx.createGain();
+      popOsc.type = 'triangle';
+      popOsc.frequency.setValueAtTime(320, t0);
+      popOsc.frequency.exponentialRampToValueAtTime(80, t0 + 0.035);
+      popGain.gain.setValueAtTime(0.55, t0);
+      popGain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.035);
+      popOsc.connect(popGain);
+      popGain.connect(this.sfxGain);
+      popOsc.start(t0);
+      popOsc.stop(t0 + 0.04);
+    }
   }
 
   /**
@@ -430,36 +555,10 @@ export class AudioEngine {
   }
 
   /**
-   * Character Anime Voice Lines (Karen / Meghan dialogue pack)
+   * Anime voice lines disabled per tactical shooter requirements.
    */
   playVoice(type = 'damage') {
-    try {
-      const pools = {
-        damage: [
-          'damage_1_karen.wav', 'damage_2_karen.wav', 'damage_3_karen.wav',
-          'damage_4_karen.wav', 'damage_5_karen.wav', 'damage_6_karen.wav',
-          'damage_1_meghan.wav', 'damage_2_meghan.wav'
-        ],
-        death: [
-          'death_1_karen.wav', 'death_2_karen.wav', 'death_3_karen.wav',
-          'death_4_karen.wav', 'death_5_karen.wav', 'death_6_karen.wav'
-        ],
-        confirm: [
-          'confirmation_1_karen.wav', 'confirmation_2_karen.wav',
-          'confirmation_3_karen.wav', 'confirmation_4_karen.wav'
-        ]
-      };
-
-      const list = pools[type] || pools.damage;
-      const file = list[Math.floor(Math.random() * list.length)];
-      const url = `./assets/audio/voices/${file}`;
-
-      const audio = new Audio(url);
-      audio.volume = 0.72;
-      audio.play().catch(() => {});
-    } catch (e) {
-      // Audio autoplay policy fallback
-    }
+    // Disabled: pure tactical weapon acoustics & combat audio
   }
 }
 

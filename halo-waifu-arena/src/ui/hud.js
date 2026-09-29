@@ -64,50 +64,63 @@ export class HUD {
   updateSpread(spreadDeg, isADS) {
     if (!this.reticleRing) return;
     if (isADS) {
-      this.reticleRing.style.transform = 'translate(-50%, -50%) scale(0.65)';
-      this.reticleRing.style.borderColor = 'rgba(56, 189, 248, 0.9)';
+      this.reticleRing.style.transform = 'translate(-50%, -50%) scale(0.55)';
+      this.reticleRing.style.borderColor = 'rgba(0, 243, 255, 0.95)';
+      this.reticleRing.style.boxShadow = '0 0 10px rgba(0, 243, 255, 0.6)';
     } else {
       // Scale reticle ring smoothly with spread degrees
-      const scale = THREE_MathUtils_clamp(spreadDeg * 14.0, 16, 75);
+      const scale = Math.max(16, Math.min(75, spreadDeg * 14.0));
       this.reticleRing.style.width = `${scale}px`;
       this.reticleRing.style.height = `${scale}px`;
       this.reticleRing.style.borderColor = 'rgba(255, 255, 255, 0.65)';
       this.reticleRing.style.transform = 'translate(-50%, -50%) scale(1)';
+      this.reticleRing.style.boxShadow = 'none';
     }
   }
 
   flashHitmarker(isCrit = false) {
     if (!this.hitmarker) return;
+    this.hitmarker.classList.toggle('crit', isCrit);
     this.hitmarker.style.opacity = '1';
-    this.hitmarker.style.color = isCrit ? '#fbbf24' : '#ffffff';
-    this.hitmarker.style.transform = isCrit ? 'translate(-50%, -50%) scale(1.3)' : 'translate(-50%, -50%) scale(1)';
-    this.hitmarker.style.textShadow = isCrit
-      ? '0 0 16px rgba(251, 191, 36, 1)'
-      : '0 0 10px rgba(0, 243, 255, 0.9)';
+    this.hitmarker.style.transform = isCrit ? 'translate(-50%, -50%) scale(1.35)' : 'translate(-50%, -50%) scale(1.1)';
 
     setTimeout(() => {
-      if (this.hitmarker) this.hitmarker.style.opacity = '0';
-    }, 90);
+      if (this.hitmarker) {
+        this.hitmarker.style.opacity = '0';
+        this.hitmarker.style.transform = 'translate(-50%, -50%) scale(0.85)';
+      }
+    }, 95);
   }
 
   spawnDamageNumber(x, y, amount, isCrit = false) {
     if (!this.damageNumbersContainer) return;
+    const val = isNaN(amount) || amount <= 0 ? 25 : Math.round(amount);
     const el = document.createElement('div');
     el.className = `dmg-num ${isCrit ? 'crit' : ''}`;
-    el.innerText = Math.round(amount) + (isCrit ? ' ✦ CRIT' : '');
-    el.style.left = `${x}px`;
-    el.style.top = `${y}px`;
+    el.innerText = `${val}${isCrit ? ' ✦ CRIT' : ''}`;
+
+    const screenX = Math.max(40, Math.min(window.innerWidth - 40, x));
+    const screenY = Math.max(40, Math.min(window.innerHeight - 40, y));
+    const offsetX = (Math.random() - 0.5) * 18;
+    const offsetY = (Math.random() - 0.5) * 10;
+
+    el.style.left = `${Math.round(screenX + offsetX)}px`;
+    el.style.top = `${Math.round(screenY + offsetY)}px`;
+    el.style.opacity = '1';
+    el.style.transform = 'translate(-50%, -50%) scale(0.85)';
 
     this.damageNumbersContainer.appendChild(el);
 
     requestAnimationFrame(() => {
-      el.style.transform = `translate(-50%, -120%) scale(${isCrit ? 1.25 : 1})`;
-      el.style.opacity = '0';
+      el.style.transform = `translate(-50%, -140%) scale(${isCrit ? 1.3 : 1.05})`;
+      setTimeout(() => {
+        el.style.opacity = '0';
+      }, 260);
     });
 
     setTimeout(() => {
       if (el.parentNode) el.parentNode.removeChild(el);
-    }, 600);
+    }, 650);
   }
 
   flashShieldDamage() {
@@ -152,6 +165,16 @@ export class HUD {
         <span style="color:#f43f5e;">HOSTILES ${redScore}</span>
       `;
     }
+  updateTDM(ctScore, tScore, targetScore = 30, timerSec = null) {
+    if (!this.kothStatus) return;
+    const timeStr = timerSec !== null ? `${Math.floor(timerSec / 60)}:${Math.floor(timerSec % 60).toString().padStart(2, '0')}` : 'LIVE';
+    this.kothStatus.innerHTML = `
+      <span style="color:#38bdf8; font-weight:800; background:rgba(56,189,248,0.18); padding:3px 10px; border-radius:3px; border:1px solid rgba(56,189,248,0.4);">CT ${ctScore}</span>
+      <span style="color:#94a3b8; font-size:12px; font-weight:700; margin:0 6px;">/ ${targetScore}</span>
+      <span style="color:#f8fafc; font-weight:800; font-size:13px; background:rgba(0,0,0,0.6); padding:2px 10px; border-radius:3px; letter-spacing:1px; border:1px solid rgba(255,255,255,0.15);">${timeStr}</span>
+      <span style="color:#94a3b8; font-size:12px; font-weight:700; margin:0 6px;">${targetScore} \\</span>
+      <span style="color:#f43f5e; font-weight:800; background:rgba(244,63,94,0.18); padding:3px 10px; border-radius:3px; border:1px solid rgba(244,63,94,0.4);">T ${tScore}</span>
+    `;
   }
 
   updateCSMatch(matchState, ctAlive, tAlive, totalCT = 5, totalT = 5) {

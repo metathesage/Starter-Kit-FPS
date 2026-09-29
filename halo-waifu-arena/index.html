@@ -31,8 +31,17 @@
     /* Destiny 2 Style Reticle */
     #reticle-wrap { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; pointer-events: none; }
     #reticle-dot { width: 4px; height: 4px; background: #ffffff; border-radius: 50%; box-shadow: 0 0 8px rgba(255,255,255,0.9); }
-    #reticle-ring { position: absolute; width: 22px; height: 22px; border: 1.5px solid rgba(255,255,255,0.65); border-radius: 50%; transition: width 0.05s linear, height 0.05s linear, transform 0.08s ease; }
-    #hitmarker { position: absolute; font-size: 26px; font-weight: 800; opacity: 0; color: #ffffff; transition: opacity 0.08s ease, transform 0.08s ease; text-shadow: 0 0 10px rgba(0, 243, 255, 0.9); }
+    #hitmarker {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%) scale(0.85);
+      pointer-events: none; opacity: 0; color: #ffffff;
+      transition: opacity 0.05s ease, transform 0.05s ease;
+      filter: drop-shadow(0 0 5px rgba(0, 243, 255, 0.9));
+    }
+    #hitmarker.crit {
+      color: #fbbf24;
+      filter: drop-shadow(0 0 10px rgba(251, 191, 36, 1));
+    }
 
     /* Top Status Bar */
     #top-nav { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 12px; pointer-events: auto; }
@@ -83,18 +92,18 @@
     .w-pip:hover { background: rgba(56, 189, 248, 0.6); }
     .w-pip.active { background: #38bdf8; height: 6px; box-shadow: 0 0 10px #38bdf8; }
 
-    /* Damage Numbers Container */
-    #dmg-numbers { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; }
+    /* Modern Compact Damage Numbers (Call of Duty / Destiny 2 Style) */
+    #dmg-numbers { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; z-index: 45; }
     .dmg-num {
-      position: absolute; font-family: 'Rajdhani', -apple-system, sans-serif; font-weight: 900; font-size: 28px;
-      pointer-events: none; transform: translate(-50%, -50%) scale(1);
-      transition: transform 0.5s cubic-bezier(0.18, 0.89, 0.32, 1.28), opacity 0.5s ease-out;
-      z-index: 50; -webkit-text-stroke: 1.5px #050914; text-shadow: 0 4px 0 #050914, 0 0 14px rgba(0, 243, 255, 0.9);
-      color: #00f3ff; letter-spacing: 0.8px;
+      position: absolute; font-family: 'Share Tech Mono', monospace; font-weight: 800; font-size: 16px;
+      pointer-events: none; transform: translate(-50%, -50%);
+      transition: transform 0.65s cubic-bezier(0.1, 0.9, 0.2, 1), opacity 0.65s ease-out;
+      z-index: 50; text-shadow: 0 1px 4px #000, 0 0 10px rgba(0, 243, 255, 0.95);
+      color: #00f3ff; letter-spacing: 0.5px; opacity: 1;
     }
     .dmg-num.crit {
-      font-size: 36px; color: #fbbf24; -webkit-text-stroke: 1.8px #050914;
-      text-shadow: 0 4px 0 #050914, 0 0 22px rgba(251, 191, 36, 0.95);
+      font-size: 20px; color: #fbbf24; font-weight: 900;
+      text-shadow: 0 1px 4px #000, 0 0 14px rgba(251, 191, 36, 1);
     }
 
     /* Killfeed */
@@ -109,22 +118,148 @@
     .kf-victim { color: #f43f5e; }
     .kf-crit { color: #fbbf24; }
 
-    /* Start / Deploy Screen */
-    #start-prompt {
-      position: absolute; bottom: 45px; left: 50%; transform: translateX(-50%);
-      background: rgba(8, 14, 28, 0.65); backdrop-filter: blur(20px) saturate(180%);
-      border: 1px solid rgba(255, 255, 255, 0.15); border-top: 3px solid #00f3ff;
-      padding: 20px 48px; border-radius: 3px; text-align: center; cursor: pointer;
-      z-index: 100; transition: opacity 0.3s ease, transform 0.3s ease;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+    /* Weapon Pickup Interactive Floating Prompt */
+    #pickup-prompt {
+      position: absolute; bottom: 125px; left: 50%; transform: translateX(-50%);
+      background: rgba(8, 14, 28, 0.88); backdrop-filter: blur(16px);
+      border: 1px solid rgba(0, 243, 255, 0.45); border-top: 3px solid #00f3ff;
+      border-radius: 4px; padding: 12px 28px; text-align: center; pointer-events: none;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.7), 0 0 20px rgba(0, 243, 255, 0.25);
+      display: none; opacity: 0; transition: opacity 0.15s ease, transform 0.15s ease;
+      z-index: 40; min-width: 250px;
     }
-    #start-prompt:hover {
-      background: rgba(14, 24, 46, 0.85); border-color: #00f3ff;
-      box-shadow: 0 0 30px rgba(0, 243, 255, 0.35);
+
+    /* Cinematic Fullscreen Splash Start Screen */
+    #splash-screen {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: radial-gradient(circle at center, rgba(14, 24, 46, 0.92) 0%, rgba(6, 9, 25, 0.98) 100%);
+      backdrop-filter: blur(28px) saturate(180%);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      z-index: 1000; padding: 24px; transition: opacity 0.35s ease;
     }
-    .sp-tag { font-family: 'Share Tech Mono', monospace; font-size: 11px; letter-spacing: 2px; color: #00f3ff; text-transform: uppercase; margin-bottom: 4px; }
-    .sp-title { font-size: 26px; font-weight: 800; letter-spacing: 2px; color: #ffffff; text-transform: uppercase; margin-bottom: 6px; }
-    .sp-cta { font-family: 'Share Tech Mono', monospace; font-size: 12px; color: #94a3b8; letter-spacing: 1.5px; }
+    .splash-box {
+      max-width: 820px; width: 100%; background: rgba(11, 19, 36, 0.85);
+      border: 1px solid rgba(0, 243, 255, 0.25); border-top: 4px solid #00f3ff;
+      border-radius: 6px; padding: 36px 40px; box-shadow: 0 20px 60px rgba(0,0,0,0.8), 0 0 40px rgba(0, 243, 255, 0.15);
+      text-align: center; display: flex; flex-direction: column; gap: 20px;
+    }
+    .splash-title {
+      font-size: 38px; font-weight: 800; letter-spacing: 3px; color: #ffffff;
+      text-transform: uppercase; text-shadow: 0 0 20px rgba(0, 243, 255, 0.5);
+      margin-top: 4px;
+    }
+    .splash-tag {
+      font-family: 'Share Tech Mono', monospace; font-size: 12px; letter-spacing: 3px;
+      color: #00f3ff; text-transform: uppercase;
+    }
+    .splash-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 10px 0; text-align: left;
+    }
+    .splash-panel {
+      background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 4px; padding: 14px 18px;
+    }
+    .splash-panel h4 {
+      font-family: 'Share Tech Mono', monospace; font-size: 11px; letter-spacing: 1.5px;
+      color: #94a3b8; text-transform: uppercase; margin-bottom: 8px;
+    }
+    .splash-btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
+    .splash-opt-btn {
+      padding: 7px 14px; background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 2px; color: #cbd5e1; font-family: 'Share Tech Mono', monospace; font-size: 11px;
+      font-weight: 700; cursor: pointer; transition: all 0.15s ease;
+    }
+    .splash-opt-btn:hover { background: rgba(56, 189, 248, 0.2); color: #ffffff; border-color: rgba(56, 189, 248, 0.5); }
+    .splash-opt-btn.active {
+      background: rgba(0, 243, 255, 0.2); color: #00f3ff; border-color: #00f3ff;
+      box-shadow: 0 0 12px rgba(0, 243, 255, 0.35);
+    }
+    .splash-deploy-btn {
+      background: linear-gradient(135deg, #00f3ff 0%, #0284c7 100%);
+      color: #050914; font-family: 'Rajdhani', sans-serif; font-size: 20px; font-weight: 800;
+      letter-spacing: 2px; text-transform: uppercase; padding: 16px 36px; border: none;
+      border-radius: 3px; cursor: pointer; transition: all 0.2s ease;
+      box-shadow: 0 0 30px rgba(0, 243, 255, 0.45);
+    }
+    .splash-deploy-btn:hover {
+      transform: translateY(-2px); box-shadow: 0 0 45px rgba(0, 243, 255, 0.7);
+      background: linear-gradient(135deg, #38bdf8 0%, #0369a1 100%); color: #ffffff;
+    }
+
+    /* Pause Menu & In-Depth Settings Modal */
+    #pause-modal {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(6, 10, 24, 0.88); backdrop-filter: blur(24px) saturate(160%);
+      display: none; align-items: center; justify-content: center; z-index: 950; padding: 20px;
+    }
+    .settings-window {
+      width: 760px; max-width: 95vw; background: rgba(11, 18, 34, 0.95);
+      border: 1px solid rgba(0, 243, 255, 0.3); border-top: 3px solid #00f3ff;
+      border-radius: 6px; box-shadow: 0 25px 70px rgba(0,0,0,0.85), 0 0 40px rgba(0, 243, 255, 0.15);
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    .settings-header {
+      padding: 18px 24px; background: rgba(15, 23, 42, 0.85); border-bottom: 1px solid rgba(255,255,255,0.08);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .settings-nav {
+      display: flex; gap: 8px; padding: 12px 24px; background: rgba(8, 14, 28, 0.7); border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .settings-tab-btn {
+      padding: 7px 16px; background: transparent; border: 1px solid transparent; border-radius: 2px;
+      color: #94a3b8; font-family: 'Share Tech Mono', monospace; font-size: 12px; font-weight: 700;
+      letter-spacing: 1px; cursor: pointer; transition: all 0.15s ease;
+    }
+    .settings-tab-btn:hover { color: #f1f5f9; background: rgba(255,255,255,0.05); }
+    .settings-tab-btn.active {
+      color: #00f3ff; background: rgba(0, 243, 255, 0.12); border-color: rgba(0, 243, 255, 0.4);
+      box-shadow: inset 0 -2px 0 #00f3ff;
+    }
+    .settings-body {
+      padding: 24px; max-height: 520px; overflow-y: auto; display: flex; flex-direction: column; gap: 18px;
+    }
+    .settings-group {
+      background: rgba(15, 23, 42, 0.55); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 4px; padding: 16px 20px; display: flex; flex-direction: column; gap: 14px;
+    }
+    .settings-row {
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .settings-label {
+      display: flex; flex-direction: column; gap: 2px;
+    }
+    .settings-name {
+      font-size: 14px; font-weight: 700; color: #f1f5f9; letter-spacing: 0.8px;
+    }
+    .settings-desc {
+      font-family: 'Share Tech Mono', monospace; font-size: 11px; color: #94a3b8;
+    }
+    .settings-input-wrap {
+      display: flex; align-items: center; gap: 12px; min-width: 220px; justify-content: flex-end;
+    }
+    .settings-slider {
+      -webkit-appearance: none; appearance: none; width: 150px; height: 5px;
+      background: rgba(255,255,255,0.18); border-radius: 2px; outline: none;
+    }
+    .settings-slider::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none; width: 15px; height: 15px;
+      background: #00f3ff; border-radius: 50%; cursor: pointer; box-shadow: 0 0 10px #00f3ff;
+    }
+    .settings-val-badge {
+      font-family: 'Share Tech Mono', monospace; font-size: 12px; font-weight: 700; color: #00f3ff;
+      min-width: 44px; text-align: right;
+    }
+    .settings-footer {
+      padding: 16px 24px; background: rgba(15, 23, 42, 0.85); border-top: 1px solid rgba(255,255,255,0.08);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .settings-resume-btn {
+      background: #00f3ff; color: #050914; font-family: 'Rajdhani', sans-serif; font-size: 15px;
+      font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; padding: 10px 24px;
+      border: none; border-radius: 2px; cursor: pointer; transition: all 0.15s ease;
+      box-shadow: 0 0 20px rgba(0, 243, 255, 0.4);
+    }
+    .settings-resume-btn:hover { background: #38bdf8; box-shadow: 0 0 28px rgba(0, 243, 255, 0.6); }
   </style>
 </head>
 <body>
@@ -139,7 +274,14 @@
     <div id="reticle-wrap">
       <div id="reticle-dot"></div>
       <div id="reticle-ring"></div>
-      <div id="hitmarker">✕</div>
+      <div id="hitmarker">
+        <svg viewBox="0 0 36 36" width="30" height="30" style="display:block;">
+          <line x1="6" y1="6" x2="13" y2="13" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>
+          <line x1="30" y1="6" x2="23" y2="13" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>
+          <line x1="6" y1="30" x2="13" y2="23" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>
+          <line x1="30" y1="30" x2="23" y2="23" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>
+        </svg>
+      </div>
     </div>
 
     <!-- Top Status Bar -->
@@ -147,6 +289,11 @@
       <button class="top-pill" onclick="window.game && window.game.toggleMap()" style="border-color: rgba(251, 191, 36, 0.4); background: rgba(30, 27, 75, 0.75);">
         <span class="dot-indicator" style="background:#fbbf24; box-shadow:0 0 8px #fbbf24;"></span>
         <span id="map-txt" style="color:#fbbf24; font-weight:800;">MAP // CS BLACKHAWK</span>
+      </button>
+
+      <button class="top-pill" id="mode-pill" onclick="window.game && window.game.cycleGameMode()" style="border-color: rgba(56, 189, 248, 0.45); background: rgba(15, 23, 42, 0.75);">
+        <span class="dot-indicator" style="background:#38bdf8; box-shadow:0 0 8px #38bdf8;"></span>
+        <span id="mode-txt" style="color:#38bdf8; font-weight:800;">MODE // TEAM DEATHMATCH</span>
       </button>
 
       <div class="top-pill" id="koth-status">
@@ -158,15 +305,26 @@
         <span id="view-txt">CAM // FPS</span>
       </button>
 
+      <button class="top-pill" id="invert-btn" onclick="window.game && window.game.toggleInvertY()">
+        <span id="invert-txt">INVERT // OFF</span>
+      </button>
+
+      <button class="top-pill" id="settings-pill" onclick="window.game && window.game.togglePause(true)">
+        <span style="color:#00f3ff; font-weight:800;">⚙ SETTINGS [ESC]</span>
+      </button>
+
       <div id="op-dock">
         <button class="op-tab active" onclick="window.game && window.game._loadHeroine('mai')">[ 01 // MAI ]</button>
-        <button class="op-tab" onclick="window.game && window.game._loadHeroine('miyazawa')">[ 02 // MIYAZAWA ]</button>
-        <button class="op-tab" onclick="window.game && window.game._loadHeroine('lucy')">[ 03 // LUCY ]</button>
+        <button class="op-tab" onclick="window.game && window.game._loadHeroine('maid')">[ 02 // MAID BATTLE ]</button>
+        <button class="op-tab" onclick="window.game && window.game._loadHeroine('miyazawa')">[ 03 // MIYAZAWA ]</button>
       </div>
     </div>
 
     <!-- Killfeed -->
     <div id="killfeed"></div>
+
+    <!-- Weapon Pickup Interactive Floating Prompt -->
+    <div id="pickup-prompt"></div>
 
     <!-- Bottom-Left: Halo Vitals -->
     <div id="vitals-panel">
@@ -208,13 +366,282 @@
     </div>
   </div>
 
-  <!-- Deploy Start Screen -->
-  <div id="start-prompt">
-    <div class="sp-tag">// TACTICAL PROTOCOL • COUNTER-STRIKE 5v5</div>
-    <div class="sp-title">WAIFU ARENA // CS BLACK HAWK DOWN</div>
-    <div class="sp-cta" style="margin-bottom:8px;">[ CLICK ANYWHERE TO LOCK MOUSE & ENGAGE MATCH ]</div>
-    <div style="font-family:'Share Tech Mono', monospace; font-size:11px; color:#38bdf8; letter-spacing:1px; opacity:0.9;">
-      [M] SWITCH MAP (CS / HALO) • [1-9] ARSENAL • [V] 1ST/3RD PERSON CAM • [H] CYCLE HEROINE
+  <!-- Cinematic Fullscreen Splash Start Screen -->
+  <div id="splash-screen">
+    <div class="splash-box">
+      <div>
+        <div class="splash-tag">// ADVANCED TACTICAL PVE/PVP COMBAT ENGINE</div>
+        <div class="splash-title">WAIFU ARENA</div>
+        <div style="font-family:'Share Tech Mono', monospace; font-size:12px; color:#94a3b8; letter-spacing:1.5px; margin-top:4px;">
+          CALL OF DUTY ADS & BALLISTICS • HALO KOTH SPARRING • CS 5v5 SQUAD ELIMINATION
+        </div>
+      </div>
+
+      <div class="splash-grid">
+        <!-- Game Mode Selector -->
+        <div class="splash-panel">
+          <h4>// 1. SELECT COMBAT ARENA</h4>
+          <div class="splash-btn-group" id="splash-mode-group">
+            <button class="splash-opt-btn active" id="splash-mode-cs" onclick="window.game && window.game.setMap('cs_blackhawk')">CS 5v5 BLACKHAWK</button>
+            <button class="splash-opt-btn" id="splash-mode-haven" onclick="window.game && window.game.setMap('haven')">HALO HAVEN</button>
+            <button class="splash-opt-btn" id="splash-mode-lockout" onclick="window.game && window.game.setMap('lockout')">HALO LOCKOUT</button>
+            <button class="splash-opt-btn" id="splash-mode-rust" onclick="window.game && window.game.setMap('rust')">COD RUST</button>
+          </div>
+          <div style="font-size:11px; color:#64748b; margin-top:8px; font-family:'Share Tech Mono', monospace;" id="splash-mode-desc">
+            Counter-Terrorist squad elimination match on open desert fortress.
+          </div>
+        </div>
+
+        <!-- Animated Operator Rigs -->
+        <div class="splash-panel">
+          <h4>// 2. OPERATOR RIG (ANIMATED ONLY)</h4>
+          <div class="splash-btn-group" id="splash-op-group">
+            <button class="splash-opt-btn active" id="splash-op-mai" onclick="window.game && window.game._loadHeroine('mai')">01 // MAI</button>
+            <button class="splash-opt-btn" id="splash-op-maid" onclick="window.game && window.game._loadHeroine('maid')">02 // MAID BATTLE</button>
+            <button class="splash-opt-btn" id="splash-op-miyazawa" onclick="window.game && window.game._loadHeroine('miyazawa')">03 // MIYAZAWA</button>
+          </div>
+          <div style="font-size:11px; color:#64748b; margin-top:8px; font-family:'Share Tech Mono', monospace;" id="splash-op-desc">
+            Verified skeletal combat rig • 13 animations • Precision recoil handling.
+          </div>
+        </div>
+
+        <!-- Perspective Selection -->
+        <div class="splash-panel">
+          <h4>// 3. COMBAT PERSPECTIVE</h4>
+          <div class="splash-btn-group" id="splash-cam-group">
+            <button class="splash-opt-btn active" id="splash-cam-fps" onclick="window.game && window.game.setPerspective('FPS')">FIRST-PERSON (FPS)</button>
+            <button class="splash-opt-btn" id="splash-cam-ots" onclick="window.game && window.game.setPerspective('OTS')">THIRD-PERSON (OTS)</button>
+          </div>
+        </div>
+
+        <!-- Quick Setup & Controller Status -->
+        <div class="splash-panel">
+          <h4>// 4. HARDWARE STATUS</h4>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="font-family:'Share Tech Mono', monospace; font-size:11px; color:#38bdf8;">
+              🎮 CONTROLLER: <span id="splash-gamepad-status" style="color:#94a3b8;">PLUG IN OR USE KB+M</span>
+            </div>
+            <button class="splash-opt-btn" onclick="window.game && window.game.togglePause(true)">⚙ SETTINGS</button>
+          </div>
+          <div style="font-size:11px; color:#64748b; margin-top:8px; font-family:'Share Tech Mono', monospace;">
+            LT / RMB: Aim Down Sights (ADS) • RT / LMB: Fire • [E] / [X]: Weapon Pickup
+          </div>
+        </div>
+      </div>
+
+      <!-- Deploy Button -->
+      <button class="splash-deploy-btn" id="splash-deploy-btn" onclick="window.game && window.game.startMatchFromSplash()">
+        ⚡ DEPLOY TO COMBAT [ CLICK TO LOCK MOUSE ]
+      </button>
+    </div>
+  </div>
+
+  <!-- Pause Menu & In-Depth Settings Modal -->
+  <div id="pause-modal">
+    <div class="settings-window">
+      <div class="settings-header">
+        <div>
+          <div style="font-family:'Share Tech Mono', monospace; font-size:11px; color:#00f3ff; letter-spacing:2px;">// COMBAT SUITE CONFIGURATION</div>
+          <div style="font-size:22px; font-weight:800; color:#ffffff; text-transform:uppercase; letter-spacing:1px;">TACTICAL SETTINGS</div>
+        </div>
+        <button class="top-pill" onclick="window.game && window.game.togglePause(false)" style="background:rgba(239,68,68,0.2); border-color:rgba(239,68,68,0.5); color:#fca5a5;">
+          CLOSE [ESC]
+        </button>
+      </div>
+
+      <div class="settings-nav">
+        <button class="settings-tab-btn active" id="tab-btn-controller" onclick="window.game && window.game.showSettingsTab('controller')">🎮 CONTROLLER & INPUT</button>
+        <button class="settings-tab-btn" id="tab-btn-display" onclick="window.game && window.game.showSettingsTab('display')">🖥️ DISPLAY & FOV</button>
+        <button class="settings-tab-btn" id="tab-btn-audio" onclick="window.game && window.game.showSettingsTab('audio')">🔊 AUDIO & MATCH</button>
+      </div>
+
+      <div class="settings-body">
+        <!-- TAB 1: CONTROLLER & INPUT -->
+        <div class="settings-tab-content" id="tab-content-controller">
+          <div class="settings-group">
+            <div class="settings-row">
+              <div class="settings-label">
+                <span class="settings-name">Mouse Sensitivity</span>
+                <span class="settings-desc">Fine-tuned raw desktop look sensitivity</span>
+              </div>
+              <div class="settings-input-wrap">
+                <input type="range" class="settings-slider" id="cfg-mouse-sens" min="0.0010" max="0.0050" step="0.0002" value="0.0022">
+                <span class="settings-val-badge" id="val-mouse-sens">2.2</span>
+              </div>
+            </div>
+
+            <div class="settings-row">
+              <div class="settings-label">
+                <span class="settings-name">Controller Look Sensitivity</span>
+                <span class="settings-desc">Right analog stick turning velocity & cubic curve</span>
+              </div>
+              <div class="settings-input-wrap">
+                <input type="range" class="settings-slider" id="cfg-pad-sens" min="1.0" max="5.0" step="0.2" value="2.6">
+                <span class="settings-val-badge" id="val-pad-sens">2.6</span>
+              </div>
+            </div>
+
+            <div class="settings-row">
+              <div class="settings-label">
+                <span class="settings-name">ADS Sensitivity Multiplier</span>
+                <span class="settings-desc">Precision dampening multiplier while aiming down sights</span>
+              </div>
+              <div class="settings-input-wrap">
+                <input type="range" class="settings-slider" id="cfg-ads-sens" min="0.30" max="1.00" step="0.05" value="0.65">
+                <span class="settings-val-badge" id="val-ads-sens">0.65x</span>
+              </div>
+            </div>
+
+            <div class="settings-row">
+              <div class="settings-label">
+                <span class="settings-name">Stick Deadzone</span>
+                <span class="settings-desc">Threshold before analog stick input engages</span>
+              </div>
+              <div class="settings-input-wrap">
+                <input type="range" class="settings-slider" id="cfg-deadzone" min="0.05" max="0.30" step="0.02" value="0.15">
+                <span class="settings-val-badge" id="val-deadzone">0.15</span>
+              </div>
+            </div>
+
+            <div class="settings-row">
+              <div class="settings-label">
+                <span class="settings-name">Invert Vertical Look (Y-Axis)</span>
+                <span class="settings-desc">Reverse pitch for stick & mouse look</span>
+              </div>
+              <div class="settings-input-wrap">
+                <button class="splash-opt-btn" id="cfg-invert-btn" onclick="window.game && window.game.toggleInvertY()">OFF</button>
+              </div>
+            </div>
+
+            <div class="settings-row">
+              <div class="settings-label">
+                <span class="settings-name">Aim Down Sights (ADS) Mode</span>
+                <span class="settings-desc">Choose between holding or toggling to zoom</span>
+              </div>
+              <div class="settings-input-wrap">
+                <button class="splash-opt-btn active" id="cfg-ads-mode-hold" onclick="window.game && window.game.setAdsMode('hold')">HOLD</button>
+                <button class="splash-opt-btn" id="cfg-ads-mode-toggle" onclick="window.game && window.game.setAdsMode('toggle')">TOGGLE</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Visual Gamepad Button Layout Map -->
+          <div class="settings-group">
+            <div style="font-family:'Share Tech Mono', monospace; font-size:12px; color:#00f3ff; letter-spacing:1px; margin-bottom:4px;">
+              // GAMEPAD BUTTON MAPPING (HALO & CALL OF DUTY STANDARD)
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-family:'Share Tech Mono', monospace; font-size:11px; color:#cbd5e1;">
+              <div style="background:rgba(8,14,28,0.7); padding:8px 12px; border-radius:2px;"><strong style="color:#38bdf8;">[LT / L2]</strong> Aim Down Sights (ADS)</div>
+              <div style="background:rgba(8,14,28,0.7); padding:8px 12px; border-radius:2px;"><strong style="color:#38bdf8;">[RT / R2]</strong> Fire Weapon</div>
+              <div style="background:rgba(8,14,28,0.7); padding:8px 12px; border-radius:2px;"><strong style="color:#38bdf8;">[LB / L1]</strong> Previous Weapon</div>
+              <div style="background:rgba(8,14,28,0.7); padding:8px 12px; border-radius:2px;"><strong style="color:#38bdf8;">[RB / R1]</strong> Next Weapon</div>
+              <div style="background:rgba(8,14,28,0.7); padding:8px 12px; border-radius:2px;"><strong style="color:#38bdf8;">[LS / L3]</strong> Move / Click to Sprint</div>
+              <div style="background:rgba(8,14,28,0.7); padding:8px 12px; border-radius:2px;"><strong style="color:#38bdf8;">[RS / R3]</strong> Look / Click to Melee</div>
+              <div style="background:rgba(8,14,28,0.7); padding:8px 12px; border-radius:2px;"><strong style="color:#38bdf8;">[A / ✕]</strong> Jump</div>
+              <div style="background:rgba(8,14,28,0.7); padding:8px 12px; border-radius:2px;"><strong style="color:#38bdf8;">[B / ◯]</strong> Crouch / Slide</div>
+              <div style="background:rgba(8,14,28,0.7); padding:8px 12px; border-radius:2px;"><strong style="color:#38bdf8;">[X / ▢]</strong> Reload / Weapon Pickup</div>
+              <div style="background:rgba(8,14,28,0.7); padding:8px 12px; border-radius:2px;"><strong style="color:#38bdf8;">[Y / △]</strong> Cycle Weapon</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 2: DISPLAY & FOV -->
+        <div class="settings-tab-content" id="tab-content-display" style="display:none;">
+          <div class="settings-group">
+            <div class="settings-row">
+              <div class="settings-label">
+                <span class="settings-name">Field of View (Base FOV)</span>
+                <span class="settings-desc">Camera horizontal span in first/third person</span>
+              </div>
+              <div class="settings-input-wrap">
+                <input type="range" class="settings-slider" id="cfg-fov" min="60" max="110" step="1" value="85">
+                <span class="settings-val-badge" id="val-fov">85°</span>
+              </div>
+            </div>
+
+            <div class="settings-row">
+              <div class="settings-label">
+                <span class="settings-name">ADS Zoom Magnification</span>
+                <span class="settings-desc">Extra zoom scaling when aiming down sights</span>
+              </div>
+              <div class="settings-input-wrap">
+                <input type="range" class="settings-slider" id="cfg-ads-zoom" min="0.80" max="2.00" step="0.05" value="1.00">
+                <span class="settings-val-badge" id="val-ads-zoom">1.00x</span>
+              </div>
+            </div>
+
+            <div class="settings-row">
+              <div class="settings-label">
+                <span class="settings-name">Perspective</span>
+                <span class="settings-desc">Switch between First-Person and Over-The-Shoulder</span>
+              </div>
+              <div class="settings-input-wrap">
+                <button class="splash-opt-btn active" id="cfg-cam-fps" onclick="window.game && window.game.setPerspective('FPS')">FPS (1ST PERSON)</button>
+                <button class="splash-opt-btn" id="cfg-cam-ots" onclick="window.game && window.game.setPerspective('OTS')">OTS (3RD PERSON)</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 3: AUDIO & MATCH -->
+        <div class="settings-tab-content" id="tab-content-audio" style="display:none;">
+          <div class="settings-group">
+            <div class="settings-row">
+              <div class="settings-label">
+                <span class="settings-name">Master Volume</span>
+                <span class="settings-desc">Global combat audio level</span>
+              </div>
+              <div class="settings-input-wrap">
+                <input type="range" class="settings-slider" id="cfg-vol-master" min="0" max="100" step="5" value="100">
+                <span class="settings-val-badge" id="val-vol-master">100%</span>
+              </div>
+            </div>
+
+            <div class="settings-row">
+              <div class="settings-label">
+                <span class="settings-name">Gunfire & SFX Volume</span>
+                <span class="settings-desc">Weapon shots, reloading, and explosion volume</span>
+              </div>
+              <div class="settings-input-wrap">
+                <input type="range" class="settings-slider" id="cfg-vol-sfx" min="0" max="100" step="5" value="100">
+                <span class="settings-val-badge" id="val-vol-sfx">100%</span>
+              </div>
+            </div>
+
+            <div class="settings-row">
+              <div class="settings-label">
+                <span class="settings-name">Hitmarker Chime</span>
+                <span class="settings-desc">Feedback audio on landing shots and precision headshots</span>
+              </div>
+              <div class="settings-input-wrap">
+                <input type="range" class="settings-slider" id="cfg-vol-hit" min="0" max="100" step="5" value="100">
+                <span class="settings-val-badge" id="val-vol-hit">100%</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="settings-group">
+            <div class="settings-row">
+              <div class="settings-label">
+                <span class="settings-name">Restart Current Match</span>
+                <span class="settings-desc">Reset all rounds, bot squads, and player vitals</span>
+              </div>
+              <button class="splash-opt-btn" style="border-color:#f43f5e; color:#f43f5e;" onclick="window.game && window.game.restartMatch()">
+                RESTART MATCH
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-footer">
+        <div style="font-family:'Share Tech Mono', monospace; font-size:11px; color:#64748b;">
+          ALL CHANGES APPLY INSTANTLY IN REAL-TIME
+        </div>
+        <button class="settings-resume-btn" onclick="window.game && window.game.togglePause(false)">
+          RESUME COMBAT [ESC]
+        </button>
+      </div>
     </div>
   </div>
 

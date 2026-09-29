@@ -14,7 +14,10 @@ extends Node3D
 ## 1000, infirmary->rooftop 2500.
 
 var windows: Array[Vector3] = []
+var window_rooms: Array[int] = []
+var room_rects: Array[Rect2] = []
 var doors: Array[BuyDoor] = []
+var door_links: Array[Dictionary] = []
 var stations: Array[Interactable] = []
 
 var _wall_mat: StandardMaterial3D
@@ -24,9 +27,9 @@ var _door_open_mat: StandardMaterial3D
 
 
 func build() -> void:
-	_wall_mat = _mat(Color(0.32, 0.34, 0.40))
-	_floor_mat = _mat(Color(0.16, 0.16, 0.20))
-	_door_closed_mat = _mat(Color(0.10, 0.75, 0.85))
+	_wall_mat = _mat(Color(0.14, 0.13, 0.17))
+	_floor_mat = _mat(Color(0.09, 0.09, 0.12))
+	_door_closed_mat = _mat(Color(0.26, 0.17, 0.11))
 	_door_open_mat = _mat(Color(0.30, 0.90, 0.50))
 
 	_light()
@@ -46,16 +49,26 @@ func _light() -> void:
 
 	var env := Environment.new()
 	env.background_mode = Environment.BG_COLOR
-	env.background_color = Color(0.07, 0.03, 0.11)
+	env.background_color = Color(0.02, 0.02, 0.04)
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.45, 0.4, 0.6)
-	env.ambient_light_energy = 0.7
+	env.ambient_light_color = Color(0.35, 0.33, 0.45)
+	env.ambient_light_energy = 0.55
+	env.fog_enabled = true
+	env.fog_light_color = Color(0.03, 0.03, 0.06)
+	env.fog_density = 0.028
 	var we := WorldEnvironment.new()
 	we.environment = env
 	add_child(we)
 
 
 func _floors() -> void:
+	room_rects = [
+		Rect2(-8, -4, 8, 8),    # 0 start
+		Rect2(0, -6, 12, 12),   # 1 courtyard
+		Rect2(2, -12, 8, 6),    # 2 chapel
+		Rect2(12, -4, 10, 8),   # 3 infirmary
+		Rect2(14, -14, 8, 6),   # 4 rooftop
+	]
 	_box(Vector3(-4, -0.1, 0), Vector3(8, 0.2, 8), _floor_mat)      # start
 	_box(Vector3(6, -0.1, 0), Vector3(12, 0.2, 12), _floor_mat)     # courtyard
 	_box(Vector3(6, -0.1, -9), Vector3(8, 0.2, 6), _floor_mat)      # chapel
@@ -102,6 +115,12 @@ func _walls() -> void:
 
 
 func _doors() -> void:
+	door_links = [
+		{"a": 0, "b": 1},   # start -> courtyard 750
+		{"a": 1, "b": 2},   # courtyard -> chapel 500
+		{"a": 1, "b": 3},   # courtyard -> infirmary 1000
+		{"a": 3, "b": 4},   # infirmary -> rooftop 2500
+	]
 	_door(Vector3(0, 2, 0), true, 750)     # start -> courtyard
 	_door(Vector3(4, 2, -6), false, 500)   # courtyard -> chapel
 	_door(Vector3(12, 2, 0), true, 1000)   # courtyard -> infirmary
@@ -109,19 +128,28 @@ func _doors() -> void:
 
 
 func _window_frames() -> void:
+	# Boarded windows: dark plank barriers on the exterior walls. Zombies
+	# burst through them; they mark every breach at a glance.
 	var frames := [
 		Vector3(-8, 1.3, 0), Vector3(4, 1.3, 6), Vector3(9, 1.3, 6),
 		Vector3(3, 1.3, -12), Vector3(8, 1.3, -12), Vector3(13, 1.3, 4),
 		Vector3(17, 1.3, 4), Vector3(21, 1.3, 4), Vector3(18, 1.3, -14),
 	]
+	var rooms: Array[int] = [0, 1, 1, 2, 2, 3, 3, 3, 4]
 	windows = [
 		Vector3(-7.2, 0, 0), Vector3(4, 0, 5.2), Vector3(9, 0, 5.2),
 		Vector3(3, 0, -11.2), Vector3(8, 0, -11.2), Vector3(13, 0, 3.2),
 		Vector3(17, 0, 3.2), Vector3(21, 0, 3.2), Vector3(18, 0, -13.2),
 	]
+	window_rooms = rooms.duplicate()
+	var plank_mat := _mat(Color(0.30, 0.20, 0.12))
 	for f in frames:
-		var frame := _box(f, Vector3(1.6, 1.2, 0.4), _mat(Color(0.9, 0.7, 0.2)))
-		frame.name = "WindowFrame"
+		var along_z: bool = f.z == 6 or f.z == -12 or f.z == 4 or f.z == -14
+		var size := Vector3(1.7, 0.28, 0.5) if along_z else Vector3(0.5, 0.28, 1.7)
+		var board := _box(f, size, plank_mat)
+		board.name = "WindowBoard"
+		var board2 := _box(f + Vector3(0, 0.5, 0), size, plank_mat)
+		board2.name = "WindowBoard"
 
 
 func _stations() -> void:
@@ -144,6 +172,12 @@ func _door(at: Vector3, along_x_wall: bool, cost: int) -> void:
 	var size := Vector3(0.3, 4.0, 2.0) if along_x_wall else Vector3(2.0, 4.0, 0.3)
 	var door_body := _box(at, size, _door_closed_mat)
 	door_body.name = "DoorBody"
+	# Two cross planks so shut doors read as boarded wood, not a blue plane.
+	var plank_size := Vector3(0.34, 0.3, 2.1) if along_x_wall else Vector3(2.1, 0.3, 0.34)
+	for py in [1.2, 2.8]:
+		var plank := _box(at + Vector3(0, py - 2.0, 0), plank_size, _mat(Color(0.38, 0.26, 0.14)))
+		plank.name = "DoorPlank"
+		plank.reparent(door_body)
 	var door := BuyDoor.new()
 	door.name = "Door_%d" % cost
 	door.position = at + Vector3(0, -2, 0)

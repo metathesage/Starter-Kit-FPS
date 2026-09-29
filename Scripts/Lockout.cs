@@ -1,28 +1,28 @@
 using UnityEngine;
 using UnityEngine.AI;
 using Unity.AI.Navigation;
-using System.Collections.Generic;
 
 /// <summary>
-/// LOCKOUT-style arena (Halo 2 homage) built from primitives:
-/// one-story main plateau at ground level, sniper tower with a switchback
-/// ramp, a north catwalk, an east bunker roof, a sunk shotgun pit and 1 m
-/// jump-up ledges. Every level connects by ramp or jump — nobody gets
-/// stranded. Movement budget: jump apex 1.18 m → ledges/crates/rails 1.0 m.
+/// TERMINUS — a cyan-on-black brutalist terminus arena (Lockout blood, ECHO skin).
+/// One-story ground game on a gloss-black floor scored with a glowing grid,
+/// a central plateau for the hill, twin sniper towers (y=3) joined by a north
+/// skybridge (y=2), a glowing shotgun pit and 1 m jump crates. Every level is
+/// ramp- or jump-connected. Palette: structure #0d1117, tops snow-white,
+/// trim emission #00f3ff. Movement budget: jump apex 1.18 m → steps 1.0 m.
 /// </summary>
 public class Lockout : MonoBehaviour
 {
-    // winter terminus palette
-    static readonly Color Structure = new Color(0.13f, 0.16f, 0.22f);
-    static readonly Color Panel = new Color(0.62f, 0.66f, 0.74f);
-    static readonly Color Snow = new Color(0.85f, 0.88f, 0.92f);
-    static readonly Color Trim = new Color(0f, 0.55f, 0.6f);
+    static readonly Color Structure = new Color(0.05f, 0.07f, 0.09f);   // near-black blue
+    static readonly Color Top = new Color(0.82f, 0.86f, 0.9f);          // snow
+    static readonly Color PanelDk = new Color(0.1f, 0.12f, 0.15f);
+    static readonly Color Trim = new Color(0f, 0.95f, 1f);              // #00f3ff
 
-    public static Vector3 HillSpot = new Vector3(0f, 1.02f, 2f);   // plateau centre
-    public static Vector3 PlayerSpot = new Vector3(0f, 1.4f, 10f); // plateau south edge, faces the hill
+    public static Vector3 HillSpot = new Vector3(0f, 1.02f, 4f);    // plateau centre
+    public static Vector3 PlayerSpot = new Vector3(0f, 1.4f, 11f);  // plateau south edge
 
-    static Material matStruct, matPanel, matSnow, matTrim;
-    static Transform rootT;   // everything parents here so the map is one subtree
+    static Material matStruct, matTop, matPanel, matTrim, matFloor;
+
+    static Transform rootT;
 
     public static void Build(Transform parent)
     {
@@ -30,22 +30,25 @@ public class Lockout : MonoBehaviour
         if (!parent) parent = new GameObject("LockoutMap").transform;
         rootT = parent;
 
-        GroundPlateau();
-        SniperTower();
-        NorthCatwalk();
-        EastBunker();
-        ShotgunPit();
-        ScatterCrates();
+        Dress();
+        Floor();
+        Plateau();
+        TwinTowers();
+        Skybridge();
+        Pit();
+        Bunker();
+        Crates();
         Perimeter();
-        Pylons();
+        Lights();
     }
 
     static void EnsureMats()
     {
-        if (!matStruct) matStruct = RuntimeAssets.LitMaterial(Structure, 0.25f);
-        if (!matPanel) matPanel = RuntimeAssets.LitMaterial(Panel, 0.5f);
-        if (!matSnow) matSnow = RuntimeAssets.LitMaterial(Snow, 0.35f);
-        if (!matTrim) matTrim = RuntimeAssets.LitMaterial(Trim * 1.4f, 1.5f);
+        if (!matStruct) matStruct = RuntimeAssets.LitMaterial(Structure, 0.15f);
+        if (!matTop) matTop = RuntimeAssets.LitMaterial(Top, 0.25f);
+        if (!matPanel) matPanel = RuntimeAssets.LitMaterial(PanelDk, 0.35f);
+        if (!matTrim) matTrim = RuntimeAssets.LitMaterial(Trim * 1.5f, 1.7f);
+        if (!matFloor) matFloor = RuntimeAssets.LitMaterial(new Color(0.03f, 0.045f, 0.06f), 0.9f);
     }
 
     static GameObject Box(Vector3 c, Vector3 s, Material m)
@@ -66,7 +69,6 @@ public class Lockout : MonoBehaviour
         Vector3 mid = (a + b) * 0.5f;
         Vector3 dir = b - a;
         float len = dir.magnitude;
-        r.transform.position = mid - dir.normalized * 0f;
         r.transform.rotation = Quaternion.LookRotation(dir.normalized, Vector3.up) * Quaternion.Euler(90f, 0f, 0f);
         r.transform.position = mid;
         r.transform.localScale = new Vector3(w, 0.35f, len);
@@ -76,112 +78,152 @@ public class Lockout : MonoBehaviour
         return r;
     }
 
-    // ------------------------------------------------------------- pieces --
-
-    /// <summary>The one-story main plateau — the whole ground game happens here.</summary>
-    static void GroundPlateau()
+    /// <summary>Keep fog on; atmosphere values are owned by ArenaDirector.DressScene
+    /// (the old void-black ambient here buried the waifus — that's gone).</summary>
+    static void Dress()
     {
-        // full arena floor at true ground level — no voids, no safety-net falls
-        Box(new Vector3(0f, -0.25f, 4f), new Vector3(68f, 0.5f, 50f), matStruct);      // ground, top y=0
-        Box(new Vector3(0f, 0.5f, 2f), new Vector3(46f, 1f, 22f), matStruct);          // deck, top y=1
-        Box(new Vector3(0f, 1.04f, 2f), new Vector3(46f, 0.08f, 2.2f), matSnow);       // centre plank
-        Box(new Vector3(0f, 1.06f, -8.8f), new Vector3(46f, 0.12f, 0.5f), matTrim);    // cyan trim N
-        Box(new Vector3(0f, 1.06f, 12.8f), new Vector3(46f, 0.12f, 0.5f), matTrim);    // cyan trim S
-        // ramp up from the west ground onto the deck (gentle 1:5)
-        Ramp(new Vector3(-30f, 0f, 2f), new Vector3(-23f, 1f, 2f), 3f);
-        Ramp(new Vector3(30f, 0f, 2f), new Vector3(23f, 1f, 2f), 3f);                  // mirrored east
+        RenderSettings.fog = true;
     }
 
-    /// <summary>NE sniper tower: deck top y=3, switchback ramp + two landings.</summary>
-    static void SniperTower()
+    /// <summary>Gloss-black floor scored with a glowing cyan grid.</summary>
+    static void Floor()
     {
-        Box(new Vector3(15f, 1.5f, -13f), new Vector3(2.5f, 3f, 2.5f), matStruct);     // pillar
-        Box(new Vector3(15f, 2.5f, -13f), new Vector3(8f, 1f, 8f), matStruct);         // deck top y=3
-        Box(new Vector3(15f, 3.06f, -13f), new Vector3(6f, 0.12f, 6f), matSnow);       // snow top inlay
-        Box(new Vector3(11.65f, 3.5f, -13f), new Vector3(0.7f, 1f, 8f), matStruct);    // west rail
-        Box(new Vector3(15f, 3.5f, -16.65f), new Vector3(8f, 1f, 0.7f), matStruct);    // north rail
-        Box(new Vector3(11.65f, 4.04f, -13f), new Vector3(0.76f, 0.1f, 8f), matTrim);
-        Box(new Vector3(15f, 4.04f, -16.65f), new Vector3(8f, 0.1f, 0.76f), matTrim);
-
-        // switchback: ground → crate A (top 1) → landing B (top 2) → tower (top 3)
-        Box(new Vector3(9.5f, 0.5f, -8.5f), new Vector3(2.2f, 1f, 2.2f), matPanel);    // crate A
-        Box(new Vector3(11.5f, 1f, -11f), new Vector3(2.6f, 2f, 2.6f), matStruct);     // landing B
-        Ramp(new Vector3(5f, 0f, -7.2f), new Vector3(9f, 1f, -8.2f), 2.4f);            // ground → A
-        Ramp(new Vector3(9.8f, 1f, -8.8f), new Vector3(11.3f, 2f, -10.6f), 2.2f);      // A → B
-        Ramp(new Vector3(12.2f, 2f, -11.6f), new Vector3(13.8f, 3f, -12.9f), 2.2f);    // B → tower
+        Box(new Vector3(0f, -0.25f, 4f), new Vector3(68f, 0.5f, 50f), matFloor);          // ground, top y=0
+        for (int i = -3; i <= 3; i++)                                                     // N-S grid strips
+            Box(new Vector3(i * 9f, 0.015f, 4f), new Vector3(0.09f, 0.03f, 50f), matTrim);
+        for (int i = -2; i <= 2; i++)                                                     // E-W grid strips
+            Box(new Vector3(0f, 0.015f, 4f + i * 9f), new Vector3(68f, 0.03f, 0.09f), matTrim);
     }
 
-    /// <summary>North catwalk, top y=2: ledge jump-up then hop across.</summary>
-    static void NorthCatwalk()
+    /// <summary>Central plateau — the hill fight. White top, glowing rim, four ways up.</summary>
+    static void Plateau()
     {
-        Box(new Vector3(-12f, 1.6f, -16f), new Vector3(20f, 0.8f, 3f), matStruct);     // walk, top y=2
-        Box(new Vector3(-12f, 2.05f, -16f), new Vector3(18f, 0.1f, 2.2f), matSnow);
-        Box(new Vector3(-12f, 2.5f, -17.35f), new Vector3(20f, 1f, 0.4f), matStruct);  // rail
-        Box(new Vector3(-12f, 3.04f, -17.35f), new Vector3(20f, 0.1f, 0.46f), matTrim);
-        Box(new Vector3(-20f, 0.8f, -16f), new Vector3(1.2f, 1.6f, 1.2f), matStruct);  // pillars
-        Box(new Vector3(-4f, 0.8f, -16f), new Vector3(1.2f, 1.6f, 1.2f), matStruct);
-        Box(new Vector3(-19f, 0.5f, -11f), new Vector3(2.5f, 1f, 2.5f), matPanel);     // ledge: ground→1, hop→2
+        Box(new Vector3(0f, 0.5f, 4f), new Vector3(30f, 1f, 18f), matStruct);             // deck, top y=1
+        Box(new Vector3(0f, 1.04f, 4f), new Vector3(28f, 0.08f, 16f), matTop);            // white top inlay
+        Box(new Vector3(0f, 1.07f, -5.1f), new Vector3(30f, 0.14f, 0.4f), matTrim);       // glowing rim N
+        Box(new Vector3(0f, 1.07f, 13.1f), new Vector3(30f, 0.14f, 0.4f), matTrim);       // rim S
+        Box(new Vector3(-15.1f, 1.07f, 4f), new Vector3(0.4f, 0.14f, 18f), matTrim);      // rim W
+        Box(new Vector3(15.1f, 1.07f, 4f), new Vector3(0.4f, 0.14f, 18f), matTrim);       // rim E
+        Ramp(new Vector3(-20f, 0f, 4f), new Vector3(-15.5f, 1f, 4f), 3f);                 // W ground ramp
+        Ramp(new Vector3(20f, 0f, 4f), new Vector3(15.5f, 1f, 4f), 3f);                   // E ground ramp
+        Ramp(new Vector3(0f, 0f, 17.5f), new Vector3(0f, 1f, 13.5f), 3f);                 // S ramp from player side
     }
 
-    /// <summary>East bunker: solid block, roof top y=2 reachable from the plateau.</summary>
-    static void EastBunker()
+    /// <summary>Twin sniper towers NW/NE, deck top y=3, each with a switchback climb.</summary>
+    static void TwinTowers()
     {
-        Box(new Vector3(27f, 1f, 6f), new Vector3(8f, 2f, 6f), matStruct);             // block, top y=2
-        Box(new Vector3(27f, 2.05f, 6f), new Vector3(7f, 0.1f, 5f), matPanel);
-        Box(new Vector3(27f, 2.5f, 9.15f), new Vector3(8f, 1f, 0.3f), matStruct);      // roof rails
-        Box(new Vector3(31.15f, 2.5f, 6f), new Vector3(0.3f, 1f, 6f), matStruct);
-        Box(new Vector3(27f, 3.04f, 9.15f), new Vector3(8f, 0.1f, 0.36f), matTrim);
-        Box(new Vector3(31.15f, 3.04f, 6f), new Vector3(0.36f, 0.1f, 6f), matTrim);
-        Box(new Vector3(22.9f, 1f, 6f), new Vector3(0.2f, 1.6f, 2.4f), matTrim);       // glowing door face
+        for (int side = -1; side <= 1; side += 2)
+        {
+            float x = 17f * side;
+            Box(new Vector3(x, 1.5f, -14f), new Vector3(2.6f, 3f, 2.6f), matStruct);      // pillar
+            Box(new Vector3(x, 2.5f, -14f), new Vector3(8f, 1f, 7f), matStruct);          // deck, top y=3
+            Box(new Vector3(x, 3.05f, -14f), new Vector3(6.4f, 0.1f, 5.4f), matTop);      // snow inlay
+            Box(new Vector3(x - 3.7f * side, 3.5f, -14f), new Vector3(0.6f, 1f, 7f), matStruct); // inner rail
+            Box(new Vector3(x, 3.5f, -17.35f), new Vector3(8f, 1f, 0.7f), matStruct);     // back rail
+            Box(new Vector3(x, 4.06f, -17.35f), new Vector3(8f, 0.12f, 0.76f), matTrim);  // glowing rail cap
+            Box(new Vector3(x - 3.7f * side, 4.06f, -14f), new Vector3(0.66f, 0.12f, 7f), matTrim);
+
+            // climb: plateau (1) → landing (2) → tower (3)
+            Box(new Vector3(x + 4.5f * side, 1.5f, -9.5f), new Vector3(2.6f, 2f, 2.6f), matPanel); // landing top 2
+            Ramp(new Vector3(x + 2f * side, 1f, -6.5f), new Vector3(x + 4.2f * side, 2f, -8.8f), 2.2f);
+            Ramp(new Vector3(x + 4.9f * side, 2f, -10.4f), new Vector3(x + 1.6f * side, 3f, -13.2f), 2.2f);
+            Box(new Vector3(x + 4.5f * side, 2.56f, -9.5f), new Vector3(2.7f, 0.12f, 2.7f), matTrim); // landing glow ring
+        }
     }
 
-    /// <summary>South shotgun pit: sunk floor −0.8, walls up to +1. Jump out is 0.8 m. </summary>
-    static void ShotgunPit()
+    /// <summary>North skybridge y=2 joining both towers — rockets live out here.</summary>
+    static void Skybridge()
     {
-        Box(new Vector3(0f, -1.1f, 19.5f), new Vector3(26f, 0.6f, 10f), matSnow);      // floor top −0.8
-        Box(new Vector3(0f, 0.1f, 14.55f), new Vector3(27f, 1.8f, 0.7f), matStruct);   // north wall (top 1)
-        Box(new Vector3(0f, 0.1f, 24.45f), new Vector3(27f, 1.8f, 0.7f), matStruct);   // south wall
-        Box(new Vector3(-13.3f, 0.1f, 19.5f), new Vector3(0.7f, 1.8f, 10f), matStruct);// west wall
-        Box(new Vector3(13.3f, 0.1f, 19.5f), new Vector3(0.7f, 1.8f, 10f), matStruct); // east wall
-        Box(new Vector3(-6f, -0.3f, 20f), new Vector3(1.4f, 1f, 1.4f), matPanel);      // crates inside
-        Box(new Vector3(6f, -0.3f, 19f), new Vector3(1.4f, 1f, 1.4f), matPanel);
-        Box(new Vector3(0f, 1.04f, 14.55f), new Vector3(27f, 0.1f, 0.76f), matTrim);   // trim on N wall
+        Box(new Vector3(0f, 1.6f, -19f), new Vector3(27f, 0.8f, 2.6f), matStruct);        // walk, top y=2
+        Box(new Vector3(0f, 2.04f, -19f), new Vector3(25f, 0.08f, 2f), matTop);
+        Box(new Vector3(0f, 2.5f, -20.2f), new Vector3(27f, 1f, 0.35f), matStruct);       // rail
+        Box(new Vector3(0f, 3.02f, -20.2f), new Vector3(27f, 0.1f, 0.4f), matTrim);
+        Box(new Vector3(-8f, 0.8f, -19f), new Vector3(1f, 1.6f, 1f), matStruct);          // pylons
+        Box(new Vector3(8f, 0.8f, -19f), new Vector3(1f, 1.6f, 1f), matStruct);
+        // jump-up from the ground: crate 1 → ledge 2 at the west end
+        Box(new Vector3(-16.5f, 0.5f, -19f), new Vector3(1.5f, 1f, 1.5f), matPanel);
+        Box(new Vector3(-13.9f, 1f, -19f), new Vector3(1.4f, 2f, 2.2f), matStruct);       // ledge, top 2
     }
 
-    /// <summary>Jump crates: cover + mobility steps, every one exactly 1 m tall.</summary>
-    static void ScatterCrates()
+    /// <summary>SW shotgun pit: glowing rim, sunk floor, jump-out is 0.8 m.</summary>
+    static void Pit()
+    {
+        Box(new Vector3(-15f, -1.1f, 20f), new Vector3(24f, 0.6f, 9f), matFloor);         // floor top −0.8
+        Box(new Vector3(-15f, 0.1f, 15.55f), new Vector3(25f, 1.8f, 0.6f), matStruct);    // walls (top 1)
+        Box(new Vector3(-15f, 0.1f, 24.45f), new Vector3(25f, 1.8f, 0.6f), matStruct);
+        Box(new Vector3(-27.3f, 0.1f, 20f), new Vector3(0.6f, 1.8f, 9f), matStruct);
+        Box(new Vector3(-2.7f, 0.1f, 20f), new Vector3(0.6f, 1.8f, 9f), matStruct);
+        Box(new Vector3(-15f, 1.04f, 15.55f), new Vector3(25f, 0.1f, 0.66f), matTrim);    // glowing rims
+        Box(new Vector3(-15f, 1.04f, 24.45f), new Vector3(25f, 0.1f, 0.66f), matTrim);
+        Box(new Vector3(-8f, -0.3f, 20f), new Vector3(1.4f, 1f, 1.4f), matPanel);         // crates in-pit
+        Box(new Vector3(-22f, -0.3f, 21f), new Vector3(1.4f, 1f, 1.4f), matPanel);
+    }
+
+    /// <summary>SE bunker: solid block, roof y=2 with the overshield.</summary>
+    static void Bunker()
+    {
+        Box(new Vector3(20f, 1f, 19f), new Vector3(9f, 2f, 7f), matStruct);               // top y=2
+        Box(new Vector3(20f, 2.04f, 19f), new Vector3(7.6f, 0.08f, 5.6f), matTop);
+        Box(new Vector3(20f, 2.5f, 22.4f), new Vector3(9f, 1f, 0.3f), matStruct);
+        Box(new Vector3(24.4f, 2.5f, 19f), new Vector3(0.3f, 1f, 7f), matStruct);
+        Box(new Vector3(20f, 3.02f, 22.4f), new Vector3(9f, 0.1f, 0.36f), matTrim);
+        Box(new Vector3(24.4f, 3.02f, 19f), new Vector3(0.36f, 0.1f, 7f), matTrim);
+        Box(new Vector3(15.4f, 1f, 19f), new Vector3(0.25f, 1.7f, 2.6f), matTrim);        // glowing door face
+        Box(new Vector3(12f, 0.5f, 19f), new Vector3(1.5f, 1f, 1.5f), matPanel);          // jump crate to roof
+    }
+
+    /// <summary>Jump crates — every one exactly 1 m, cyan-capped so they read as steps.</summary>
+    static void Crates()
     {
         Vector3[] spots =
         {
-            new Vector3(-8f, 0.5f, -14f), new Vector3(8f, 0.5f, -14f),      // north ground pair
-            new Vector3(-27f, 0.5f, 8f), new Vector3(27f, 0.5f, -8f),       // flanks
-            new Vector3(-3f, 1.5f, 8f), new Vector3(3f, 1.5f, 8f),          // plateau cover (sit on deck)
-            new Vector3(20f, 0.5f, -6f), new Vector3(-16f, 1.5f, 8f),       // tower-side + plateau W
+            new Vector3(-6f, 0.5f, -8f), new Vector3(6f, 0.5f, -8f),      // plateau N pair (bridge access feel)
+            new Vector3(-25f, 0.5f, 8f), new Vector3(25f, 0.5f, 8f),      // flanks
+            new Vector3(-6f, 1.5f, 8f), new Vector3(6f, 1.5f, 8f),        // plateau cover
+            new Vector3(-24f, 0.5f, -6f), new Vector3(24f, 0.5f, -2f),    // tower-side
+            new Vector3(0f, 0.5f, 22f),                                    // S ground centre
+            new Vector3(28f, 0.5f, -14f),                                  // NE tower ground
         };
-        foreach (var s in spots) Box(s, new Vector3(1.4f, 1f, 1.4f), matPanel);
+        foreach (var s in spots)
+        {
+            Box(s, new Vector3(1.4f, 1f, 1.4f), matPanel);
+            Box(s + new Vector3(0f, 0.52f, 0f), new Vector3(1.46f, 0.06f, 1.46f), matTrim); // glowing cap edge
+        }
     }
 
-    /// <summary>Perimeter walls, 1 m — out of bounds is a hop, not a mystery.</summary>
+    /// <summary>Perimeter: dark rails with a glowing top line — the void stays out.</summary>
     static void Perimeter()
     {
-        Box(new Vector3(0f, 0.5f, -21f), new Vector3(70f, 1f, 0.6f), matStruct);
-        Box(new Vector3(0f, 0.5f, 29f), new Vector3(70f, 1f, 0.6f), matStruct);
-        Box(new Vector3(-34f, 0.5f, 4f), new Vector3(0.6f, 1f, 51f), matStruct);
-        Box(new Vector3(34f, 0.5f, 4f), new Vector3(0.6f, 1f, 51f), matStruct);
-        Box(new Vector3(0f, 1.04f, -21f), new Vector3(70f, 0.1f, 0.66f), matTrim);
-        Box(new Vector3(0f, 1.04f, 29f), new Vector3(70f, 0.1f, 0.66f), matTrim);
-        Box(new Vector3(-34f, 1.04f, 4f), new Vector3(0.66f, 0.1f, 51f), matTrim);
-        Box(new Vector3(34f, 1.04f, 4f), new Vector3(0.66f, 0.1f, 51f), matTrim);
+        Box(new Vector3(0f, 0.5f, -22f), new Vector3(70f, 1f, 0.6f), matStruct);
+        Box(new Vector3(0f, 0.5f, 30f), new Vector3(70f, 1f, 0.6f), matStruct);
+        Box(new Vector3(-35f, 0.5f, 4f), new Vector3(0.6f, 1f, 53f), matStruct);
+        Box(new Vector3(35f, 0.5f, 4f), new Vector3(0.6f, 1f, 53f), matStruct);
+        Box(new Vector3(0f, 1.05f, -22f), new Vector3(70f, 0.1f, 0.66f), matTrim);
+        Box(new Vector3(0f, 1.05f, 30f), new Vector3(70f, 0.1f, 0.66f), matTrim);
+        Box(new Vector3(-35f, 1.05f, 4f), new Vector3(0.66f, 0.1f, 53f), matTrim);
+        Box(new Vector3(35f, 1.05f, 4f), new Vector3(0.66f, 0.1f, 53f), matTrim);
     }
 
-    /// <summary>Corner pylons with cyan caps — the terminal monolith look.</summary>
-    static void Pylons()
+    /// <summary>Four cyan point lights — one per quadrant — plus corner monoliths.</summary>
+    static void Lights()
     {
-        Vector3[] corners = { new Vector3(-31f, 3f, -19f), new Vector3(31f, 3f, -19f), new Vector3(-31f, 3f, 27f), new Vector3(31f, 3f, 27f) };
+        Vector3[] quads = { new Vector3(-17f, 6f, -6f), new Vector3(17f, 6f, -6f), new Vector3(-17f, 6f, 16f), new Vector3(17f, 6f, 16f) };
+        foreach (var q in quads)
+        {
+            var lgo = new GameObject("TerminusLight");
+            lgo.transform.position = q;
+            var l = lgo.AddComponent<Light>();
+            l.type = LightType.Point;
+            l.color = new Color(0.3f, 0.85f, 1f);
+            l.range = 30f;
+            l.intensity = 0.9f;
+            if (rootT) lgo.transform.SetParent(rootT, true);
+        }
+        Vector3[] corners = { new Vector3(-31f, 3f, -18f), new Vector3(31f, 3f, -18f), new Vector3(-31f, 3f, 26f), new Vector3(31f, 3f, 26f) };
         foreach (var c in corners)
         {
             Box(c, new Vector3(1.2f, 6f, 1.2f), matStruct);
-            Box(c + new Vector3(0f, 3.3f, 0f), new Vector3(0.8f, 0.6f, 0.8f), matTrim);
+            Box(c + new Vector3(0f, 3.3f, 0f), new Vector3(0.8f, 0.7f, 0.8f), matTrim);
         }
     }
 
@@ -200,7 +242,7 @@ public class Lockout : MonoBehaviour
     /// <summary>Next spawn seat, cycled — always inside the walls, never stranded.</summary>
     public static Vector3 SpawnSeat() => Seats[seatCursor++ % Seats.Length];
 
-    /// <summary>Re-seat all bots on the Lockout grid (warp keeps NavMeshAgents happy later).</summary>
+    /// <summary>Re-seat all bots on the grid (warp keeps NavMeshAgents happy later).</summary>
     public static void SeatBots()
     {
         int i = 0;
@@ -224,7 +266,7 @@ public class Lockout : MonoBehaviour
         s.collectObjects = CollectObjects.All;
         s.useGeometry = NavMeshCollectGeometry.PhysicsColliders;
         s.BuildNavMesh();
-        Debug.Log("[LOCKOUT] navmesh baked");
+        Debug.Log("[TERMINUS] navmesh baked");
         int fixedAgents = 0;
         foreach (var b in Object.FindObjectsByType<BotAI>(FindObjectsSortMode.None))
         {
@@ -235,6 +277,6 @@ public class Lockout : MonoBehaviour
                 fixedAgents++;
             }
         }
-        if (fixedAgents > 0) Debug.Log("[LOCKOUT] re-gripped " + fixedAgents + " agents");
+        if (fixedAgents > 0) Debug.Log("[TERMINUS] re-gripped " + fixedAgents + " agents");
     }
 }

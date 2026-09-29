@@ -71,6 +71,8 @@ const server = http.createServer((req, res) => {
       'Content-Type': contentType,
       'Access-Control-Allow-Origin': '*'
     });
+    file.on('error', () => {});
+    res.on('error', () => {});
     file.pipe(res);
   } else {
     res.writeHead(200, {
@@ -79,8 +81,16 @@ const server = http.createServer((req, res) => {
       'Accept-Ranges': 'bytes',
       'Access-Control-Allow-Origin': '*'
     });
-    fs.createReadStream(filePath).pipe(res);
+    const file = fs.createReadStream(filePath);
+    file.on('error', () => {});
+    res.on('error', () => {});
+    file.pipe(res);
   }
+});
+
+process.on('uncaughtException', (err) => {
+  if (err.code === 'ECONNRESET' || err.code === 'EPIPE') return;
+  console.log('[SERVER WARN]', err.message);
 });
 
 server.on('error', (err) => {

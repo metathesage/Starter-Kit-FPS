@@ -40,7 +40,7 @@ ws.onopen = () => {
   ws.send(JSON.stringify({ id: 1, method: 'Runtime.enable' }));
   ws.send(JSON.stringify({ id: 2, method: 'Page.enable' }));
 
-  // Wait 3.5s for initial assets to load
+  // Wait 6.5s for initial map and models to fully load
   setTimeout(() => {
     // 1. Click start prompt to engage match
     ws.send(JSON.stringify({
@@ -56,7 +56,7 @@ ws.onopen = () => {
         method: 'Page.captureScreenshot',
         params: { format: 'png' }
       }));
-    }, 1800);
+    }, 2500);
 
     // 3. Toggle into 3rd Person OTS mode (Mai Maid)
     setTimeout(() => {

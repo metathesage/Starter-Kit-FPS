@@ -164,6 +164,25 @@ public class SoundManager : MonoBehaviour
         src.PlayOneShot(clip, vol * SettingsManager.sfxVolume * SettingsManager.masterVolume);
     }
 
+    /// <summary>Play a real clip spatialised in the world (bot gunfire, impacts).</summary>
+    void PlayRawAt(AudioClip clip, Vector3 pos, float vol, float pitchJitter = 0.06f)
+    {
+        var src = world[worldNext++ % Voices];
+        src.transform.position = pos;
+        src.pitch = 1f + Random.Range(-pitchJitter, pitchJitter);
+        src.PlayOneShot(clip, vol * SettingsManager.sfxVolume * SettingsManager.masterVolume);
+    }
+
+    readonly Dictionary<int, float> pitchCache = new Dictionary<int, float>();
+
+    /// <summary>Remember the last 2D pitch per voice so enemy shots can mirror it exactly —
+    /// your rifle and hers are the same gunshot, you just hear hers from out there.</summary>
+    float LastPitch2D(int slot)
+    {
+        if (!pitchCache.TryGetValue(slot, out var p)) p = 1f;
+        return p;
+    }
+
     // ---- player weapon ---------------------------------------------------------
 
     /// <summary>Real recorded Desert Eagle fire cue (Resources/Audio); null if missing.</summary>
@@ -175,9 +194,11 @@ public class SoundManager : MonoBehaviour
         var clip = DeagleFire;
         if (clip)
         {
-            var src = Instance.flat[Instance.flatNext++ % Voices];
+            var slot = Instance.flatNext++ % Voices;
+            var src = Instance.flat[slot];
             src.pitch = (k == Weapon.Kind.Sniper ? 0.7f : k == Weapon.Kind.Shotgun ? 0.8f : k == Weapon.Kind.SMG ? 1.12f : 1f)
                 + Random.Range(-0.035f, 0.035f);
+            Instance.pitchCache[slot] = src.pitch;   // bots mirror this exact pitch
             src.PlayOneShot(clip, (k == Weapon.Kind.Sniper ? 0.55f : k == Weapon.Kind.Shotgun ? 0.5f : 0.4f) * SettingsManager.sfxVolume * SettingsManager.masterVolume);
             return;
         }
@@ -214,7 +235,12 @@ public class SoundManager : MonoBehaviour
 
     // ---- feedback --------------------------------------------------------------
 
-    public static void Hitmarker() => Play("hit", new Spec { dur = 0.05f, freq = 1500, endFreq = 1150, amp = 0.4f, noise = 0.12f, decay = 3f }, 0.4f, 0.03f);
+    /// <summary>Hit feedback: mechanical action-cycle tick — feels like gear, not a bird.</summary>
+    public static void Hitmarker()
+    {
+        Play("ht1", new Spec { dur = 0.03f, freq = 1900, endFreq = 1600, amp = 0.4f, noise = 0.1f, decay = 5f }, 0.32f, 0.01f);
+        Play("ht2", new Spec { dur = 0.05f, freq = 950, endFreq = 700, amp = 0.35f, noise = 0.2f, decay = 4f, damp = 0.3f }, 0.3f, 0.02f);
+    }
     public static void ShieldHit() => Play("shh", new Spec { dur = 0.07f, freq = 1450, endFreq = 1100, amp = 0.3f, noise = 0.06f, decay = 3f }, 0.3f, 0.02f);
 
     public static void ShieldBreak()
@@ -225,7 +251,8 @@ public class SoundManager : MonoBehaviour
     }
     public static void ShieldRecharge() => Play("shr", new Spec { dur = 0.45f, freq = 260, endFreq = 880, amp = 0.35f, noise = 0.2f, attack = 0.12f, decay = 1.1f, damp = 0.7f }, 0.35f, 0.02f);
     public static void KillConfirm() => Play("kil", new Spec { dur = 0.16f, freq = 760, endFreq = 1250, amp = 0.5f, noise = 0.08f, decay = 2.2f, body = 0.4f }, 0.55f, 0.02f);
-    public static void Jump() => Play("jmp", new Spec { dur = 0.07f, freq = 260, endFreq = 170, amp = 0.3f, noise = 0.45f, decay = 3f, damp = 0.55f }, 0.3f);
+    /// <summary>Short exertion breath on jump — a person, not a theremin.</summary>
+    public static void Jump() => Play("jmp", new Spec { dur = 0.11f, freq = 300, endFreq = 150, amp = 0.28f, noise = 0.92f, attack = 0.02f, decay = 2.4f, damp = 0.85f }, 0.26f);
     public static void Dash() => Play("dsh", new Spec { dur = 0.26f, freq = 620, endFreq = 90, amp = 0.55f, noise = 0.7f, decay = 1.7f, drive = 0.7f, damp = 0.78f }, 0.5f);
     /// <summary>Halo-style double-beep shield low warning.</summary>
     public static void ShieldLow()
@@ -247,8 +274,22 @@ public class SoundManager : MonoBehaviour
 
     // ---- world / enemies -------------------------------------------------------
 
+    /// <summary>Bot gunfire: the SAME recorded gunshot as your rifle, spatialised and
+    /// pitch-mirrored — identical weapon, heard from out there. No more bee-farts.</summary>
     public static void EnemyShot(Vector3 pos, int archetype)
     {
+        var real = DeagleFire;
+        if (real)
+        {
+            float pitch = archetype == 2 ? 0.72f : archetype == 1 ? 0.94f : 1.06f;
+            pitch += Random.Range(-0.03f, 0.03f);
+            var slot = Instance.worldNext++ % Voices;
+            var src = Instance.world[slot];
+            src.transform.position = pos;
+            src.pitch = pitch;                       // per-class voice, real recording
+            src.PlayOneShot(real, (archetype == 2 ? 0.5f : archetype == 1 ? 0.4f : 0.35f) * SettingsManager.sfxVolume * SettingsManager.masterVolume);
+            return;
+        }
         switch (archetype)
         {
             case 2: // heavy: slow, deep thuds
@@ -263,10 +304,11 @@ public class SoundManager : MonoBehaviour
         }
     }
 
+    /// <summary>Bot death: low synthesized thump + descent — no cartoon zapper.</summary>
     public static void BotDeath(Vector3 pos)
     {
-        PlayAt("bdx", new Spec { dur = 0.55f, freq = 300, endFreq = 40, amp = 0.9f, noise = 0.6f, decay = 1.5f, drive = 1.8f, body = 0.9f, damp = 0.7f }, pos, 0.8f);
-        PlayAt("bdw", new Spec { dur = 0.4f, freq = 900, endFreq = 120, amp = 0.45f, noise = 0.3f, decay = 1.9f, damp = 0.5f }, pos, 0.45f);
+        PlayAt("bdx", new Spec { dur = 0.4f, freq = 150, endFreq = 45, amp = 0.7f, noise = 0.45f, decay = 2.2f, drive = 1.1f, body = 0.9f, damp = 0.75f }, pos, 0.65f);
+        PlayAt("bdw", new Spec { dur = 0.35f, freq = 420, endFreq = 160, amp = 0.3f, noise = 0.35f, decay = 2.4f, damp = 0.6f }, pos, 0.3f);
     }
 
     // ---- shrine range ---------------------------------------------------------

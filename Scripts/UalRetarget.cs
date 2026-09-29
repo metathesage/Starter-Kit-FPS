@@ -17,7 +17,7 @@ using UnityEngine;
 /// </summary>
 public class UalRig
 {
-    static readonly (string ual, string vroid)[] Map =
+    public static readonly (string ual, string vroid)[] Map =
     {
         ("pelvis",       "J_Bip_C_Hips"),
         ("spine_01",     "J_Bip_C_Spine"),

@@ -45,7 +45,14 @@ export class Input {
 
     this.sensitivity = 0.0022;
     this.padSensitivity = 2.6;
+    this.adsSensitivityMultiplier = 0.65;
+    this.stickDeadzone = 0.15;
+    this.triggerDeadzone = 0.15;
     this.invertY = false;
+
+    // ADS Mode: 'hold' or 'toggle'
+    this.adsMode = 'hold';
+    this.adsToggleState = false;
 
     this._bind();
   }
@@ -132,8 +139,8 @@ export class Input {
     };
 
     const k = this.keys;
-    edge('fire', this.buttons[0] || pad.trigger > TRIGGER_DEAD);
-    edge('aim', this.buttons[2] || pad.leftTrigger > TRIGGER_DEAD);
+    edge('fire', this.buttons[0] || (pad.connected && pad.trigger > this.triggerDeadzone));
+    edge('aim', this.buttons[2] || k.has('KeyZ') || (pad.connected && pad.leftTrigger > this.triggerDeadzone));
     edge('jump', k.has('Space') || pad.a);
     edge('crouch', k.has('ControlLeft') || k.has('KeyC') || pad.b);
     edge('sprint', k.has('ShiftLeft') || k.has('ShiftRight') || pad.leftStickClick);
@@ -141,7 +148,7 @@ export class Input {
     edge('melee', k.has('KeyV') || pad.y);
     edge('scoreboard', k.has('Tab') || pad.select);
     edge('pause', k.has('Escape') || pad.start);
-    edge('nextWeapon', k.has('KeyE') || pad.rightBumper);
+    edge('nextWeapon', pad.rightBumper);
     edge('prevWeapon', k.has('KeyQ') || pad.leftBumper);
     for (let i = 1; i <= 6; i++) edge(`slot${i}`, k.has(`Digit${i}`) || k.has(`Numpad${i}`));
     if (pad.dpadUp) edge('slot1', true);
@@ -149,7 +156,25 @@ export class Input {
     if (pad.dpadLeft) edge('prevWeapon', true);
     if (pad.dpadDown) edge('nextWeapon', true);
 
+    // Toggle ADS edge handling
+    if (this.pressed.aim && this.adsMode === 'toggle') {
+      this.adsToggleState = !this.adsToggleState;
+    }
+
     this._prevButtons = this.buttons.slice();
+  }
+
+  isAiming() {
+    if (this.adsMode === 'toggle') {
+      return this.adsToggleState;
+    }
+    const padAim = this.pad?.connected && (this.pad.leftTrigger > this.triggerDeadzone || this.pad.leftBumper);
+    return this.buttons[2] || this.keys.has('KeyZ') || padAim;
+  }
+
+  isFiring() {
+    const padFire = this.pad?.connected && this.pad.trigger > this.triggerDeadzone;
+    return this.buttons[0] || padFire;
   }
 
   _readGamepad() {
@@ -168,13 +193,13 @@ export class Input {
 
     const b = (i) => !!(gp.buttons[i] && gp.buttons[i].pressed);
     const av = (i) => (gp.axes[i] ?? 0);
-    const dead = (v) => (Math.abs(v) < 0.12 ? 0 : v);
+    const dead = (v) => (Math.abs(v) < this.stickDeadzone ? 0 : v);
 
     const g = {
       ...empty,
       connected: true,
-      move: radialDead({ x: dead(av(0)), y: -dead(av(1)) }),
-      look: radialDead({ x: dead(av(2)), y: dead(av(3)) }),
+      move: radialDead({ x: dead(av(0)), y: -dead(av(1)) }, this.stickDeadzone),
+      look: radialDead({ x: dead(av(2)), y: dead(av(3)) }, this.stickDeadzone),
       trigger: gp.buttons[7]?.value ?? 0,
       leftTrigger: gp.buttons[6]?.value ?? 0,
       a: b(0), b: b(1), x: b(2), y: b(3),
@@ -208,8 +233,11 @@ export class Input {
 
   /** Raw look delta in radians for this frame. Consumes the buffer. */
   look(frameDt) {
-    let yaw = this.mouseDX * this.sensitivity;
-    let pitch = this.mouseDY * this.sensitivity * (this.invertY ? -1 : 1);
+    const isAds = this.isAiming();
+    const sensMult = isAds ? this.adsSensitivityMultiplier : 1.0;
+
+    let yaw = this.mouseDX * this.sensitivity * sensMult;
+    let pitch = this.mouseDY * this.sensitivity * sensMult * (this.invertY ? -1 : 1);
     this.mouseDX = 0;
     this.mouseDY = 0;
 
@@ -222,8 +250,8 @@ export class Input {
       if (mag > 0.02) {
         this.usingGamepad = true;
         // Cubic response curve: fine control near centre, full speed at the edge.
-        const c = Math.sign(p.look.x) * Math.pow(Math.abs(p.look.x), 2) * this.padSensitivity * frameDt;
-        const d = Math.sign(p.look.y) * Math.pow(Math.abs(p.look.y), 2) * this.padSensitivity * frameDt * (this.invertY ? -1 : 1);
+        const c = Math.sign(p.look.x) * Math.pow(Math.abs(p.look.x), 2) * this.padSensitivity * sensMult * frameDt;
+        const d = Math.sign(p.look.y) * Math.pow(Math.abs(p.look.y), 2) * this.padSensitivity * sensMult * frameDt * (this.invertY ? -1 : 1);
         yaw += c;
         pitch += d;
       }

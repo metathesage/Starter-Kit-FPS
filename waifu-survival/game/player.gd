@@ -45,6 +45,7 @@ var camera_pivot: Node3D
 var camera: Camera3D
 var gun: MeshInstance3D
 var gun_mat: StandardMaterial3D
+var muzzle_light: OmniLight3D
 var _mouse := Vector2.ZERO
 var _dash_prev := false
 var _reload_prev := false
@@ -80,6 +81,23 @@ func _ready() -> void:
 	camera.add_child(gun)
 	gun.position = Vector3(0.22, -0.18, -0.45)
 
+	muzzle_light = OmniLight3D.new()
+	muzzle_light.omni_range = 7.0
+	muzzle_light.light_energy = 0.0
+	muzzle_light.light_color = Color(1.0, 0.8, 0.4)
+	camera.add_child(muzzle_light)
+	muzzle_light.position = Vector3(0.22, -0.1, -0.8)
+
+	# Without a collision shape the body falls straight through the world.
+	var collision := CollisionShape3D.new()
+	collision.name = "Collision"
+	var capsule := CapsuleShape3D.new()
+	capsule.radius = 0.4
+	capsule.height = 1.8
+	collision.shape = capsule
+	collision.position = Vector3(0, 0.9, 0)
+	add_child(collision)
+
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	_emit_stats()
 	_emit_ammo()
@@ -107,6 +125,24 @@ func _physics_process(delta: float) -> void:
 func _look(delta: float) -> void:
 	var look := _mouse * mouse_sensitivity
 	_mouse = Vector2.ZERO
+
+	# Gamepad right-stick look across all connected pads
+	const DEADZONE := 0.15
+	for joy in Input.get_connected_joypads():
+		var rx := Input.get_joy_axis(joy, JOY_AXIS_RIGHT_X)
+		var ry := Input.get_joy_axis(joy, JOY_AXIS_RIGHT_Y)
+		if absf(rx) > DEADZONE:
+			look.x += ((rx - signf(rx) * DEADZONE) / (1.0 - DEADZONE)) * 3.2 * delta
+		if absf(ry) > DEADZONE:
+			look.y += ((ry - signf(ry) * DEADZONE) / (1.0 - DEADZONE)) * 3.2 * delta
+
+	# Arrow-key look fallback
+	const ARROW_SPEED := 2.5
+	if Input.is_key_pressed(KEY_UP): look.y -= ARROW_SPEED * delta
+	if Input.is_key_pressed(KEY_DOWN): look.y += ARROW_SPEED * delta
+	if Input.is_key_pressed(KEY_LEFT): look.x -= ARROW_SPEED * delta
+	if Input.is_key_pressed(KEY_RIGHT): look.x += ARROW_SPEED * delta
+
 	if look.length_squared() > 0.000001:
 		rotate_y(-look.x)
 		camera_pivot.rotate_x(-look.y)
@@ -194,6 +230,8 @@ func _weapon(delta: float) -> void:
 		reloading = true
 		reload_timer = reload_time
 	_reload_prev = reload_pressed
+	muzzle_light.light_energy = maxf(0.0, muzzle_light.light_energy - 30.0 * delta)
+	gun.scale = gun.scale.lerp(Vector3.ONE, 10.0 * delta)
 	if Input.is_action_pressed("fire") and fire_cooldown <= 0.0:
 		if current_ammo > 0:
 			_fire()
@@ -206,8 +244,10 @@ func _weapon(delta: float) -> void:
 func _fire() -> void:
 	current_ammo -= 1
 	_emit_ammo()
-	# Recoil kick
+	# Recoil kick + muzzle flash
 	camera_pivot.rotate_x(0.035)
+	muzzle_light.light_energy = 2.5
+	gun.scale = Vector3(1.0, 1.0, 1.3)
 
 	var from := camera.global_position
 	var dir := -camera.global_transform.basis.z

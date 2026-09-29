@@ -37,15 +37,15 @@ public class PickupRing : MonoBehaviour
         Spawn(Kind.Speed, c + new Vector3(-18f, 0.4f, 2f));
     }
 
-    /// <summary>Lockout power item layout: each level guards something —
-    /// tower owns the sniper, catwalk the rockets, bunker the overshield.</summary>
+    /// <summary>TERMINUS power item layout: each level guards something —
+    /// NE tower owns the sniper, skybridge the rockets, bunker the overshield.</summary>
     static void SpawnLockout()
     {
-        Spawn(Kind.RocketLauncher, new Vector3(-12f, 2.7f, -16f));   // catwalk center, y2
-        Spawn(Kind.Sniper, new Vector3(15f, 3.7f, -13f));            // tower top, y3
-        Spawn(Kind.Shotgun, new Vector3(0f, -0.2f, 19.5f));          // pit floor
-        Spawn(Kind.Overshield, new Vector3(27f, 2.7f, 6f));          // bunker roof, y2
-        Spawn(Kind.DamageBoost, new Vector3(-8f, 1.7f, 0f));         // plateau west
+        Spawn(Kind.RocketLauncher, new Vector3(0f, 2.7f, -19f));     // skybridge centre, y2
+        Spawn(Kind.Sniper, new Vector3(17f, 3.7f, -14f));            // NE tower top, y3
+        Spawn(Kind.Shotgun, new Vector3(-15f, -0.2f, 20f));          // SW pit floor
+        Spawn(Kind.Overshield, new Vector3(20f, 2.7f, 19f));         // SE bunker roof, y2
+        Spawn(Kind.DamageBoost, new Vector3(-8f, 1.7f, 4f));         // plateau west
         Spawn(Kind.Speed, new Vector3(8f, 1.7f, 4f));                // plateau east
     }
 

@@ -10,9 +10,9 @@ enum Kind { WALKER, RUNNER, BRUTE }
 enum State { CLIMB, CHASE, WINDUP, SWING, STAGGER, DEAD }
 
 const BASE := {
-	Kind.WALKER: {"hp": 110.0, "speed": 2.6, "dmg": 22.0, "scale": 1.0, "color": Color(0.36, 0.55, 0.32)},
-	Kind.RUNNER: {"hp": 80.0, "speed": 5.0, "dmg": 16.0, "scale": 0.9, "color": Color(0.82, 0.44, 0.68)},
-	Kind.BRUTE: {"hp": 450.0, "speed": 2.0, "dmg": 45.0, "scale": 1.35, "color": Color(0.48, 0.35, 0.63)},
+	Kind.WALKER: {"hp": 110.0, "speed": 2.6, "dmg": 22.0, "scale": 1.0, "color": Color(0.30, 0.38, 0.26)},
+	Kind.RUNNER: {"hp": 80.0, "speed": 5.0, "dmg": 16.0, "scale": 0.9, "color": Color(0.52, 0.26, 0.40)},
+	Kind.BRUTE: {"hp": 450.0, "speed": 2.0, "dmg": 45.0, "scale": 1.35, "color": Color(0.33, 0.27, 0.44)},
 }
 
 var kind := Kind.WALKER
@@ -33,6 +33,8 @@ var knock := Vector3.ZERO
 var _collision: CollisionShape3D
 var _body_mesh: MeshInstance3D
 var _head_mesh: MeshInstance3D
+var _arm_l: Node3D
+var _arm_r: Node3D
 var _mat: StandardMaterial3D
 var _base_color := Color.WHITE
 var _built := false
@@ -62,6 +64,25 @@ func _build() -> void:
 	_head_mesh.position = Vector3(0, 1.72, 0)
 	add_child(_head_mesh)
 
+	# Glowing red eyes - the thing that reads "zombie" in the dark.
+	var eye_mat := StandardMaterial3D.new()
+	eye_mat.emission_enabled = true
+	eye_mat.emission = Color(1.0, 0.12, 0.08)
+	eye_mat.albedo_color = Color(0.1, 0.02, 0.02)
+	for ex in [-0.09, 0.09]:
+		var eye := MeshInstance3D.new()
+		var es := SphereMesh.new()
+		es.radius = 0.045
+		es.height = 0.09
+		eye.mesh = es
+		eye.position = Vector3(ex, 1.76, -0.2)
+		eye.material_override = eye_mat
+		add_child(eye)
+
+	# Arms: pivot at the shoulder, mesh hangs below; they raise on windup.
+	_arm_l = _make_arm(-0.44)
+	_arm_r = _make_arm(0.44)
+
 	_collision = CollisionShape3D.new()
 	var shape := CapsuleShape3D.new()
 	shape.radius = 0.35
@@ -69,6 +90,20 @@ func _build() -> void:
 	_collision.shape = shape
 	_collision.position = Vector3(0, 0.9, 0)
 	add_child(_collision)
+
+
+func _make_arm(side_x: float) -> Node3D:
+	var pivot := Node3D.new()
+	pivot.position = Vector3(side_x, 1.25, 0)
+	var mesh := MeshInstance3D.new()
+	var box := BoxMesh.new()
+	box.size = Vector3(0.13, 0.55, 0.13)
+	mesh.mesh = box
+	mesh.position = Vector3(0, -0.24, 0)
+	mesh.material_override = _mat
+	pivot.add_child(mesh)
+	add_child(pivot)
+	return pivot
 
 
 func activate(z_kind: Kind, wave: int, at: Vector3, target: Node3D) -> void:
@@ -185,6 +220,17 @@ func _physics_process(delta: float) -> void:
 	knock = knock.lerp(Vector3.ZERO, minf(1.0, 8.0 * delta))
 	move_and_slide()
 
+	# Arms: raised high on windup, slammed on swing, reaching while chasing.
+	var want_x := -0.9
+	if state == State.WINDUP:
+		want_x = -1.7
+	elif state == State.SWING:
+		want_x = -0.25
+	elif state == State.STAGGER:
+		want_x = -0.2
+	_arm_l.rotation.x = lerpf(_arm_l.rotation.x, want_x, 12.0 * delta)
+	_arm_r.rotation.x = lerpf(_arm_r.rotation.x, want_x, 12.0 * delta)
+
 
 func _chase(delta: float) -> void:
 	if attack_cd > 0.0:
@@ -227,20 +273,28 @@ func _separate(dir: Vector3) -> Vector3:
 func _steer_around_walls(dir: Vector3) -> Vector3:
 	var space := get_world_3d().direct_space_state
 	var probe_from := global_position + Vector3(0, 0.6, 0)
-	if not _blocked(space, probe_from, dir):
+	var best_dir := dir
+	var best_clear := _ray_dist(space, probe_from, dir)
+	if best_clear > 1.2:
 		return dir
-	for angle in [0.7, -0.7, 1.3, -1.3]:
+	# Blocked: slide along whichever rotated direction sees the farthest,
+	# so zombies funnel along walls and through door gaps instead of grinding.
+	for angle in [0.7, -0.7, 1.3, -1.3, 2.2, -2.2]:
 		var alt := dir.rotated(Vector3.UP, angle)
-		if not _blocked(space, probe_from, alt):
-			return alt
-	return dir
+		var d := _ray_dist(space, probe_from, alt)
+		if d > best_clear:
+			best_clear = d
+			best_dir = alt
+	return best_dir
 
 
-func _blocked(space: PhysicsDirectSpaceState3D, from: Vector3, dir: Vector3) -> bool:
-	var q := PhysicsRayQueryParameters3D.create(from, from + dir * 0.9)
+func _ray_dist(space: PhysicsDirectSpaceState3D, from: Vector3, dir: Vector3) -> float:
+	var q := PhysicsRayQueryParameters3D.create(from, from + dir * 2.5)
 	q.exclude = [self]
 	var hit := space.intersect_ray(q)
-	return not hit.is_empty() and not (hit["collider"] is Zombie)
+	if hit.is_empty() or (hit["collider"] is Zombie):
+		return 2.5
+	return from.distance_to(hit["position"])
 
 
 func _apply_color(c: Color) -> void:

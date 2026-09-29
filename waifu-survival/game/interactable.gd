@@ -21,7 +21,7 @@ func interact() -> void:
 func _make_label(text: String, color: Color) -> void:
 	label = Label3D.new()
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	label.no_depth_test = true
+	label.no_depth_test = false
 	label.pixel_size = 0.006
 	label.position = Vector3(0, 2.6, 0)
 	label.text = text

@@ -83,9 +83,9 @@ export const WEAPONS = {
     pellets: 1,
     adsFov: 0.45,
     sound: 'outbreak',
-    scale: 0.55,
-    pos: [0.16, -0.15, -0.36],
-    adsPos: [0, -0.125, -0.28],
+    scale: 0.46,
+    pos: [0.20, -0.22, -0.45],
+    adsPos: [0, -0.15, -0.36],
     rot: [0, Math.PI / 2, 0]
   },
   chaperone: {
@@ -118,9 +118,9 @@ export const WEAPONS = {
     pellets: 1,
     adsFov: 0.60,
     sound: 'chaperone',
-    scale: 0.85,
-    pos: [0.18, -0.17, -0.38],
-    adsPos: [0, -0.13, -0.28],
+    scale: 0.70,
+    pos: [0.20, -0.22, -0.45],
+    adsPos: [0, -0.15, -0.36],
     rot: [0, 0, 0]
   },
   sword: {
@@ -365,9 +365,9 @@ export const WEAPONS = {
     pellets: 1,
     adsFov: 0.55,
     sound: 'outbreak',
-    scale: 3.8,
-    pos: [0.18, -0.16, -0.38],
-    adsPos: [0, -0.125, -0.28],
+    scale: 2.1,
+    pos: [0.22, -0.24, -0.46],
+    adsPos: [0, -0.155, -0.36],
     rot: [0, Math.PI / 2, 0]
   },
   m4a1: {
@@ -400,9 +400,9 @@ export const WEAPONS = {
     pellets: 1,
     adsFov: 0.52,
     sound: 'outbreak',
-    scale: 0.9,
-    pos: [0.18, -0.16, -0.38],
-    adsPos: [0, -0.125, -0.28],
+    scale: 0.48,
+    pos: [0.20, -0.22, -0.46],
+    adsPos: [0, -0.145, -0.36],
     rot: [0, 0, 0]
   },
   // Backward-compatibility aliases for existing test suite
@@ -565,6 +565,7 @@ export class WeaponSystem {
   }
 
   get def() { return this.slots[this.current].def; }
+  get damage() { return this.def.damage ?? 25; }
   get slot() { return this.slots[this.current]; }
   get ammo() { return this.slot.ammo; }
   set ammo(v) { this.slot.ammo = v; }
@@ -778,6 +779,7 @@ export class WeaponSystem {
     for (const tg of targets) {
       if (!tg.alive) continue;
       if (tg === this.owner) continue;
+      if (this.owner && this.owner.team && tg.team && tg.team === this.owner.team) continue;
       const base = tg.pos.y;
       for (const key of ['head', 'torso', 'legs']) {
         const hb = HITBOX[key];
@@ -809,6 +811,7 @@ export class WeaponSystem {
 const _dir = new THREE.Vector3();
 const _shot = new THREE.Vector3();
 const _point = new THREE.Vector3();
+const _tmpRight = new THREE.Vector3();
 
 function applyCone(dir, angle, radius) {
   // build an orthonormal basis around dir

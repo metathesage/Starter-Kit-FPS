@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1001 &344626977561574918
+--- !u!1001 &8119758108384353250
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -66,26 +66,26 @@ PrefabInstance:
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 47c29446d98df484f9d3efa99592a31d, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 4997512709845624921}
+      addedObject: {fileID: 5127053754873186894}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 47c29446d98df484f9d3efa99592a31d, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 3281544691000483279}
+      addedObject: {fileID: 2445892906745434515}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 47c29446d98df484f9d3efa99592a31d, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 411960842691800891}
+      addedObject: {fileID: 4161945837031850044}
   m_SourcePrefab: {fileID: 100100000, guid: 47c29446d98df484f9d3efa99592a31d, type: 3}
---- !u!1 &579053095336526679 stripped
+--- !u!1 &8966179960542062259 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 47c29446d98df484f9d3efa99592a31d, type: 3}
-  m_PrefabInstance: {fileID: 344626977561574918}
+  m_PrefabInstance: {fileID: 8119758108384353250}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &4997512709845624921
+--- !u!114 &5127053754873186894
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 579053095336526679}
+  m_GameObject: {fileID: 8966179960542062259}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a7c07805cb0663f44a62e48fac8337d1, type: 3}
@@ -95,13 +95,13 @@ MonoBehaviour:
   weaponLayerName: Weapon Aim
   emoteLayerName: Emote
   isArmed: 1
---- !u!114 &3281544691000483279
+--- !u!114 &2445892906745434515
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 579053095336526679}
+  m_GameObject: {fileID: 8966179960542062259}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: aaf3d835acec4fb498b047402066e103, type: 3}
@@ -111,13 +111,13 @@ MonoBehaviour:
   positionOffset: {x: 0, y: 0, z: 0.08}
   rotationOffsetEuler: {x: 90, y: 0, z: 180}
   socket: 18
---- !u!143 &411960842691800891
+--- !u!143 &4161945837031850044
 CharacterController:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 579053095336526679}
+  m_GameObject: {fileID: 8966179960542062259}
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2

@@ -1,0 +1,766 @@
+fileFormatVersion: 2
+guid: c0fbaa46ff8b2444ca9005155f731078
+ModelImporter:
+  serializedVersion: 24600
+  internalIDToNameTable: []
+  externalObjects: {}
+  materials:
+    materialImportMode: 2
+    materialName: 0
+    materialSearch: 2
+    materialLocation: 1
+    searchTexturesGlobally: 0
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    resampleCurves: 1
+    optimizeGameObjects: 0
+    removeConstantScaleCurves: 0
+    motionNodeName: 
+    animationImportErrors: 
+    animationImportWarnings: 
+    animationRetargetingWarnings: 
+    animationDoRetargetingWarnings: 0
+    importAnimatedCustomProperties: 0
+    importConstraints: 0
+    animationCompression: 1
+    animationRotationError: 0.5
+    animationPositionError: 0.5
+    animationScaleError: 0.5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    extraUserProperties: []
+    clipAnimations: []
+    isReadable: 0
+  meshes:
+    lODScreenPercentages: []
+    globalScale: 1
+    meshCompression: 0
+    addColliders: 0
+    useSRGBMaterialColor: 1
+    sortHierarchyByName: 1
+    preBakeConvexCollisionMesh: 0
+    preBakeTriangleCollisionMesh: 0
+    importPhysicalCameras: 1
+    importVisibility: 1
+    importBlendShapes: 1
+    importCameras: 1
+    importLights: 1
+    nodeNameCollisionStrategy: 1
+    fileIdsGeneration: 2
+    swapUVChannels: 0
+    generateSecondaryUV: 0
+    useFileUnits: 1
+    keepQuads: 0
+    weldVertices: 1
+    bakeAxisConversion: 0
+    preserveHierarchy: 0
+    skinWeightsMode: 0
+    maxBonesPerVertex: 4
+    minBoneWeight: 0.001
+    optimizeBones: 1
+    generateMeshLods: 0
+    meshLodGenerationFlags: 0
+    maximumMeshLod: -1
+    importUVs: -1
+    importVertexColors: 1
+    meshOptimizationFlags: -1
+    indexFormat: 0
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVMarginMethod: 1
+    secondaryUVMinLightmapResolution: 40
+    secondaryUVMinObjectScale: 1
+    secondaryUVPackMargin: 4
+    useFileScale: 1
+    strictVertexDataChecks: 0
+  tangentSpace:
+    normalSmoothAngle: 60
+    normalImportMode: 0
+    tangentImportMode: 3
+    normalCalculationMode: 4
+    legacyComputeAllNormalsFromSmoothingGroupsWhenMeshHasBlendShapes: 0
+    blendShapeNormalImportMode: 1
+    normalSmoothingSource: 0
+    calculateBlendshapeNormalsDeltaFromImportedNormals: 0
+  referencedClips: []
+  importAnimation: 1
+  humanDescription:
+    serializedVersion: 3
+    human: []
+    skeleton:
+    - name: HelenParr(Clone)
+      parentName: 
+      position: {x: 0, y: 0, z: 0}
+      rotation: {x: 0, y: 0, z: 0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Bottom_Teeth_0
+      parentName: HelenParr(Clone)
+      position: {x: -0, y: 0, z: 0}
+      rotation: {x: 1, y: 0, z: -0, w: 0.0000000754979}
+      scale: {x: 0.09767036, y: 0.09767038, z: 0.09767038}
+    - name: Crotch_piece_0
+      parentName: HelenParr(Clone)
+      position: {x: -0, y: 0, z: 0}
+      rotation: {x: 1, y: 0, z: -0, w: 0.0000000754979}
+      scale: {x: 0.09767036, y: 0.09767038, z: 0.09767038}
+    - name: Hair_0
+      parentName: HelenParr(Clone)
+      position: {x: -0, y: 0, z: 0}
+      rotation: {x: 1, y: 0, z: -0, w: 0.0000000754979}
+      scale: {x: 0.09767036, y: 0.09767038, z: 0.09767038}
+    - name: Head_0
+      parentName: HelenParr(Clone)
+      position: {x: -0, y: 0, z: 0}
+      rotation: {x: 1, y: 0, z: -0, w: 0.0000000754979}
+      scale: {x: 0.09767036, y: 0.09767038, z: 0.09767038}
+    - name: Helen_MainC
+      parentName: HelenParr(Clone)
+      position: {x: -0, y: 0, z: 0}
+      rotation: {x: 1, y: 0, z: -0, w: 0.0000000754979}
+      scale: {x: 0.09767036, y: 0.09767038, z: 0.09767038}
+    - name: Helen_MainC_rootJoint
+      parentName: Helen_MainC
+      position: {x: -0, y: 0, z: 0}
+      rotation: {x: 0.7071067, y: -0.000000030045225, z: -0.000000030045225, w: 0.7071068}
+      scale: {x: 1, y: 0.99999994, z: 0.99999994}
+    - name: Helen_SH_ROOTJ_Helen_MainC
+      parentName: Helen_MainC_rootJoint
+      position: {x: 0.0000006156379, y: 0, z: 7.2444425}
+      rotation: {x: 0.7071065, y: 0.00000008343034, z: 0.000000023339851, w: 0.7071071}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Helen_SH_Spine01J_Helen_MainC
+      parentName: Helen_SH_ROOTJ_Helen_MainC
+      position: {x: -0.00000004174882, y: 0.86045045, z: 0.2764899}
+      rotation: {x: 0.00000046748204, y: -4.2351655e-21, z: 5.3664193e-14, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Helen_SH_Spine02J_Helen_MainC
+      parentName: Helen_SH_Spine01J_Helen_MainC
+      position: {x: -0.0000000026937657, y: 0.8604507, z: 0.017840037}
+      rotation: {x: -0.000000006930833, y: 7.105426e-15, z: -1.8884985e-15, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Helen_SH_Spine03J_Helen_MainC
+      parentName: Helen_SH_Spine02J_Helen_MainC
+      position: {x: 0.000000013467302, y: 0.9363918, z: -0.089189924}
+      rotation: {x: 0.000000004593854, y: 7.105426e-15, z: 1.0952625e-15, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Helen_SH_SpineTopJ_Helen_MainC
+      parentName: Helen_SH_Spine03J_Helen_MainC
+      position: {x: 0.000000030975855, y: 0.7845211, z: -0.20512992}
+      rotation: {x: 0.5596829, y: -0.4321517, z: 0.5596829, w: -0.43215168}
+      scale: {x: 0.9999986, y: 0.9999986, z: 1}
+    - name: Helen_SH_Neck01J_Helen_MainC
+      parentName: Helen_SH_SpineTopJ_Helen_MainC
+      position: {x: -0.6717084, y: -0.020629615, z: 0.000000047175828}
+      rotation: {x: 0.5318059, y: -0.46602854, z: 0.5318053, w: 0.46602908}
+      scale: {x: 1.0000001, y: 1.0000033, z: 1.0000033}
+    - name: Helen_SH_HeadJ_Helen_MainC
+      parentName: Helen_SH_Neck01J_Helen_MainC
+      position: {x: -0.00000006430221, y: 1.2072508, z: 0.067720026}
+      rotation: {x: -0.4680328, y: 0.5300423, z: -0.46803325, w: 0.53004277}
+      scale: {x: 1.0000004, y: 1.0000002, z: 0.9999999}
+    - name: Helen_HeadJ_Helen_MainC
+      parentName: Helen_SH_HeadJ_Helen_MainC
+      position: {x: -0.0000008487061, y: 0.000000016661927, z: -1.370637e-10}
+      rotation: {x: 4.91697e-10, y: 0.000000059533583, z: -0.0000000037252748, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Helen_SH_HeadTipJ_Helen_MainC
+      parentName: Helen_SH_HeadJ_Helen_MainC
+      position: {x: -2.2779894, y: 0.0000008561037, z: -0.00000026375247}
+      rotation: {x: 0.5, y: -0.5, z: 0.4999998, w: 0.50000024}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Helen_Hair_jnt_a_Helen_MainC
+      parentName: Helen_SH_HeadTipJ_Helen_MainC
+      position: {x: 1.2079227e-13, y: 0.00000094852703, z: -0.000000023079286}
+      rotation: {x: 0.0000000027627718, y: 0.9931736, z: -0.000000023524626, w: -0.11664581}
+      scale: {x: 1.0000026, y: 0.99999964, z: 1.0000026}
+    - name: Helen_Hair_jnt_b_Helen_MainC
+      parentName: Helen_Hair_jnt_a_Helen_MainC
+      position: {x: -0.3767098, y: -2.1415274, z: 0.93233967}
+      rotation: {x: 0.000000017012908, y: -0.4209591, z: -0.0000000078950935, w: 0.90707964}
+      scale: {x: 1.0000044, y: 1, z: 1.0000043}
+    - name: Helen_Hair_jnt_c_Helen_MainC
+      parentName: Helen_Hair_jnt_b_Helen_MainC
+      position: {x: -1.2636099, y: -0.9350121, z: -0.2320896}
+      rotation: {x: 0.0000000414928, y: 0.94999146, z: -0.0000000061040732, w: -0.31227592}
+      scale: {x: 1.0000026, y: 1, z: 1.0000027}
+    - name: Helen_Hair_jnt_d_Helen_MainC
+      parentName: Helen_SH_HeadTipJ_Helen_MainC
+      position: {x: 9.2370556e-14, y: 0.00000094852703, z: -0.000000023079286}
+      rotation: {x: 0.0000000026427964, y: 0.9931736, z: -0.000000022503334, w: -0.11664581}
+      scale: {x: 1.0000026, y: 1, z: 1.0000026}
+    - name: Helen_Hair_jnt_e_Helen_MainC
+      parentName: Helen_Hair_jnt_d_Helen_MainC
+      position: {x: -0.12247983, y: -1.0568086, z: -1.7074294}
+      rotation: {x: 0.000000036229295, y: -0.42095906, z: 0.000000007684033, w: 0.90707964}
+      scale: {x: 1.0000044, y: 1, z: 1.0000044}
+    - name: Helen_Hair_jnt_g_Helen_MainC
+      parentName: Helen_SH_HeadTipJ_Helen_MainC
+      position: {x: 9.2370556e-14, y: 0.00000094852703, z: -0.000000023079286}
+      rotation: {x: 0.0000000029151983, y: 0.9931736, z: -0.000000024822002, w: -0.11664581}
+      scale: {x: 1.0000026, y: 1, z: 1.0000026}
+    - name: Helen_Hair_jnt_h_Helen_MainC
+      parentName: Helen_Hair_jnt_g_Helen_MainC
+      position: {x: 1.353599, y: -1.0568153, z: -0.0072493386}
+      rotation: {x: -0.0000000067402888, y: -0.42095906, z: -0.000000035135656, w: 0.90707964}
+      scale: {x: 1.0000043, y: 1, z: 1.0000044}
+    - name: Helen_SH_JawJ_Helen_MainC
+      parentName: Helen_SH_HeadJ_Helen_MainC
+      position: {x: 0.05362006, y: -0.12838997, z: 0.000000005941825}
+      rotation: {x: 0.49999997, y: -0.5, z: 0.49999976, w: 0.50000024}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Helen_tongue_jnt_a_Helen_MainC
+      parentName: Helen_SH_JawJ_Helen_MainC
+      position: {x: -8.9883656e-13, y: 0.0000012989316, z: -0.000000018757357}
+      rotation: {x: 0.000000056869403, y: 0.6956146, z: 0.000000055065073, w: 0.7184152}
+      scale: {x: 0.9999998, y: 1, z: 0.9999998}
+    - name: Helen_tongue_jnt_b_Helen_MainC
+      parentName: Helen_tongue_jnt_a_Helen_MainC
+      position: {x: -0.36416987, y: -0.46265924, z: 0.018140212}
+      rotation: {x: 6.503875e-14, y: 0.1998206, z: 3.0048185e-14, w: 0.97983253}
+      scale: {x: 0.9999963, y: 1.0000001, z: 0.9999963}
+    - name: Helen_tongue_jnt_c_Helen_MainC
+      parentName: Helen_tongue_jnt_b_Helen_MainC
+      position: {x: -0.12256996, y: 0.1817178, z: -0.04754988}
+      rotation: {x: -0.000000010488956, y: -0.15004396, z: 0.000000014242308, w: 0.98867935}
+      scale: {x: 0.9999963, y: 1, z: 0.99999624}
+    - name: Helen_tongue_jnt_d_Helen_MainC
+      parentName: Helen_tongue_jnt_c_Helen_MainC
+      position: {x: -0.29635993, y: 0.021540731, z: -0.020449873}
+      rotation: {x: 0.00000003058641, y: 0.35266262, z: -0.00000004419516, w: 0.93575054}
+      scale: {x: 1.0000024, y: 1, z: 1.0000024}
+    - name: Helen_tongue_jnt_e_Helen_MainC
+      parentName: Helen_tongue_jnt_d_Helen_MainC
+      position: {x: -0.19824001, y: -0.048890736, z: -0.19995984}
+      rotation: {x: -1.7674753e-13, y: 0.000000104307674, z: -0.000000026071318, w: 1}
+      scale: {x: 0.99999994, y: 0.99999994, z: 0.99999994}
+    - name: Helen_SH_lClavicleJ_Helen_MainC
+      parentName: Helen_SH_SpineTopJ_Helen_MainC
+      position: {x: -0.20223884, y: 0.0555799, z: -0.74082994}
+      rotation: {x: 0.6451096, y: -0.4763701, z: 0.46491483, w: 0.37517902}
+      scale: {x: 0.9999997, y: 0.9999933, z: 1.0000061}
+    - name: Helen_SH_lShoulderCurveJ_Helen_MainC
+      parentName: Helen_SH_lClavicleJ_Helen_MainC
+      position: {x: -0.8035598, y: -0.0000008153729, z: -0.00000017012644}
+      rotation: {x: -0.003651077, y: 0.15228672, z: 0.01869412, w: 0.9881528}
+      scale: {x: 1.0000026, y: 0.99999374, z: 0.9999994}
+    - name: Helen_SH_lUpperArmCurveJ1_Helen_MainC
+      parentName: Helen_SH_lShoulderCurveJ_Helen_MainC
+      position: {x: -0.58261997, y: 0.0000018440169, z: -0.00000023686152}
+      rotation: {x: 0.000000023968367, y: 0.0000000485765, z: -0.00000005151608, w: 1}
+      scale: {x: 1, y: 1.0000001, z: 1}
+    - name: Helen_SH_lUpperArmCurveJ2_Helen_MainC
+      parentName: Helen_SH_lUpperArmCurveJ1_Helen_MainC
+      position: {x: -0.5829802, y: 0.0000010836902, z: -0.00000026642374}
+      rotation: {x: 2.0463626e-12, y: 5.5229865e-10, z: 0.00000010209853, w: 1}
+      scale: {x: 1, y: 1.0000001, z: 1}
+    - name: Helen_SH_lUpperArmCurveJ3_Helen_MainC
+      parentName: Helen_SH_lUpperArmCurveJ2_Helen_MainC
+      position: {x: -0.5829802, y: 0.0000021749656, z: -0.00000027074566}
+      rotation: {x: 0.000000007995368, y: -0.000000086740584, z: -0.00000005141271, w: 1}
+      scale: {x: 1, y: 1.0000001, z: 1}
+    - name: Helen_SH_lElbowCurveJ_Helen_MainC
+      parentName: Helen_SH_lUpperArmCurveJ3_Helen_MainC
+      position: {x: -0.5826203, y: 0.00000033901233, z: -0.00000017983257}
+      rotation: {x: -0.053968906, y: 0.0003054627, z: -0.000017532693, w: 0.99854255}
+      scale: {x: 1.0000014, y: 0.99999404, z: 0.9999954}
+    - name: Helen_SH_lLowerArmCurveJ1_Helen_MainC
+      parentName: Helen_SH_lElbowCurveJ_Helen_MainC
+      position: {x: -0.64055026, y: -0.000010148622, z: -0.0004100874}
+      rotation: {x: 0.0131059885, y: -0.00032505882, z: 0.000015006343, w: 0.99991405}
+      scale: {x: 0.9999996, y: 1.0000042, z: 1.0000037}
+    - name: Helen_SH_lLowerArmCurveJ2_Helen_MainC
+      parentName: Helen_SH_lLowerArmCurveJ1_Helen_MainC
+      position: {x: -0.6409503, y: -0.000010736287, z: -0.00000012665987}
+      rotation: {x: 0.013106144, y: 0.0000000108057066, z: 0.000000011336897, w: 0.9999141}
+      scale: {x: 1, y: 1.0000036, z: 1.0000036}
+    - name: Helen_SH_lLowerArmCurveJ3_Helen_MainC
+      parentName: Helen_SH_lLowerArmCurveJ2_Helen_MainC
+      position: {x: -0.6409497, y: 0.000011894852, z: -0.00000008940697}
+      rotation: {x: 0.013106071, y: -0.00000009689117, z: 0.000000010667449, w: 0.9999141}
+      scale: {x: 1, y: 1.0000036, z: 1.0000035}
+    - name: Helen_SH_lWristJ_Helen_MainC
+      parentName: Helen_SH_lLowerArmCurveJ3_Helen_MainC
+      position: {x: -0.64055943, y: 0.000010658987, z: -0.000000055879354}
+      rotation: {x: 0.014127623, y: -0.004505746, z: 0.03316053, w: 0.99934006}
+      scale: {x: 1.000003, y: 0.9999969, z: 1.0000052}
+    - name: Helen_SH_lPalmJ_Helen_MainC
+      parentName: Helen_SH_lWristJ_Helen_MainC
+      position: {x: -0.43982053, y: -0.0055795424, z: -0.00000018340688}
+      rotation: {x: 0.000000020985581, y: -0.00000004751953, z: -0.00000036507186, w: 1}
+      scale: {x: 1.0000001, y: 1.0000001, z: 1}
+    - name: Helen_SH_lFinger1J1_Helen_MainC
+      parentName: Helen_SH_lPalmJ_Helen_MainC
+      position: {x: -0.3539607, y: -0.027331538, z: 0.31912985}
+      rotation: {x: -0.000000056834082, y: 0.000000076031355, z: 0.032607745, w: 0.9994682}
+      scale: {x: 0.9999964, y: 0.9999965, z: 0.99999994}
+    - name: Helen_SH_lFinger1J2_Helen_MainC
+      parentName: Helen_SH_lFinger1J1_Helen_MainC
+      position: {x: -0.2732009, y: -0.019660171, z: 0.01687986}
+      rotation: {x: 0.0000000034168532, y: 0.000000007901958, z: 0.06034956, w: 0.9981773}
+      scale: {x: 1.0000042, y: 1.0000042, z: 1}
+    - name: Helen_SH_lFinger1J3_Helen_MainC
+      parentName: Helen_SH_lFinger1J2_Helen_MainC
+      position: {x: -0.23856972, y: -0.020299215, z: 0.0056298953}
+      rotation: {x: -0.000000009489829, y: -0.00000001380824, z: 0.053240873, w: 0.9985817}
+      scale: {x: 0.9999991, y: 0.99999917, z: 1}
+    - name: Helen_SH_lFinger1JTip_Helen_MainC
+      parentName: Helen_SH_lFinger1J3_Helen_MainC
+      position: {x: -0.20498903, y: 0.009010293, z: -0.0022100853}
+      rotation: {x: 5.6762417e-10, y: -1.4210855e-13, z: -0.00000004469664, w: 1}
+      scale: {x: 1, y: 0.99999994, z: 1}
+    - name: Helen_SH_lFinger2J1_Helen_MainC
+      parentName: Helen_SH_lPalmJ_Helen_MainC
+      position: {x: -0.39712128, y: 0.0054998, z: 0.13650987}
+      rotation: {x: -0.00000002590046, y: 0.00000005744431, z: 0.032608002, w: 0.9994682}
+      scale: {x: 0.9999964, y: 0.9999964, z: 0.99999994}
+    - name: Helen_SH_lFinger2J2_Helen_MainC
+      parentName: Helen_SH_lFinger2J1_Helen_MainC
+      position: {x: -0.30912998, y: -0.02641968, z: -0.0019501161}
+      rotation: {x: -0.000000013916357, y: -0.000000039323115, z: 0.06035001, w: 0.9981773}
+      scale: {x: 1.0000042, y: 1.0000042, z: 1}
+    - name: Helen_SH_lFinger2J3_Helen_MainC
+      parentName: Helen_SH_lFinger2J2_Helen_MainC
+      position: {x: -0.2202202, y: -0.022239929, z: 0.015959933}
+      rotation: {x: -0.000000024297263, y: -0.000000015338362, z: 0.053239476, w: 0.99858177}
+      scale: {x: 0.9999991, y: 0.99999905, z: 0.99999994}
+    - name: Helen_SH_lFinger2JTip_Helen_MainC
+      parentName: Helen_SH_lFinger2J3_Helen_MainC
+      position: {x: -0.22172998, y: -0.020301647, z: 0.010729947}
+      rotation: {x: -0.0000000020896351, y: -2.3874236e-12, z: 0.0000006780096, w: 1}
+      scale: {x: 1.0000001, y: 1.0000001, z: 1}
+    - name: Helen_SH_lFinger3J1_Helen_MainC
+      parentName: Helen_SH_lPalmJ_Helen_MainC
+      position: {x: -0.3978707, y: -0.006210674, z: -0.0488501}
+      rotation: {x: -0.000000048869563, y: 0.000000030457855, z: 0.03260747, w: 0.99946827}
+      scale: {x: 0.9999964, y: 0.9999964, z: 0.99999994}
+    - name: Helen_SH_lFinger3J2_Helen_MainC
+      parentName: Helen_SH_lFinger3J1_Helen_MainC
+      position: {x: -0.2714194, y: -0.023128467, z: -0.010860095}
+      rotation: {x: 0.00000003026205, y: -0.000000025633016, z: 0.060350165, w: 0.9981773}
+      scale: {x: 1.000004, y: 1.000004, z: 0.99999994}
+    - name: Helen_SH_lFinger3J3_Helen_MainC
+      parentName: Helen_SH_lFinger3J2_Helen_MainC
+      position: {x: -0.17654018, y: -0.026899941, z: 0.00601998}
+      rotation: {x: -0.000000024342592, y: 0.000000033558663, z: 0.061173674, w: 0.99812716}
+      scale: {x: 1.0000046, y: 1.0000046, z: 1}
+    - name: Helen_SH_lFinger3JTip_Helen_MainC
+      parentName: Helen_SH_lFinger3J3_Helen_MainC
+      position: {x: -0.2400408, y: 0.015469209, z: 0.009989937}
+      rotation: {x: 1.4210855e-14, y: -2.2737368e-13, z: 0.000000037259714, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Helen_SH_lFinger4J1_Helen_MainC
+      parentName: Helen_SH_lPalmJ_Helen_MainC
+      position: {x: -0.34928036, y: -0.047620233, z: -0.21957003}
+      rotation: {x: 0.000000001110672, y: -0.00000003405306, z: 0.032607473, w: 0.99946827}
+      scale: {x: 0.99999636, y: 0.9999964, z: 0.99999994}
+    - name: Helen_SH_lFinger4J2_Helen_MainC
+      parentName: Helen_SH_lFinger4J1_Helen_MainC
+      position: {x: -0.24992013, y: -0.023580223, z: -0.022150038}
+      rotation: {x: -0.0000001086046, y: 0.000000057931995, z: 0.06035084, w: 0.99817723}
+      scale: {x: 1.0000042, y: 1.0000042, z: 1}
+    - name: Helen_SH_lFinger4J3_Helen_MainC
+      parentName: Helen_SH_lFinger4J2_Helen_MainC
+      position: {x: -0.16571058, y: -0.031209545, z: 0.0024099455}
+      rotation: {x: 0.00000006804989, y: 0.0000000074276776, z: 0.061173316, w: 0.99812716}
+      scale: {x: 1.0000046, y: 1.0000046, z: 1}
+    - name: Helen_SH_lFinger4JTip_Helen_MainC
+      parentName: Helen_SH_lFinger4J3_Helen_MainC
+      position: {x: -0.19798042, y: 0.008831331, z: 0.020159937}
+      rotation: {x: 1.4210853e-14, y: -1.1537524e-32, z: 0.000000014907972, w: 1}
+      scale: {x: 1, y: 1.0000001, z: 1}
+    - name: Helen_SH_lThumbJ1_Helen_MainC
+      parentName: Helen_SH_lWristJ_Helen_MainC
+      position: {x: -0.24623057, y: -0.12479873, z: 0.23779988}
+      rotation: {x: 0.68590486, y: 0.43361247, z: -0.17038742, w: 0.5590017}
+      scale: {x: 1.0000056, y: 0.99999875, z: 1.0000015}
+    - name: Helen_SH_lThumbJ2_Helen_MainC
+      parentName: Helen_SH_lThumbJ1_Helen_MainC
+      position: {x: -0.21122019, y: -0.04940018, z: -0.02813173}
+      rotation: {x: -0.16461067, y: -0.04402511, z: 0.20115691, w: 0.9646248}
+      scale: {x: 1.000006, y: 1.0000042, z: 0.9999976}
+    - name: Helen_SH_lThumbJ3_Helen_MainC
+      parentName: Helen_SH_lThumbJ2_Helen_MainC
+      position: {x: -0.23500057, y: 0.033379868, z: -0.015180779}
+      rotation: {x: 0.000000007606082, y: -0.00000005976631, z: 0.10123529, w: 0.9948625}
+      scale: {x: 0.9999972, y: 0.9999971, z: 1}
+    - name: Helen_SH_lThumbJTip_Helen_MainC
+      parentName: Helen_SH_lThumbJ3_Helen_MainC
+      position: {x: -0.30638015, y: 0.05083978, z: 0.0066601317}
+      rotation: {x: 0.0000000039512837, y: -0.70710635, z: 0.0000000039512793, w: 0.7071072}
+      scale: {x: 1, y: 0.99999994, z: 1.0000001}
+    - name: Helen_SH_rClavicleJ_Helen_MainC
+      parentName: Helen_SH_SpineTopJ_Helen_MainC
+      position: {x: -0.20223877, y: 0.05557979, z: 0.74082994}
+      rotation: {x: 0.47637016, y: 0.64510965, z: 0.375179, w: -0.4649149}
+      scale: {x: 0.99999994, y: 0.9999935, z: 1.0000063}
+    - name: Helen_SH_rShoulderCurveJ_Helen_MainC
+      parentName: Helen_SH_rClavicleJ_Helen_MainC
+      position: {x: 0.80354995, y: -0.0000009215437, z: -0.000000049883965}
+      rotation: {x: -0.018701639, y: 0.9881463, z: -0.0036555275, w: -0.15232794}
+      scale: {x: 1.0000004, y: 0.9999923, z: 1.0000051}
+    - name: Helen_SH_rUpperArmCurveJ1_Helen_MainC
+      parentName: Helen_SH_rShoulderCurveJ_Helen_MainC
+      position: {x: -0.58261985, y: -0.0000007545623, z: -0.000059866805}
+      rotation: {x: -1.455179e-11, y: 1, z: -0.00000001517688, w: -0.0000000754979}
+      scale: {x: 1, y: 1.0000001, z: 1}
+    - name: Helen_SH_rUpperArmCurveJ2_Helen_MainC
+      parentName: Helen_SH_rUpperArmCurveJ1_Helen_MainC
+      position: {x: 0.5829798, y: -0.000000954542, z: 0.000059990238}
+      rotation: {x: 0.0000000051518043, y: -0.00007003607, z: 0.000000041541707, w: 1}
+      scale: {x: 1, y: 1.0000001, z: 1}
+    - name: Helen_SH_rUpperArmCurveJ3_Helen_MainC
+      parentName: Helen_SH_rUpperArmCurveJ2_Helen_MainC
+      position: {x: 0.58298004, y: 0.00000047710637, z: -0.000030013052}
+      rotation: {x: -8.0370904e-10, y: 0.0000000014458341, z: -0.000000102010624, w: 1}
+      scale: {x: 1, y: 1.0000001, z: 1}
+    - name: Helen_SH_rElbowCurveJ_Helen_MainC
+      parentName: Helen_SH_rUpperArmCurveJ3_Helen_MainC
+      position: {x: 0.5826196, y: 0.000010614802, z: -0.000030037849}
+      rotation: {x: -0.053968903, y: 0.0003355081, z: -0.000017501921, w: 0.99854255}
+      scale: {x: 1.0000011, y: 0.9999953, z: 0.9999946}
+    - name: Helen_SH_rLowerArmCurveJ1_Helen_MainC
+      parentName: Helen_SH_rElbowCurveJ_Helen_MainC
+      position: {x: 0.64054984, y: -0.000009818934, z: 0.00039996952}
+      rotation: {x: 0.013106095, y: -0.00031496622, z: 0.0000023486573, w: 0.9999141}
+      scale: {x: 0.99999815, y: 1.0000056, z: 1.0000038}
+    - name: Helen_SH_rLowerArmCurveJ2_Helen_MainC
+      parentName: Helen_SH_rLowerArmCurveJ1_Helen_MainC
+      position: {x: 0.6409496, y: -0.00000014156103, z: 0}
+      rotation: {x: 0.01310606, y: -0.00000006031549, z: 0.00000014291183, w: 0.9999141}
+      scale: {x: 1, y: 1.0000036, z: 1.0000037}
+    - name: Helen_SH_rLowerArmCurveJ3_Helen_MainC
+      parentName: Helen_SH_rLowerArmCurveJ2_Helen_MainC
+      position: {x: 0.6409491, y: 0.000009045005, z: -0.000000014901161}
+      rotation: {x: 0.013106101, y: -0.000014894057, z: -0.000000101421186, w: 0.9999141}
+      scale: {x: 0.9999999, y: 1.0000036, z: 1.0000037}
+    - name: Helen_SH_rWristJ_Helen_MainC
+      parentName: Helen_SH_rLowerArmCurveJ3_Helen_MainC
+      position: {x: 0.6405595, y: -0.000009131618, z: -0.000019855797}
+      rotation: {x: 0.01412669, y: -0.008792818, z: 0.070071705, w: 0.9974032}
+      scale: {x: 1.0000054, y: 0.9999979, z: 1.0000043}
+    - name: Helen_SH_rPalmJ_Helen_MainC
+      parentName: Helen_SH_rWristJ_Helen_MainC
+      position: {x: 0.4398094, y: 0.0055812555, z: -0.00000000863497}
+      rotation: {x: -0.0000000086152045, y: 0.0000000013767121, z: 0.00000011176908, w: 1}
+      scale: {x: 0.99999994, y: 0.9999999, z: 1}
+    - name: Helen_SH_rFinger1J1_Helen_MainC
+      parentName: Helen_SH_rPalmJ_Helen_MainC
+      position: {x: 0.35395992, y: 0.027330576, z: -0.31912985}
+      rotation: {x: 0.9994682, y: 0.03260834, z: -0.000000042094413, w: -0.00000007416471}
+      scale: {x: 1.0001115, y: 0.9999963, z: 1}
+    - name: Helen_SH_rFinger1J2_Helen_MainC
+      parentName: Helen_SH_rFinger1J1_Helen_MainC
+      position: {x: 0.27316874, y: -0.019660266, z: 0.016880007}
+      rotation: {x: -0.00000008327226, y: -0.00000002447199, z: -0.060344588, w: 0.9981776}
+      scale: {x: 1.0000031, y: 1.000003, z: 1.0000001}
+    - name: Helen_SH_rFinger1J3_Helen_MainC
+      parentName: Helen_SH_rFinger1J2_Helen_MainC
+      position: {x: 0.23854882, y: -0.020300744, z: 0.0056299637}
+      rotation: {x: -0.000000004093906, y: 0.000000029788598, z: -0.053235337, w: 0.998582}
+      scale: {x: 0.999998, y: 0.999998, z: 1}
+    - name: Helen_SH_rFinger1JTip_Helen_MainC
+      parentName: Helen_SH_rFinger1J3_Helen_MainC
+      position: {x: 0.20496945, y: 0.009010237, z: -0.0022100229}
+      rotation: {x: 5.67912e-10, y: 6.039614e-14, z: 0.0000000074401783, w: 1}
+      scale: {x: 0.99999994, y: 0.9999999, z: 0.9999999}
+    - name: Helen_SH_rFinger2J1_Helen_MainC
+      parentName: Helen_SH_rPalmJ_Helen_MainC
+      position: {x: 0.39711985, y: -0.005500496, z: -0.1365099}
+      rotation: {x: 0.99946827, y: 0.032607585, z: -0.00000007403241, w: 0.000000046149953}
+      scale: {x: 1.0000108, y: 0.9999965, z: 1}
+    - name: Helen_SH_rFinger2J2_Helen_MainC
+      parentName: Helen_SH_rFinger2J1_Helen_MainC
+      position: {x: 0.30912814, y: -0.026419485, z: -0.0019500387}
+      rotation: {x: -0.000000015949992, y: 0.00000004911237, z: -0.06034915, w: 0.99817735}
+      scale: {x: 1.000004, y: 1.000004, z: 1}
+    - name: Helen_SH_rFinger2J3_Helen_MainC
+      parentName: Helen_SH_rFinger2J2_Helen_MainC
+      position: {x: 0.2202181, y: -0.022242352, z: 0.015959963}
+      rotation: {x: -0.0000000127318405, y: -0.0000000034041023, z: -0.053241454, w: 0.99858165}
+      scale: {x: 0.99999905, y: 0.99999905, z: 1}
+    - name: Helen_SH_rFinger2JTip_Helen_MainC
+      parentName: Helen_SH_rFinger2J3_Helen_MainC
+      position: {x: 0.22172956, y: -0.020299153, z: 0.010729988}
+      rotation: {x: -0.0000000020887185, y: -4.2845727e-12, z: 0.0000009313122, w: 1}
+      scale: {x: 1, y: 1, z: 0.9999999}
+    - name: Helen_SH_rFinger3J1_Helen_MainC
+      parentName: Helen_SH_rPalmJ_Helen_MainC
+      position: {x: 0.39786965, y: 0.0062099355, z: 0.048850037}
+      rotation: {x: 0.9994682, y: 0.032608714, z: -0.00000006949334, w: 0.00000007780537}
+      scale: {x: 1.0000715, y: 0.9999963, z: 1}
+    - name: Helen_SH_rFinger3J2_Helen_MainC
+      parentName: Helen_SH_rFinger3J1_Helen_MainC
+      position: {x: 0.27139783, y: -0.023129662, z: -0.010860076}
+      rotation: {x: -0.000000008001901, y: 0.000000040246285, z: -0.060344417, w: 0.99817765}
+      scale: {x: 1.0000029, y: 1.000003, z: 1}
+    - name: Helen_SH_rFinger3J3_Helen_MainC
+      parentName: Helen_SH_rFinger3J2_Helen_MainC
+      position: {x: 0.17652918, y: -0.026908908, z: 0.006020011}
+      rotation: {x: 0.000000028489, y: 0.000000022132275, z: -0.061169237, w: 0.9981274}
+      scale: {x: 1.0000033, y: 1.0000035, z: 1}
+    - name: Helen_SH_rFinger3JTip_Helen_MainC
+      parentName: Helen_SH_rFinger3J3_Helen_MainC
+      position: {x: 0.24001805, y: 0.015469795, z: 0.009990003}
+      rotation: {x: -0.0000000019343798, y: -1.4921397e-13, z: 0.0000000074402258, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Helen_SH_rFinger4J1_Helen_MainC
+      parentName: Helen_SH_rPalmJ_Helen_MainC
+      position: {x: 0.34927976, y: 0.047620356, z: 0.21956992}
+      rotation: {x: 0.9994682, y: 0.03260889, z: -0.0000000012170756, w: 0.00000007557778}
+      scale: {x: 1.0000814, y: 0.99999654, z: 1}
+    - name: Helen_SH_rFinger4J2_Helen_MainC
+      parentName: Helen_SH_rFinger4J1_Helen_MainC
+      position: {x: 0.24989842, y: -0.023580076, z: -0.02214993}
+      rotation: {x: 0.0000000055852816, y: -0.00000009068661, z: -0.060344476, w: 0.99817765}
+      scale: {x: 1.000003, y: 1.000003, z: 1}
+    - name: Helen_SH_rFinger4J3_Helen_MainC
+      parentName: Helen_SH_rFinger4J2_Helen_MainC
+      position: {x: 0.16570026, y: -0.031220471, z: 0.0024099678}
+      rotation: {x: -0.000000011017369, y: 0.00000006864912, z: -0.06116918, w: 0.9981274}
+      scale: {x: 1.0000035, y: 1.0000035, z: 1}
+    - name: Helen_SH_rFinger4JTip_Helen_MainC
+      parentName: Helen_SH_rFinger4J3_Helen_MainC
+      position: {x: 0.19796777, y: 0.008828503, z: 0.020159911}
+      rotation: {x: 3.961276e-13, y: -1.9895197e-13, z: -1.0400585e-11, w: 1}
+      scale: {x: 1, y: 0.99999994, z: 1}
+    - name: Helen_SH_rThumbJ1_Helen_MainC
+      parentName: Helen_SH_rWristJ_Helen_MainC
+      position: {x: 0.24624005, y: 0.12478987, z: -0.23779993}
+      rotation: {x: 0.3295683, y: -0.08719721, z: 0.9329672, w: -0.1155579}
+      scale: {x: 0.9999975, y: 1.0000054, z: 0.99999124}
+    - name: Helen_SH_rThumbJ2_Helen_MainC
+      parentName: Helen_SH_rThumbJ1_Helen_MainC
+      position: {x: -0.2187299, y: -0.0000007953495, z: 0.0000002001616}
+      rotation: {x: 0.014528466, y: 0.036114957, z: 0.0005933728, w: 0.9992419}
+      scale: {x: 0.99999624, y: 1.0000072, z: 0.9999994}
+    - name: Helen_SH_rThumbJ3_Helen_MainC
+      parentName: Helen_SH_rThumbJ2_Helen_MainC
+      position: {x: -0.23782979, y: -0.00000022351742, z: 0.0000005211623}
+      rotation: {x: 0.036381062, y: 0.075856864, z: 0.063846596, w: 0.99440724}
+      scale: {x: 1.000002, y: 1.0000002, z: 0.9999951}
+    - name: Helen_SH_rThumbJTip_Helen_MainC
+      parentName: Helen_SH_rThumbJ3_Helen_MainC
+      position: {x: -0.31065023, y: -0.00000058859587, z: 0.00000078085577}
+      rotation: {x: -0.39998108, y: -0.50775117, z: 0.48110437, w: 0.5922352}
+      scale: {x: 0.9999921, y: 1.000004, z: 0.999999}
+    - name: Helen_rt_breast_jnt_1_Helen_MainC
+      parentName: Helen_SH_Spine03J_Helen_MainC
+      position: {x: -5.2454325e-13, y: 0.0000009174014, z: 0.000000009383939}
+      rotation: {x: 7.591314e-10, y: 0.8962537, z: 0.0000000015339529, w: 0.44354185}
+      scale: {x: 0.9999977, y: 1, z: 0.9999976}
+    - name: Helen_rt_breast_jnt_2_Helen_MainC
+      parentName: Helen_rt_breast_jnt_1_Helen_MainC
+      position: {x: -1.4205796, y: 0.07917094, z: -0.05539976}
+      rotation: {x: -0.000000009283582, y: 0.8962537, z: 0.000000018759104, w: -0.44354185}
+      scale: {x: 0.9999976, y: 1, z: 0.99999756}
+    - name: Helen_lf_breast_jnt_1_Helen_MainC
+      parentName: Helen_SH_Spine03J_Helen_MainC
+      position: {x: -3.54013e-13, y: 0.0000009174014, z: 0.000000009383939}
+      rotation: {x: 0.0000000013470759, y: 0.61742616, z: 0.0000000010573191, w: 0.78662884}
+      scale: {x: 0.99999964, y: 1, z: 0.9999996}
+    - name: Helen_lf_breast_jnt_2_Helen_MainC
+      parentName: Helen_lf_breast_jnt_1_Helen_MainC
+      position: {x: -1.3239799, y: 0.07917094, z: -0.5179001}
+      rotation: {x: -0.00000002584598, y: -0.61742634, z: -0.00000003292893, w: 0.7866287}
+      scale: {x: 0.9999995, y: 1, z: 0.9999995}
+    - name: Helen_SH_lHipCurveJ_Helen_MainC
+      parentName: Helen_SH_ROOTJ_Helen_MainC
+      position: {x: -0.94143987, y: -0.5324389, z: -0.3210814}
+      rotation: {x: 0.49608478, y: 0.50389886, z: 0.5010503, w: 0.49893335}
+      scale: {x: 0.99999565, y: 0.9999957, z: 1.0000002}
+    - name: Helen_SH_lUpperLegCurveJ1_Helen_MainC
+      parentName: Helen_SH_lHipCurveJ_Helen_MainC
+      position: {x: -1.0911223, y: 0.0000023855882, z: 0.000011599252}
+      rotation: {x: -0.000000017093498, y: -0.00001022568, z: 0.00000005491524, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Helen_SH_lUpperLegCurveJ2_Helen_MainC
+      parentName: Helen_SH_lUpperLegCurveJ1_Helen_MainC
+      position: {x: -1.0917916, y: 0.000002545572, z: 0.000032097283}
+      rotation: {x: 0.000000035885023, y: 0.0000050300823, z: 0.0000047492576, w: 1}
+      scale: {x: 0.99999994, y: 1, z: 0.99999994}
+    - name: Helen_SH_lUpperLegCurveJ3_Helen_MainC
+      parentName: Helen_SH_lUpperLegCurveJ2_Helen_MainC
+      position: {x: -1.091812, y: -0.000007951903, z: 0.000032074073}
+      rotation: {x: -0.000000027413536, y: -0.000004976317, z: 0.00000998321, w: 1}
+      scale: {x: 0.99999994, y: 1, z: 0.99999994}
+    - name: Helen_SH_lKneeCurveJ_Helen_MainC
+      parentName: Helen_SH_lUpperLegCurveJ3_Helen_MainC
+      position: {x: -1.0911124, y: -0.00008810104, z: 0.000042084008}
+      rotation: {x: 0.000000028672275, y: 0.000050068735, z: -0.00007007513, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Helen_SH_lLowerLegCurveJ1_Helen_MainC
+      parentName: Helen_SH_lKneeCurveJ_Helen_MainC
+      position: {x: -1.0911212, y: -0.0001481291, z: -0.00006817496}
+      rotation: {x: -0.38718796, y: -0.002482998, z: -0.0037746402, w: 0.9219898}
+      scale: {x: 0.99999833, y: 1.0000055, z: 1.0000038}
+    - name: Helen_SH_lLowerLegCurveJ2_Helen_MainC
+      parentName: Helen_SH_lLowerLegCurveJ1_Helen_MainC
+      position: {x: -1.0917912, y: 0.0000016009435, z: 0.0004018445}
+      rotation: {x: 0.0068450924, y: 0.0001149806, z: 0.000000051305673, w: 0.9999766}
+      scale: {x: 0.9999995, y: 1.0000043, z: 1.0000036}
+    - name: Helen_SH_lLowerLegCurveJ3_Helen_MainC
+      parentName: Helen_SH_lLowerLegCurveJ2_Helen_MainC
+      position: {x: -1.0917917, y: 0.0000016512349, z: 0.00014185393}
+      rotation: {x: 0.006845132, y: 0.000064950524, z: 0.000000006862294, w: 0.9999766}
+      scale: {x: 0.9999999, y: 1.0000039, z: 1.0000037}
+    - name: Helen_SH_lAnkleJ_Helen_MainC
+      parentName: Helen_SH_lLowerLegCurveJ3_Helen_MainC
+      position: {x: -1.0911118, y: 0.0000022044405, z: 0.0000019036233}
+      rotation: {x: 0.021936124, y: 0.0058600185, z: -0.45269445, w: 0.8913766}
+      scale: {x: 0.9999935, y: 0.99999744, z: 1.0000063}
+    - name: Helen_SH_lBallJ_Helen_MainC
+      parentName: Helen_SH_lAnkleJ_Helen_MainC
+      position: {x: -0.9218218, y: -0.00000086054206, z: -0.00000047397555}
+      rotation: {x: -0.02180369, y: -0.036741663, z: -0.08890379, w: 0.9951235}
+      scale: {x: 0.99999577, y: 0.99999756, z: 1.0000035}
+    - name: Helen_SH_lToeJ_Helen_MainC
+      parentName: Helen_SH_lBallJ_Helen_MainC
+      position: {x: -0.49480087, y: -0.00000056749013, z: -0.0000004312608}
+      rotation: {x: -0.15654616, y: -0.6895599, z: -0.15654598, w: 0.68956065}
+      scale: {x: 1, y: 0.99999607, z: 0.9999962}
+    - name: Helen_SH_rHipCurveJ_Helen_MainC
+      parentName: Helen_SH_ROOTJ_Helen_MainC
+      position: {x: 0.94144, y: -0.5324389, z: -0.32108113}
+      rotation: {x: -0.50389975, y: -0.49608395, z: 0.4989345, w: 0.501049}
+      scale: {x: 0.9999955, y: 0.99999547, z: 1}
+    - name: Helen_SH_rUpperLegCurveJ1_Helen_MainC
+      parentName: Helen_SH_rHipCurveJ_Helen_MainC
+      position: {x: -1.0911207, y: 0.0000022889126, z: -0.0000023265911}
+      rotation: {x: -0.000000054422664, y: 1, z: 0.00000002460456, w: -0.0000000754979}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Helen_SH_rUpperLegCurveJ2_Helen_MainC
+      parentName: Helen_SH_rUpperLegCurveJ1_Helen_MainC
+      position: {x: 1.0917916, y: 0.000002286357, z: 0.0000024355095}
+      rotation: {x: 0.0000000023374014, y: -0.00000022889938, z: 0.000005295604, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Helen_SH_rUpperLegCurveJ3_Helen_MainC
+      parentName: Helen_SH_rUpperLegCurveJ2_Helen_MainC
+      position: {x: 1.0918114, y: 0.000011766031, z: 0.0000019542922}
+      rotation: {x: 0.0000000058485057, y: 0.000000012860049, z: 0.000010051658, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Helen_SH_rKneeCurveJ_Helen_MainC
+      parentName: Helen_SH_rUpperLegCurveJ3_Helen_MainC
+      position: {x: 1.0911113, y: 0.00009170313, z: 0.000001891899}
+      rotation: {x: 0.000000010925305, y: 0.000000029902914, z: -0.00007019817, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Helen_SH_rLowerLegCurveJ1_Helen_MainC
+      parentName: Helen_SH_rKneeCurveJ_Helen_MainC
+      position: {x: 1.0911117, y: 0.0001521275, z: 0.0000021012129}
+      rotation: {x: -0.38666594, y: -0.002283333, z: -0.0038224924, w: 0.92220914}
+      scale: {x: 0.99999976, y: 1.0000037, z: 1.0000039}
+    - name: Helen_SH_rLowerLegCurveJ2_Helen_MainC
+      parentName: Helen_SH_rLowerLegCurveJ1_Helen_MainC
+      position: {x: 1.0917922, y: 0.0000023311004, z: 0.0000021976884}
+      rotation: {x: 0.0068451194, y: -0.00000014814535, z: 0.00000021165854, w: 0.9999766}
+      scale: {x: 1, y: 1.0000037, z: 1.0000037}
+    - name: Helen_SH_rLowerLegCurveJ3_Helen_MainC
+      parentName: Helen_SH_rLowerLegCurveJ2_Helen_MainC
+      position: {x: 1.0917915, y: 0.0000020312145, z: 0.0000017448328}
+      rotation: {x: 0.0068451143, y: 0.00000008190724, z: -0.000000085887265, w: 0.9999766}
+      scale: {x: 1, y: 1.0000037, z: 1.0000036}
+    - name: Helen_SH_rAnkleJ_Helen_MainC
+      parentName: Helen_SH_rLowerLegCurveJ3_Helen_MainC
+      position: {x: 1.0911114, y: 0.0000020889565, z: 0.0000019432046}
+      rotation: {x: 0.021936197, y: 0.005861619, z: -0.4526932, w: 0.8913772}
+      scale: {x: 0.9999934, y: 1.0000026, z: 1.0000011}
+    - name: Helen_SH_rBallJ_Helen_MainC
+      parentName: Helen_SH_rAnkleJ_Helen_MainC
+      position: {x: 0.92182034, y: -0.00000063329935, z: 0.0000024376645}
+      rotation: {x: -0.021803444, y: -0.03674172, z: -0.08890373, w: 0.9951235}
+      scale: {x: 0.99999577, y: 0.9999976, z: 1.0000032}
+    - name: Helen_SH_rToeJ_Helen_MainC
+      parentName: Helen_SH_rBallJ_Helen_MainC
+      position: {x: 0.4948006, y: -0.00000057120553, z: 0.0000013174752}
+      rotation: {x: -0.15654604, y: -0.6895593, z: -0.15654558, w: 0.6895613}
+      scale: {x: 0.99999994, y: 0.999996, z: 0.99999624}
+    - name: L_Boot_0
+      parentName: HelenParr(Clone)
+      position: {x: -0, y: 0, z: 0}
+      rotation: {x: 1, y: 0, z: -0, w: 0.0000000754979}
+      scale: {x: 0.09767036, y: 0.09767038, z: 0.09767038}
+    - name: L_Eye_0
+      parentName: HelenParr(Clone)
+      position: {x: -0, y: 0, z: 0}
+      rotation: {x: 1, y: 0, z: -0, w: 0.0000000754979}
+      scale: {x: 0.09767036, y: 0.09767038, z: 0.09767038}
+    - name: L_Glove_0
+      parentName: HelenParr(Clone)
+      position: {x: -0, y: 0, z: 0}
+      rotation: {x: 1, y: 0, z: -0, w: 0.0000000754979}
+      scale: {x: 0.09767036, y: 0.09767038, z: 0.09767038}
+    - name: Leggings_0
+      parentName: HelenParr(Clone)
+      position: {x: -0, y: 0, z: 0}
+      rotation: {x: 1, y: 0, z: -0, w: 0.0000000754979}
+      scale: {x: 0.09767036, y: 0.09767038, z: 0.09767038}
+    - name: Mask_0
+      parentName: HelenParr(Clone)
+      position: {x: -0, y: 0, z: 0}
+      rotation: {x: 1, y: 0, z: -0, w: 0.0000000754979}
+      scale: {x: 0.09767036, y: 0.09767038, z: 0.09767038}
+    - name: R_Boot_0
+      parentName: HelenParr(Clone)
+      position: {x: -0, y: 0, z: 0}
+      rotation: {x: 1, y: 0, z: -0, w: 0.0000000754979}
+      scale: {x: 0.09767036, y: 0.09767038, z: 0.09767038}
+    - name: R_Eye_0
+      parentName: HelenParr(Clone)
+      position: {x: -0, y: 0, z: 0}
+      rotation: {x: 1, y: 0, z: -0, w: 0.0000000754979}
+      scale: {x: 0.09767036, y: 0.09767038, z: 0.09767038}
+    - name: R_Glove_0
+      parentName: HelenParr(Clone)
+      position: {x: -0, y: 0, z: 0}
+      rotation: {x: 1, y: 0, z: -0, w: 0.0000000754979}
+      scale: {x: 0.09767036, y: 0.09767038, z: 0.09767038}
+    - name: Suit_Top_0
+      parentName: HelenParr(Clone)
+      position: {x: -0, y: 0, z: 0}
+      rotation: {x: 1, y: 0, z: -0, w: 0.0000000754979}
+      scale: {x: 0.09767036, y: 0.09767038, z: 0.09767038}
+    - name: Suit_Top_1
+      parentName: HelenParr(Clone)
+      position: {x: -0, y: 0, z: 0}
+      rotation: {x: 1, y: 0, z: -0, w: 0.0000000754979}
+      scale: {x: 0.09767036, y: 0.09767038, z: 0.09767038}
+    - name: Tongue_0
+      parentName: HelenParr(Clone)
+      position: {x: -0, y: 0, z: 0}
+      rotation: {x: 1, y: 0, z: -0, w: 0.0000000754979}
+      scale: {x: 0.09767036, y: 0.09767038, z: 0.09767038}
+    - name: Top_Teeth_0
+      parentName: HelenParr(Clone)
+      position: {x: -0, y: 0, z: 0}
+      rotation: {x: 1, y: 0, z: -0, w: 0.0000000754979}
+      scale: {x: 0.09767036, y: 0.09767038, z: 0.09767038}
+    - name: Waistband_0
+      parentName: HelenParr(Clone)
+      position: {x: -0, y: 0, z: 0}
+      rotation: {x: 1, y: 0, z: -0, w: 0.0000000754979}
+      scale: {x: 0.09767036, y: 0.09767038, z: 0.09767038}
+    armTwist: 0.5
+    foreArmTwist: 0.5
+    upperLegTwist: 0.5
+    legTwist: 0.5
+    armStretch: 0.05
+    legStretch: 0.05
+    feetSpacing: 0
+    globalScale: 1
+    rootMotionBoneName: 
+    hasTranslationDoF: 0
+    hasExtraRoot: 0
+    skeletonHasParents: 1
+  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  autoGenerateAvatarMappingIfUnspecified: 1
+  animationType: 3
+  humanoidOversampling: 1
+  avatarSetup: 1
+  addHumanoidExtraRootOnlyWhenUsingAvatar: 1
+  importBlendShapeDeformPercent: 1
+  remapMaterialsIfMaterialImportModeIsNone: 0
+  additionalBone: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

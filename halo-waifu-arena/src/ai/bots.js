@@ -1,10 +1,12 @@
 /**
  * Bot AI Controller: Nav grid traversal, team sparring, weapon fire,
- * realistic inertia steering, and Counter-Strike round elimination.
+ * realistic inertia steering, and Counter-Strike Team Deathmatch (TDM).
  */
 
 import * as THREE from '../../vendor/three/build/three.module.js';
 import { GLTFLoader } from '../../vendor/three/examples/jsm/loaders/GLTFLoader.js';
+import { WEAPONS } from '../player/weapons.js';
+import { makeContact } from '../world/collision.js';
 
 export class BotManager {
   constructor(scene, collision, mapMeta) {
@@ -13,18 +15,19 @@ export class BotManager {
     this.mapMeta = mapMeta || {};
     this.loader = new GLTFLoader();
     this.bots = [];
-    this.mode = this.mapMeta.mode || 'halo'; // 'halo' or 'counter_strike'
+    this.mode = this.mapMeta.mode || 'tdm'; // 'tdm', 'counter_strike', 'ffa', 'halo'
 
     this.onKillCallback = null;
     this.onDamageCallback = null;
     this.onTracerCallback = null;
+    this.onBotFireCallback = null;
   }
 
   init(mode = null) {
     if (mode) this.mode = mode;
     this.dispose();
 
-    if (this.mode === 'counter_strike') {
+    if (this.mode === 'counter_strike' || this.mode === 'tdm') {
       this._initCSMode();
     } else {
       this._initHaloMode();
@@ -33,21 +36,23 @@ export class BotManager {
 
   _initHaloMode() {
     const allSpawns = this.mapMeta.spawns || [
-      [6.32, -4.03, -69.67],
-      [3.82, -3.38, 100.83],
-      [-9.68, -3.00, 18.83],
-      [28.82, -11.42, -53.17],
-      [-3.68, -3.38, 95.83]
+      [0, -7.28, -40],
+      [0, -7.84, 40],
+      [0, -7.28, 0],
+      [-9.68, -2.85, 18.83],
+      [0, -7.28, 15],
+      [8.5, -3.73, -55],
+      [12.0, -2.85, 25],
+      [-12.0, -4.54, -25]
     ];
     const botSpawns = allSpawns.length > 1 ? allSpawns.slice(1) : allSpawns;
 
-    // Standardized scales calibrated to 1.75m human height
     const configs = [
-      { name: 'Mai Maid', model: 'mai_maid_combat_ready.glb', weapon: 'Outbreak Perfected', color: 0x38bdf8, scale: 0.50, team: 'T' },
-      { name: 'Miyazawa', model: 'main_heroine_miyazawa_combat_ready.glb', weapon: 'Hawkmoon', color: 0xf43f5e, scale: 2.05, team: 'T' },
-      { name: 'Lucy', model: 'lucy_edgerunner_rigged.glb', weapon: 'Hanami SMG', color: 0x10b981, scale: 0.0102, team: 'T' },
-      { name: 'Spartan Soldier', model: 'soldier.glb', weapon: 'The Chaperone', color: 0xfbbf24, scale: 1.08, team: 'T' },
-      { name: 'Shadow Wraith', model: 'wraith.glb', weapon: 'Energy Sword', color: 0xa855f7, scale: 1.75, team: 'T' }
+      { name: 'Mai Maid', model: 'mai_maid_combat_ready.glb', weapon: 'Outbreak Perfected', weaponKey: 'outbreak', color: 0x38bdf8, scale: 0.50, rotY: 0, team: 'T' },
+      { name: 'Combat Maid', model: 'mai_maid_combat_ready.glb', weapon: 'The Chaperone', weaponKey: 'chaperone', color: 0x10b981, scale: 0.50, rotY: 0, team: 'T' },
+      { name: 'Tactical Mai', model: 'mai_maid_combat_ready.glb', weapon: 'Hawkmoon', weaponKey: 'hawkmoon', color: 0xf43f5e, scale: 0.50, rotY: 0, team: 'T' },
+      { name: 'Elite Maid', model: 'mai_maid_combat_ready.glb', weapon: 'Energy Sword', weaponKey: 'sword', color: 0xfbbf24, scale: 0.50, rotY: 0, team: 'T' },
+      { name: 'Vanguard Mai', model: 'mai_maid_combat_ready.glb', weapon: 'Lotus Launcher', weaponKey: 'launcher', color: 0xa855f7, scale: 0.50, rotY: 0, team: 'T' }
     ];
 
     configs.forEach((conf, idx) => {
@@ -66,21 +71,25 @@ export class BotManager {
       [0, -2, -50], [5, -2, -52], [-5, -2, -48], [10, -2, -54], [-10, -2, -46]
     ];
 
-    // Counter-Terrorist Waifu Squad (Teammates)
+    // Mid combat zones for immediate dynamic action in Blackhawk Down
+    const midA = (this.mapMeta.bombsites && this.mapMeta.bombsites.A) ? [-21.98, -2.31, -11.56] : tSpawns[0];
+    const midB = (this.mapMeta.bombsites && this.mapMeta.bombsites.B) ? [12.02, -1.49, -11.56] : tSpawns[1];
+
+    // Counter-Terrorist Waifu Squad (Teammates) - ALL ANIMATED RIGS WITH ACTIVE LOCOMOTION
     const ctConfigs = [
-      { name: 'Mai Maid', model: 'mai_maid_combat_ready.glb', weapon: 'Outbreak Perfected', color: 0x38bdf8, scale: 0.50, team: 'CT' },
-      { name: 'Lucy', model: 'lucy_edgerunner_rigged.glb', weapon: 'Hanami SMG', color: 0x06b6d4, scale: 0.0102, team: 'CT' },
-      { name: 'Spartan Soldier', model: 'soldier.glb', weapon: 'The Chaperone', color: 0x3b82f6, scale: 1.08, team: 'CT' },
-      { name: 'Operator Meghan', model: 'soldier.glb', weapon: 'Ace of Spades', color: 0x60a5fa, scale: 1.08, team: 'CT' }
+      { name: 'Mai Maid', model: 'mai_maid_combat_ready.glb', weapon: 'Outbreak Perfected', weaponKey: 'outbreak', color: 0x38bdf8, scale: 0.50, rotY: 0, team: 'CT' },
+      { name: 'Tactical Maid', model: 'mai_maid_combat_ready.glb', weapon: 'Hanami SMG', weaponKey: 'smg', color: 0x06b6d4, scale: 0.50, rotY: 0, team: 'CT' },
+      { name: 'Maid Enforcer', model: 'mai_maid_combat_ready.glb', weapon: 'M4A1 Carbine', weaponKey: 'm4a1', color: 0x3b82f6, scale: 0.50, rotY: 0, team: 'CT' },
+      { name: 'Maid Vanguard', model: 'mai_maid_combat_ready.glb', weapon: 'Ace of Spades', weaponKey: 'ace', color: 0x60a5fa, scale: 0.50, rotY: 0, team: 'CT' }
     ];
 
-    // Terrorist Hostile Squad
+    // Terrorist Hostile Squad - Distributed between forward combat and T base
     const tConfigs = [
-      { name: 'Miyazawa', model: 'main_heroine_miyazawa_combat_ready.glb', weapon: 'AK-47', color: 0xf43f5e, scale: 2.05, team: 'T' },
-      { name: 'Shadow Wraith', model: 'wraith.glb', weapon: 'Energy Sword', color: 0xa855f7, scale: 1.75, team: 'T' },
-      { name: 'Reaper Terrorist', model: 'soldier.glb', weapon: 'Hawkmoon', color: 0xef4444, scale: 1.08, team: 'T' },
-      { name: 'Ghost Operator', model: 'wraith.glb', weapon: 'Hanami SMG', color: 0xf97316, scale: 1.75, team: 'T' },
-      { name: 'Agent Karen', model: 'main_heroine_miyazawa_combat_ready.glb', weapon: 'Sakura Shotgun', color: 0xe11d48, scale: 2.05, team: 'T' }
+      { name: 'Rebel Mai', model: 'mai_maid_combat_ready.glb', weapon: 'AK-47', weaponKey: 'ak47', color: 0xf43f5e, scale: 0.50, rotY: 0, team: 'T', forwardSpawn: midA },
+      { name: 'Renegade Maid', model: 'mai_maid_combat_ready.glb', weapon: 'The Chaperone', weaponKey: 'chaperone', color: 0xe11d48, scale: 0.50, rotY: 0, team: 'T', forwardSpawn: midB },
+      { name: 'Shadow Mai', model: 'mai_maid_combat_ready.glb', weapon: 'Energy Sword', weaponKey: 'sword', color: 0xa855f7, scale: 0.50, rotY: 0, team: 'T' },
+      { name: 'Demolition Mai', model: 'mai_maid_combat_ready.glb', weapon: 'Lotus Launcher', weaponKey: 'launcher', color: 0xf97316, scale: 0.50, rotY: 0, team: 'T' },
+      { name: 'Infiltrator Mai', model: 'mai_maid_combat_ready.glb', weapon: 'Hawkmoon', weaponKey: 'hawkmoon', color: 0xd97706, scale: 0.50, rotY: 0, team: 'T' }
     ];
 
     // Spawn 4 CT bots (Player is CT #1)
@@ -93,7 +102,7 @@ export class BotManager {
 
     // Spawn 5 T bots
     tConfigs.forEach((conf, idx) => {
-      const sp = tSpawns[idx % tSpawns.length];
+      const sp = conf.forwardSpawn || tSpawns[idx % tSpawns.length];
       const bot = this._createBot(conf, sp, idx + 10);
       this.bots.push(bot);
       this.scene.add(bot.root);
@@ -115,27 +124,21 @@ export class BotManager {
       metalness: 0.2
     });
     const placeholder = new THREE.Mesh(capGeo, capMat);
-    placeholder.position.y = 0.9;
+    placeholder.position.y = 0.85;
     placeholder.castShadow = true;
     placeholder.receiveShadow = true;
     root.add(placeholder);
 
-    // Overhead 3D Vitals Canvas Sprite
-    const canvas = document.createElement('canvas');
-    canvas.width = 128;
-    canvas.height = 36;
-    const ctx = canvas.getContext('2d');
-    const spriteTex = new THREE.CanvasTexture(canvas);
-    const spriteMat = new THREE.SpriteMaterial({ map: spriteTex, depthTest: false });
-    const vitalsSprite = new THREE.Sprite(spriteMat);
-    vitalsSprite.position.set(0, 2.15, 0);
-    vitalsSprite.scale.set(1.15, 0.32, 1);
-    root.add(vitalsSprite);
+    // Dynamic Bot Weapon Muzzle Flash Light
+    const botFlashLight = new THREE.PointLight(0xffb74d, 0, 6);
+    botFlashLight.position.set(0, 1.25, 0.35);
+    root.add(botFlashLight);
 
     const bot = {
       id,
       name: conf.name,
       weapon: conf.weapon,
+      weaponKey: conf.weaponKey || 'outbreak',
       team: conf.team || 'T',
       root,
       pos: root.position,
@@ -143,19 +146,22 @@ export class BotManager {
       yaw: initYaw,
       targetYaw: initYaw,
       health: 100,
-      shield: this.mode === 'counter_strike' ? 100 : 100, // In CS: 100 Armor
+      shield: 100, // 100 Armor / Shield
       maxHealth: 100,
       maxShield: 100,
       alive: true,
       lastHitTime: 0,
-      fireCooldown: 0.8 + Math.random() * 0.8,
+      fireCooldown: 0.4 + Math.random() * 0.6,
+      burstRemaining: 0,
+      burstTimer: 0,
+      flashLight: botFlashLight,
+      flashTimer: 0,
       strafeDir: (Math.random() > 0.5 ? 1 : -1),
-      strafeTimer: 1.5 + Math.random() * 1.5,
+      strafeTimer: 1.2 + Math.random() * 1.4,
       respawnTimer: 0,
       spawnOrigin: spawnPos.slice(),
-      vitalsSprite,
-      vitalsCtx: ctx,
-      vitalsTex: spriteTex,
+      contact: makeContact(),
+      grounded: true,
       modelMesh: null,
       mixer: null,
       idleAction: null,
@@ -167,7 +173,8 @@ export class BotManager {
         if (!bot.alive) return;
         bot.lastHitTime = performance.now();
 
-        let remaining = amount;
+        const numAmount = (isNaN(amount) || amount <= 0) ? 25 : amount;
+        let remaining = numAmount;
         let shieldAbsorbed = 0;
 
         if (bot.shield > 0) {
@@ -185,11 +192,21 @@ export class BotManager {
           bot.health = Math.max(0, bot.health - remaining);
         }
 
-        // Flinch animation
+        // Dynamic Torso Flinch & Reaction Animation
         if (bot.reactionAction) {
           bot.reactionAction.reset();
-          bot.reactionAction.setLoop(THREE.LoopOnce);
-          bot.reactionAction.play();
+          bot.reactionAction.setLoop(THREE.LoopOnce, 1);
+          bot.reactionAction.clampWhenFinished = false;
+          bot.reactionAction.fadeIn(0.06).play();
+          setTimeout(() => {
+            if (bot.reactionAction) bot.reactionAction.fadeOut(0.14);
+          }, 280);
+        }
+
+        // Physical impulse jolt away from hit direction
+        if (dir) {
+          bot.pos.x += dir.x * 0.12;
+          bot.pos.z += dir.z * 0.12;
         }
 
         // Damage flash (red)
@@ -198,19 +215,17 @@ export class BotManager {
             if (c.isMesh && c.material && c.material.color) {
               const orig = c.material.color.getHex();
               c.material.color.setHex(0xff2222);
-              setTimeout(() => { if (c.material) c.material.color.setHex(orig); }, 100);
+              setTimeout(() => { if (c.material) c.material.color.setHex(orig); }, 90);
             }
           });
         }
 
-        bot.updateVitalsUI();
-
         if (this.onDamageCallback) {
           this.onDamageCallback({
             bot,
-            amount,
+            amount: numAmount,
             zone,
-            hitPoint,
+            hitPoint: hitPoint || bot.pos.clone().add(new THREE.Vector3(0, 1.1, 0)),
             isCrit: zone === 'head',
             shieldBroke: shieldAbsorbed > 0 && bot.shield === 0
           });
@@ -226,12 +241,8 @@ export class BotManager {
         bot.root.visible = false;
         bot.vel.set(0, 0, 0);
 
-        // In CS mode, bots DO NOT respawn mid-round (elimination)
-        if (this.mode === 'counter_strike') {
-          bot.respawnTimer = Infinity;
-        } else {
-          bot.respawnTimer = 4.5;
-        }
+        // Continuous TDM Respawn: 2.0s delay
+        bot.respawnTimer = (this.mode === 'elimination') ? Infinity : 2.0;
 
         if (this.onKillCallback) {
           this.onKillCallback(bot, attacker);
@@ -239,7 +250,9 @@ export class BotManager {
       },
 
       respawn: () => {
-        bot.pos.set(bot.spawnOrigin[0], bot.spawnOrigin[1], bot.spawnOrigin[2]);
+        const spawns = (bot.team === 'CT' ? this.mapMeta.ctSpawns : this.mapMeta.tSpawns) || this.mapMeta.spawns || [bot.spawnOrigin];
+        const sp = spawns[Math.floor(Math.random() * spawns.length)] || bot.spawnOrigin;
+        bot.pos.set(sp[0], sp[1], sp[2]);
         bot.vel.set(0, 0, 0);
         bot.yaw = Math.atan2(-bot.pos.x, -bot.pos.z);
         bot.root.rotation.y = bot.yaw;
@@ -247,41 +260,12 @@ export class BotManager {
         bot.shield = bot.maxShield;
         bot.alive = true;
         bot.root.visible = true;
-        bot.updateVitalsUI();
-      },
 
-      updateVitalsUI: () => {
-        ctx.clearRect(0, 0, 128, 36);
-        // Background container
-        ctx.fillStyle = 'rgba(6, 10, 24, 0.90)';
-        ctx.fillRect(0, 0, 128, 36);
-
-        // Team indicator badge
-        const isCT = bot.team === 'CT';
-        ctx.fillStyle = isCT ? '#38bdf8' : '#f43f5e';
-        ctx.font = 'bold 9px "Share Tech Mono", monospace';
-        ctx.fillText(isCT ? 'CT // ' + bot.name.toUpperCase() : 'T // ' + bot.name.toUpperCase(), 5, 10);
-
-        // Shield / Armor bar
-        const sPct = Math.max(0, Math.min(1, bot.shield / bot.maxShield));
-        ctx.fillStyle = isCT ? '#38bdf8' : '#fb923c';
-        ctx.fillRect(4, 14, 120 * sPct, 8);
-
-        // Health bar (pure white)
-        const hPct = Math.max(0, Math.min(1, bot.health / bot.maxHealth));
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(4, 24, 120 * hPct, 6);
-
-        // Border
-        ctx.strokeStyle = isCT ? 'rgba(56, 189, 248, 0.5)' : 'rgba(244, 63, 94, 0.5)';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(0.5, 0.5, 127, 35);
-
-        spriteTex.needsUpdate = true;
+        if (bot.idleAction) bot.idleAction.reset().fadeIn(0.15).play();
+        if (bot.stepAction) bot.stepAction.fadeOut(0.15);
+        bot.isMoving = false;
       }
     };
-
-    bot.updateVitalsUI();
 
     // Load character model
     const charPath = `./assets/chars/${conf.model}`;
@@ -289,8 +273,13 @@ export class BotManager {
       const model = gltf.scene;
       const sc = conf.scale || 1.0;
       model.scale.set(sc, sc, sc);
+      if (conf.rotY !== undefined) {
+        model.rotation.y = conf.rotY;
+      }
+      model.position.set(0, 0, 0);
       model.traverse((c) => {
         if (c.isMesh) {
+          c.frustumCulled = false;
           c.castShadow = true;
           c.receiveShadow = true;
         }
@@ -299,31 +288,52 @@ export class BotManager {
       root.add(model);
       bot.modelMesh = model;
 
-      // Animation Setup
+      // Attach 3D weapon to bot's right hand socket
+      const handBone = model.getObjectByName('Weapon_Socket_R') ||
+                       model.getObjectByName('Skl_hand_R_056') ||
+                       model.getObjectByName('Bip001 R Hand_074');
+      if (handBone) {
+        const weaponKey = conf.weaponKey || 'ak47';
+        const weaponDef = WEAPONS[weaponKey] || WEAPONS.ak47;
+        const wfile = weaponDef.model.endsWith('.glb') ? weaponDef.model : `${weaponDef.model}.glb`;
+        this.loader.load(`./assets/weapons/${wfile}`, (wgltf) => {
+          const wm = wgltf.scene;
+          const s = (conf.scale ? (1.0 / conf.scale) : 1.0) * 0.52;
+          wm.scale.set(s, s, s);
+          wm.rotation.set(0, Math.PI / 2, 0);
+          wm.position.set(0, -0.02, -0.06);
+          wm.traverse(c => { if (c.isMesh) { c.frustumCulled = false; c.castShadow = true; } });
+          handBone.add(wm);
+        }, undefined, () => {});
+      }
+
+      // Skeletal Animation Setup
       if (gltf.animations && gltf.animations.length > 0) {
         bot.mixer = new THREE.AnimationMixer(model);
         const clips = gltf.animations;
         const findClip = (names) => clips.find(c => names.some(n => c.name.toLowerCase().includes(n.toLowerCase())));
 
-        const idleClip = findClip(['Standby', 'ani_idle_basic_new', 'idle', 'char_mint_stand_show_1']) || clips[0];
-        const stepClip = findClip(['Step', 'walk', 'run', 'ani_lobby_landing']) || null;
+        const idleClip = findClip(['Standby', 'idle', 'char_mint_stand_show_1']) || clips[0];
+        const stepClip = findClip(['Step', 'walk', 'run']) || null;
         const reactionClip = findClip(['Reaction', 'Reaction2', 'hit']) || null;
 
         if (idleClip) {
           bot.idleAction = bot.mixer.clipAction(idleClip);
+          bot.idleAction.setLoop(THREE.LoopRepeat, Infinity);
           bot.idleAction.play();
         }
         if (stepClip) {
           bot.stepAction = bot.mixer.clipAction(stepClip);
-          bot.stepAction.timeScale = 0.85;
+          bot.stepAction.setLoop(THREE.LoopRepeat, Infinity);
+          bot.stepAction.timeScale = 1.15;
         }
         if (reactionClip) {
           bot.reactionAction = bot.mixer.clipAction(reactionClip);
-          bot.reactionAction.timeScale = 1.2;
+          bot.reactionAction.timeScale = 1.4;
         }
       }
     }, undefined, (err) => {
-      console.warn(`Could not load bot model ${charPath}, using capsule.`, err);
+      console.warn(`Could not load bot model ${charPath}`, err);
     });
 
     return bot;
@@ -347,13 +357,12 @@ export class BotManager {
     return { ct, t };
   }
 
-  update(dt, playerPos, playerTakeDamage, playerAlive = true) {
-    const now = performance.now();
+  update(dt, playerPos, playerTakeDamage, playerAlive = true, playerTeam = 'CT') {
     const safeDt = Math.min(dt, 0.05);
 
     this.bots.forEach((bot) => {
       if (!bot.alive) {
-        if (this.mode !== 'counter_strike') {
+        if (this.mode !== 'elimination') {
           bot.respawnTimer -= safeDt;
           if (bot.respawnTimer <= 0) {
             bot.respawn();
@@ -366,21 +375,41 @@ export class BotManager {
         bot.mixer.update(safeDt);
       }
 
-      // Armor/Shield slow regen in Halo mode only
-      if (this.mode === 'halo' && now - bot.lastHitTime > 4500 && bot.shield < bot.maxShield) {
-        bot.shield = Math.min(bot.maxShield, bot.shield + safeDt * 42);
-        bot.updateVitalsUI();
+      // Dynamic muzzle flash decay
+      if (bot.flashTimer > 0) {
+        bot.flashTimer -= safeDt;
+        if (bot.flashTimer <= 0 && bot.flashLight) {
+          bot.flashLight.intensity = 0;
+        }
       }
 
       // -------------------------------------------------------------
-      // Tactical AI Target Selection
+      // Tactical AI Target Selection (140m Engagement Range)
       // -------------------------------------------------------------
       let targetPos = null;
       let targetIsPlayer = false;
       let targetBot = null;
       let closestDist = Infinity;
 
-      if (this.mode === 'counter_strike') {
+      if (this.mode === 'ffa') {
+        // Free For All: Hunt closest bot or player
+        if (playerAlive) {
+          closestDist = bot.pos.distanceTo(playerPos);
+          targetPos = playerPos;
+          targetIsPlayer = true;
+        }
+        this.bots.forEach(other => {
+          if (other !== bot && other.alive) {
+            const d = bot.pos.distanceTo(other.pos);
+            if (d < closestDist) {
+              closestDist = d;
+              targetPos = other.pos;
+              targetIsPlayer = false;
+              targetBot = other;
+            }
+          }
+        });
+      } else if (this.mode === 'counter_strike' || this.mode === 'tdm') {
         if (bot.team === 'CT') {
           // CT bots hunt living Terrorist bots
           this.bots.forEach(other => {
@@ -394,8 +423,8 @@ export class BotManager {
             }
           });
         } else {
-          // T bots hunt living CT bots or the Player
-          if (playerAlive) {
+          // T bots hunt living CT bots or the Player (if player is CT)
+          if (playerAlive && playerTeam === 'CT') {
             closestDist = bot.pos.distanceTo(playerPos);
             targetPos = playerPos;
             targetIsPlayer = true;
@@ -423,7 +452,7 @@ export class BotManager {
 
       const desiredVel = new THREE.Vector3(0, 0, 0);
 
-      if (targetPos && closestDist < 55.0) {
+      if (targetPos && closestDist < 140.0) {
         const dx = targetPos.x - bot.pos.x;
         const dz = targetPos.z - bot.pos.z;
         const dist = Math.hypot(dx, dz) || 1;
@@ -431,61 +460,55 @@ export class BotManager {
         // --- 1. Smooth Yaw Steering towards Target ---
         const targetYaw = Math.atan2(dx, dz);
         let yawDiff = THREE.MathUtils.euclideanModulo(targetYaw - bot.yaw + Math.PI, Math.PI * 2) - Math.PI;
-        bot.yaw += THREE.MathUtils.clamp(yawDiff, -5.5 * safeDt, 5.5 * safeDt);
+        bot.yaw += THREE.MathUtils.clamp(yawDiff, -6.5 * safeDt, 6.5 * safeDt);
         bot.root.rotation.y = bot.yaw;
 
         const toTargetNorm = new THREE.Vector2(dx / dist, dz / dist);
         const strafeNorm = new THREE.Vector2(-toTargetNorm.y, toTargetNorm.x);
 
-        // --- 2. Tactical Spacing & Strafe Logic ---
+        // --- 2. Tactical Movement & Strafe Logic ---
         bot.strafeTimer -= safeDt;
         if (bot.strafeTimer <= 0) {
           bot.strafeDir *= -1;
-          bot.strafeTimer = 1.4 + Math.random() * 1.6;
+          bot.strafeTimer = 1.0 + Math.random() * 1.5;
         }
 
         let forwardSpeed = 0;
-        let strafeSpeed = 1.6 * bot.strafeDir;
+        let strafeSpeed = 1.8 * bot.strafeDir;
 
-        if (dist > 20.0) {
-          forwardSpeed = 2.4;
-        } else if (dist < 5.0) {
-          forwardSpeed = -2.2;
+        if (dist > 18.0) {
+          forwardSpeed = 3.6; // Sprint towards combat
+        } else if (dist < 6.0) {
+          forwardSpeed = -2.4; // Backpedal
+          strafeSpeed *= 1.4;
+        } else if (dist < 12.0) {
+          forwardSpeed = 0.5;
           strafeSpeed *= 1.2;
-        } else if (dist < 10.0) {
-          forwardSpeed = -0.5;
         } else {
-          forwardSpeed = 0.2;
+          forwardSpeed = 1.8;
         }
 
         desiredVel.x = (toTargetNorm.x * forwardSpeed) + (strafeNorm.x * strafeSpeed);
         desiredVel.z = (toTargetNorm.y * forwardSpeed) + (strafeNorm.y * strafeSpeed);
 
-        // --- 3. Tactical Fire at Target ---
-        bot.fireCooldown -= safeDt;
-        if (bot.fireCooldown <= 0 && dist < 36.0) {
-          bot.fireCooldown = 0.75 + Math.random() * 0.75;
-          const hitChance = Math.max(0.35, 0.72 - (dist / 65));
-
-          if (targetIsPlayer) {
-            if (Math.random() < hitChance && playerTakeDamage) {
-              playerTakeDamage(18, 'torso', bot.name);
-            }
-          } else if (targetBot && targetBot.alive) {
-            if (Math.random() < hitChance) {
-              const dmg = 24 + Math.random() * 12;
-              targetBot.takeDamage(dmg, 'torso', toTargetNorm, targetBot.pos, bot.name);
-            }
+        // --- 3. Tactical Burst Fire at Target ---
+        if (bot.burstRemaining > 0) {
+          bot.burstTimer -= safeDt;
+          if (bot.burstTimer <= 0) {
+            bot.burstTimer = 0.085;
+            bot.burstRemaining--;
+            this._fireBotShot(bot, targetPos, targetIsPlayer, targetBot, toTargetNorm, dist, playerTakeDamage);
           }
-
-          if (this.onTracerCallback) {
-            const start = bot.pos.clone().add(new THREE.Vector3(0, 1.3, 0));
-            const end = targetPos.clone().add(new THREE.Vector3(0, 1.2, 0));
-            this.onTracerCallback(start, end, bot.team === 'CT' ? 0x38bdf8 : 0xf43f5e);
+        } else {
+          bot.fireCooldown -= safeDt;
+          if (bot.fireCooldown <= 0 && dist < 85.0) {
+            bot.fireCooldown = 0.5 + Math.random() * 0.7;
+            bot.burstRemaining = 3;
+            bot.burstTimer = 0;
           }
         }
       } else {
-        // --- Patrol towards Objectives ---
+        // --- Patrol towards Objectives / Center Courtyard ---
         const site = (this.mapMeta.bombsites && this.mapMeta.bombsites.A) || this.mapMeta.koth || { x: 0, y: -2, z: 0 };
         const kdx = site.x - bot.pos.x;
         const kdz = site.z - bot.pos.z;
@@ -494,39 +517,91 @@ export class BotManager {
         if (kDist > 3.0) {
           const targetYaw = Math.atan2(kdx, kdz);
           let yawDiff = THREE.MathUtils.euclideanModulo(targetYaw - bot.yaw + Math.PI, Math.PI * 2) - Math.PI;
-          bot.yaw += THREE.MathUtils.clamp(yawDiff, -4.0 * safeDt, 4.0 * safeDt);
+          bot.yaw += THREE.MathUtils.clamp(yawDiff, -5.0 * safeDt, 5.0 * safeDt);
           bot.root.rotation.y = bot.yaw;
 
-          desiredVel.x = (kdx / kDist) * 1.8;
-          desiredVel.z = (kdz / kDist) * 1.8;
+          desiredVel.x = (kdx / kDist) * 2.8;
+          desiredVel.z = (kdz / kDist) * 2.8;
         }
       }
 
-      // --- 4. Velocity Inertia ---
-      bot.vel.lerp(desiredVel, Math.min(1.0, safeDt * 4.5));
+      // --- 4. Velocity Inertia & Capsule Depenetration ---
+      bot.vel.lerp(desiredVel, Math.min(1.0, safeDt * 6.0));
       bot.pos.x += bot.vel.x * safeDt;
       bot.pos.z += bot.vel.z * safeDt;
 
-      // --- 5. Animation Blending ---
+      // Solid collision resolution against level geometry
+      if (this.collision) {
+        this.collision.resolveCapsule(bot.pos, 0.35, 1.7, bot.contact);
+      }
+
+      // --- 5. Animation Blending (Standby vs Step) ---
       const hSpeed = Math.hypot(bot.vel.x, bot.vel.z);
       if (bot.stepAction && bot.idleAction) {
-        if (hSpeed > 0.35 && !bot.isMoving) {
+        if (hSpeed > 0.25 && !bot.isMoving) {
           bot.isMoving = true;
-          bot.stepAction.reset().fadeIn(0.2).play();
-          bot.idleAction.fadeOut(0.2);
-        } else if (hSpeed <= 0.35 && bot.isMoving) {
+          bot.stepAction.reset().fadeIn(0.18).play();
+          bot.idleAction.fadeOut(0.18);
+        } else if (hSpeed <= 0.25 && bot.isMoving) {
           bot.isMoving = false;
-          bot.idleAction.reset().fadeIn(0.2).play();
-          bot.stepAction.fadeOut(0.2);
+          bot.idleAction.reset().fadeIn(0.18).play();
+          bot.stepAction.fadeOut(0.18);
+        }
+        if (bot.isMoving) {
+          bot.stepAction.timeScale = Math.max(0.9, Math.min(1.4, hSpeed / 2.5));
         }
       }
 
-      // --- 6. Ground Clamp ---
-      const gy = this.collision.groundHeight(bot.pos.x, bot.pos.z, bot.pos.y + 2.0, 6.0);
-      if (gy !== null) {
-        bot.pos.y = THREE.MathUtils.lerp(bot.pos.y, gy, Math.min(1.0, safeDt * 10.0));
+      // --- 6. Direct Ground Clamp (Boots solidly on floor) ---
+      if (this.collision) {
+        const gy = this.collision.groundHeight(bot.pos.x, bot.pos.z, bot.pos.y + 1.2, 5.0);
+        if (gy !== null) {
+          bot.pos.y = gy;
+        }
       }
     });
+  }
+
+  _fireBotShot(bot, targetPos, targetIsPlayer, targetBot, toTargetNorm, dist, playerTakeDamage) {
+    if (!bot.alive) return;
+    if (bot.flashLight) {
+      bot.flashLight.intensity = 2.6;
+      bot.flashTimer = 0.045;
+    }
+
+    const hitChance = Math.max(0.35, 0.72 - (dist / 70));
+    const start = bot.pos.clone().add(new THREE.Vector3(0, 1.2, 0));
+    const end = targetPos.clone().add(new THREE.Vector3(
+      (Math.random() - 0.5) * 0.35,
+      1.1 + (Math.random() - 0.5) * 0.25,
+      (Math.random() - 0.5) * 0.35
+    ));
+
+    if (targetIsPlayer) {
+      if (Math.random() < hitChance && playerTakeDamage) {
+        const dmg = 12 + Math.floor(Math.random() * 8);
+        playerTakeDamage(dmg, 'torso', bot.name);
+      }
+    } else if (targetBot && targetBot.alive) {
+      if (Math.random() < hitChance) {
+        const dmg = 15 + Math.floor(Math.random() * 10);
+        targetBot.takeDamage(dmg, 'torso', toTargetNorm, targetBot.pos, bot.name);
+      }
+    }
+
+    if (this.onBotFireCallback) {
+      this.onBotFireCallback({
+        bot,
+        targetPos: end,
+        startPos: start,
+        weaponKey: bot.weaponKey || 'outbreak',
+        color: bot.team === 'CT' ? 0x38bdf8 : 0xf43f5e
+      });
+    }
+
+    if (this.onTracerCallback) {
+      this.onTracerCallback(start, end, bot.team === 'CT' ? 0x38bdf8 : 0xf43f5e);
+    }
   }
 
   dispose() {

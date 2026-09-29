@@ -33,12 +33,13 @@ func _ready() -> void:
 	add_child(map)
 	map.build()
 
+	_interactables.clear()
 	for d in map.doors:
 		d.director = self
+		_interactables.append(d)
 	for s in map.stations:
 		s.director = self
-	_interactables = map.doors.duplicate()
-	_interactables.append_array(map.stations)
+		_interactables.append(s)
 
 	for i in WaveTable.POOL_SIZE:
 		var z := Zombie.new()
@@ -125,13 +126,71 @@ func _play_wave() -> void:
 
 
 func _spawn(kind: Zombie.Kind) -> void:
-	var idx := pick_index(map.windows, player.global_position, _camera_forward())
-	var pos := map.windows[idx]
+	var options := _reachable_windows()
+	if options.is_empty():
+		options = _room_windows(_player_room())
+	if options.is_empty():
+		return
+	var idx := pick_index(options, player.global_position, _camera_forward())
+	var pos: Vector3 = options[idx]
 	for z in _zombies:
 		if not z.is_alive():
 			_alive += 1
 			z.activate(kind, wave, pos, player)
 			return
+
+
+## Zombies must be able to REACH the player: only windows in the player's
+## room and in rooms connected through OPEN doors. Without this the horde
+## piles at shut doors and the wave never clears.
+func _reachable_windows() -> Array[Vector3]:
+	var reach := _reachable_rooms()
+	var out: Array[Vector3] = []
+	for i in map.windows.size():
+		if map.window_rooms[i] in reach:
+			out.append(map.windows[i])
+	return out
+
+
+func _room_windows(room: int) -> Array[Vector3]:
+	var out: Array[Vector3] = []
+	for i in map.windows.size():
+		if map.window_rooms[i] == room:
+			out.append(map.windows[i])
+	return out
+
+
+func _player_room() -> int:
+	var p := player.global_position
+	for i in map.room_rects.size():
+		var r := map.room_rects[i]
+		if p.x >= r.position.x and p.x <= r.end.x and p.z >= r.position.y and p.z <= r.end.y:
+			return i
+	return 0
+
+
+func _reachable_rooms() -> Array[int]:
+	var start_room := _player_room()
+	var seen := {start_room: true}
+	var queue: Array = [start_room]
+	while queue.size() > 0:
+		var cur: int = queue.pop_front()
+		for di in map.doors.size():
+			if not map.doors[di].open:
+				continue
+			var link: Dictionary = map.door_links[di]
+			var other := -1
+			if link["a"] == cur:
+				other = link["b"]
+			elif link["b"] == cur:
+				other = link["a"]
+			if other >= 0 and not seen.has(other):
+				seen[other] = true
+				queue.append(other)
+	var out: Array[int] = []
+	for k in seen:
+		out.append(k)
+	return out
 
 
 func _on_zombie_died(_z: Zombie, crit: bool) -> void:

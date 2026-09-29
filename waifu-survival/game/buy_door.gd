@@ -27,7 +27,7 @@ func _refresh(c: int, _door: Node3D) -> void:
 func prompt_text() -> String:
 	if open:
 		return ""
-	return "E - OPEN DOOR  [%d]" % cost
+	return "OPEN DOOR  [%d]" % cost
 
 
 func interact() -> void:

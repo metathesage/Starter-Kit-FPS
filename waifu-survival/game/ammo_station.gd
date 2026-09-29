@@ -11,7 +11,7 @@ func setup(d: Node) -> void:
 
 
 func prompt_text() -> String:
-	return "E - AMMO REFILL  [%d]" % cost
+	return "AMMO REFILL  [%d]" % cost
 
 
 func interact() -> void:

@@ -14,7 +14,7 @@ func setup(d: Node) -> void:
 func prompt_text() -> String:
 	if tier >= Salvage.OVERCLOCK_COSTS.size():
 		return "OVERCLOCK MAXED"
-	return "E - OVERCLOCK %d  [%d]" % [tier + 1, Salvage.OVERCLOCK_COSTS[tier]]
+	return "OVERCLOCK %d  [%d]" % [tier + 1, Salvage.OVERCLOCK_COSTS[tier]]
 
 
 func interact() -> void:

@@ -71,6 +71,7 @@ export class Collision {
     off += this.triCount * 4;
     this.matIds = new Uint16Array(ab, base + off, this.triCount);
     off += this.triCount * 2;
+    if (off % 4 !== 0) off += (4 - (off % 4));
     this.bvh = new Float32Array(ab, base + off, this.nodeCount * NF);
     off += this.nodeCount * NF * 4;
 

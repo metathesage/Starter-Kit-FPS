@@ -97,7 +97,9 @@ export class Character {
     // without settling here, a spawn can start a frame airborne and the very
     // first jump press falls inside coyote time and is swallowed.
     const gy = this.collision.groundHeight(x, z, y + 3, 8);
-    this.pos.set(x, gy === null ? y : gy, z);
+    const finalY = gy === null ? y : gy;
+    this.pos.set(x, finalY, z);
+    this.lastSafePos = new THREE.Vector3(x, finalY, z);
     this.vel.set(0, 0, 0);
     this.yaw = yaw;
     this.pitch = 0;
@@ -204,6 +206,18 @@ export class Character {
     this.justLanded *= Math.max(0, 1 - dt * 8);
 
     this.speed = Math.hypot(this.vel.x, this.vel.z);
+
+    // Void-out safety catch: never fall into infinity
+    if (this.pos.y < -26) {
+      if (this.lastSafePos) {
+        this.pos.copy(this.lastSafePos);
+        this.vel.set(0, 0, 0);
+        this.grounded = true;
+      }
+    } else if (this.grounded && this.pos.y > -20) {
+      if (!this.lastSafePos) this.lastSafePos = new THREE.Vector3();
+      this.lastSafePos.copy(this.pos);
+    }
   }
 
   _buildWish(cmd) {

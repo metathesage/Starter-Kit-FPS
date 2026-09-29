@@ -152,3 +152,10 @@ avatar via Generic->Human toggle each run; MiyazawaProbe.cs exists for one-off d
 - Gameplay scripts: Assets/Scripts/Laststand/LaststandGame.cs (Health, EnemyAgent, PlayerShooter, Bullet, LaststandGame).
 - MuzzleFlash + DemoShowcase in Assets/Scripts/CharacterRig/.
 - Repo is git-managed; Library/ and raw dumps ignored. Rebuild everything in a fresh clone: open project, run Setup Everything.
+
+## Batch expansion (roster 40)
+- +18 characters converted from GLB with textures: SkeletonMage/Minion/Rogue/Warrior (KayKit 23-bone), AliceNikke (206b, Generic fallback), YugiMoto, MannequinF, Soldier, HelenParr, VioletParr, FutureTrunks, MtLady, UmamusumeSirius, VivlosSummer, WaifuNoir (821b), LucyWW, LowPolyPanther + BlackPanther (creatures, Generic fallback).
+- New anim libraries split into CMU ingest: base (87: Pistol_Shoot/Sword_Attack/Dodge...), addon (75: Angry/Victory/Death_A-C...), mocap (16: Fishing/Golf/Salute...), kaykit (26: Walking_A-C/Running/Hit/Spawn...). All retargeted into the shared controller (~380 states).
+- ConfigureCharacter now falls back to Generic avatar instead of failing (AliceNikke/LowPolyPanther - unmapped custom rigs; humanoid clips won't retarget on them, everything else green).
+- Verify: 2073/2081 PASS (mocapEvery 8) - only AliceNikke+LowPolyPanther+T-Rex static-pose fail as expected.
+- Arena enemies now 10 prefabs (samurai/fox/dragon/skeleton pack/soldier).

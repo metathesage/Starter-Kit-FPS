@@ -37,6 +37,24 @@ public static class CharacterAnimBootstrapper
  ("Drizzle",   "Assets/Characters/Drizzle/Drizzle.fbx",                              "Assets/Characters/Drizzle/Drizzle_AnimReady.prefab"),
  ("Kasa",      "Assets/Characters/Kasa/Kasa.fbx",                                    "Assets/Characters/Kasa/Kasa_AnimReady.prefab"),
  ("Sofia",     "Assets/Characters/Sofia/Sofia.fbx",                                  "Assets/Characters/Sofia/Sofia_AnimReady.prefab"),
+("SkeletonMage",    "Assets/Characters/SkeletonMage/SkeletonMage.fbx",              "Assets/Characters/SkeletonMage/SkeletonMage_AnimReady.prefab"),
+("SkeletonMinion",  "Assets/Characters/SkeletonMinion/SkeletonMinion.fbx",          "Assets/Characters/SkeletonMinion/SkeletonMinion_AnimReady.prefab"),
+("SkeletonRogue",   "Assets/Characters/SkeletonRogue/SkeletonRogue.fbx",            "Assets/Characters/SkeletonRogue/SkeletonRogue_AnimReady.prefab"),
+("SkeletonWarrior", "Assets/Characters/SkeletonWarrior/SkeletonWarrior.fbx",        "Assets/Characters/SkeletonWarrior/SkeletonWarrior_AnimReady.prefab"),
+("AliceNikke",      "Assets/Characters/AliceNikke/AliceNikke.fbx",                  "Assets/Characters/AliceNikke/AliceNikke_AnimReady.prefab"),
+("YugiMoto",        "Assets/Characters/YugiMoto/YugiMoto.fbx",                      "Assets/Characters/YugiMoto/YugiMoto_AnimReady.prefab"),
+("MannequinF",      "Assets/Characters/MannequinF/MannequinF.fbx",                  "Assets/Characters/MannequinF/MannequinF_AnimReady.prefab"),
+("Soldier",         "Assets/Characters/Soldier/Soldier.fbx",                        "Assets/Characters/Soldier/Soldier_AnimReady.prefab"),
+("HelenParr",       "Assets/Characters/HelenParr/HelenParr.fbx",                    "Assets/Characters/HelenParr/HelenParr_AnimReady.prefab"),
+("VioletParr",      "Assets/Characters/VioletParr/VioletParr.fbx",                  "Assets/Characters/VioletParr/VioletParr_AnimReady.prefab"),
+("FutureTrunks",    "Assets/Characters/FutureTrunks/FutureTrunks.fbx",              "Assets/Characters/FutureTrunks/FutureTrunks_AnimReady.prefab"),
+("MtLady",          "Assets/Characters/MtLady/MtLady.fbx",                          "Assets/Characters/MtLady/MtLady_AnimReady.prefab"),
+("UmamusumeSirius", "Assets/Characters/UmamusumeSirius/UmamusumeSirius.fbx",        "Assets/Characters/UmamusumeSirius/UmamusumeSirius_AnimReady.prefab"),
+("VivlosSummer",    "Assets/Characters/VivlosSummer/VivlosSummer.fbx",              "Assets/Characters/VivlosSummer/VivlosSummer_AnimReady.prefab"),
+("WaifuNoir",       "Assets/Characters/WaifuNoir/WaifuNoir.fbx",                    "Assets/Characters/WaifuNoir/WaifuNoir_AnimReady.prefab"),
+("LucyWW",          "Assets/Characters/LucyWW/LucyWW.fbx",                          "Assets/Characters/LucyWW/LucyWW_AnimReady.prefab"),
+("LowPolyPanther",  "Assets/Characters/LowPolyPanther/LowPolyPanther.fbx",          "Assets/Characters/LowPolyPanther/LowPolyPanther_AnimReady.prefab"),
+("BlackPanther",    "Assets/Characters/BlackPanther/BlackPanther.fbx",              "Assets/Characters/BlackPanther/BlackPanther_AnimReady.prefab"),
     };
     private const string Ual1Fbx = "Assets/Animations/UniversalAnimationLibrary/UAL1_Standard.fbx";
     private const string Ual2Fbx = "Assets/Animations/UniversalAnimationLibrary/UAL2_Standard.fbx";
@@ -115,8 +133,10 @@ public static class CharacterAnimBootstrapper
         Debug.Log($"[CharacterAnim] {Path.GetFileName(path)}: avatar={(av != null && av.avatar != null ? "assigned" : "MISSING")} human={(av != null && av.avatar != null && av.avatar.isHuman)}");
         if (av == null || av.avatar == null || !av.avatar.isHuman)
         {
-            Fail("avatar", $"{path}: auto Humanoid mapping failed - map bones manually in the Rig tab.");
-            return false;
+            Debug.LogWarning($"[CharacterAnim] {Path.GetFileName(path)}: Humanoid mapping failed - falling back to Generic (clips play by direct bone-name match).");
+            importer.animationType = ModelImporterAnimationType.Generic;
+            importer.SaveAndReimport();
+            return true;
         }
 
         // game dumps commonly import at cm or 0.01x; auto-fit to ~1.75 m

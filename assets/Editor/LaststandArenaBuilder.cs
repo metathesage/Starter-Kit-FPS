@@ -16,6 +16,10 @@ public static class LaststandArenaBuilder
         "Assets/Characters/Drizzle/Drizzle_AnimReady.prefab",
         "Assets/Characters/Quad_Fox/Quad_Fox_AnimReady.prefab",
         "Assets/Characters/Quad_Dragon/Quad_Dragon_AnimReady.prefab",
+        "Assets/Characters/SkeletonWarrior/SkeletonWarrior_AnimReady.prefab",
+        "Assets/Characters/SkeletonRogue/SkeletonRogue_AnimReady.prefab",
+        "Assets/Characters/SkeletonMage/SkeletonMage_AnimReady.prefab",
+        "Assets/Characters/Soldier/Soldier_AnimReady.prefab",
     };
 
     [MenuItem("Tools/Character Anim/Build Laststand Arena")]
@@ -23,6 +27,18 @@ public static class LaststandArenaBuilder
     {
         CharacterAnimBootstrapper.CreateDemoScene();
         BuildArena();
+    }
+
+    public static void PrepareAndOpen()
+    {
+        EditorBuildSettings.scenes = new[]
+        {
+            new EditorBuildSettingsScene(ScenePath, true),
+            new EditorBuildSettingsScene("Assets/Scenes/AnimDemo.unity", true),
+        };
+        EditorSceneManager.OpenScene("Assets/Scenes/AnimDemo.unity", OpenSceneMode.Single);
+        EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+        Debug.Log("[Arena] opened scene + build settings registered");
     }
 
     public static void BuildArena()
