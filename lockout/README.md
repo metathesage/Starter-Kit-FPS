@@ -81,6 +81,13 @@ Matches award XP and credits. Levels 1-50 unlock operators, halo colours, emblem
 which is also a codex for every weapon, power-up, map and mode. **Service Record** shows rank, stats, service badges and medals.
 Everything is stored in your browser (localStorage).
 
+## Model pipeline
+
+Best results so far: GPT concept image -> **Tripo H3.1** image-to-3D (PBR, ~9 Higgsfield credits) -> `tools/blender/optimize.py`
+(headless Blender via `pip install bpy==4.2.0`: decimate to ~9k triangles, textures to 1024px JPEG, about 0.5 MB per weapon).
+BR, sniper and needler use it. The rest are older SAM 3D models and get replaced as credits allow. `tools/blender/kit.py` is a hard-surface
+scripting kit for building weapons by hand in Blender (used as a comparison; the AI-generated Tripo models had better detail).
+
 ## Weapons and models
 
 All eleven weapons and both grenades are textured low-poly models (2k-7k triangles each). They were generated with GPT image concepts lifted to 3D with SAM 3D,
