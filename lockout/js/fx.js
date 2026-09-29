@@ -133,8 +133,9 @@ export class FX {
     L.l.position.set(x, y, z); L.l.color.setHex(color); L.l.distance = dist; L.i0 = intensity; L.t = L.dur = dur; L.l.intensity = intensity;
   }
 
-  flash(x, y, z, size = 0.5) {
+  flash(x, y, z, size = 0.5, color = 0xffffff) {
     const f = this.flashes.find((q) => q.t <= 0); if (!f) return;
+    f.s.material.color.setHex(color);
     f.s.position.set(x, y, z); f.s.scale.setScalar(size); f.t = 0.05; f.s.visible = true; f.s.material.opacity = 1; f.s.material.rotation = rand(0, 6);
   }
 

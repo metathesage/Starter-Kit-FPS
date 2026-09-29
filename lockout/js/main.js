@@ -76,7 +76,7 @@ addEventListener('resize', resize);
 // ---- state ----------------------------------------------------------------------------
 let state = 'splash', world = null, fx = null, viewmodel = null, hud = null, match = null, showcase = null;
 let trauma = 0, camKick = 0, fovCur = 62, menuT = 0, last = performance.now(), padCrouch = false, fpsAcc = 0, fpsN = 0, showFps = Q.has('fps'), muted = false;
-let mstats = null, lastDevice = 'kbm', endShown = false, quick = Q.has('quick'), fast = Q.has('fast') || Q.has('quick'), netAcc = 0, netEdges = 0;
+let hitstop = 0, showWeapon = null, mstats = null, lastDevice = 'kbm', endShown = false, quick = Q.has('quick'), fast = Q.has('fast') || Q.has('quick'), netAcc = 0, netEdges = 0;
 const shakeN = { t: 0 };
 window.__game = { Net, hostLobby: () => hostLobby(), joinLobby: (c) => joinLobby(c), startOnlineHost: () => startOnlineHost(), renderer, get fx() { return fx; }, get match() { return match; }, get state() { return state; }, get scene() { return scene; }, get camera() { return camera; }, start: () => startMatch(), Input, THREE };
 
@@ -216,8 +216,8 @@ function renderPCard() {
 }
 function openArmory() {
   showArmory({
-    back: () => { rebuildShowcase(); setHero(); showTitle(); },
-    preview: (p) => { if (p.reset) rebuildShowcase(); else rebuildShowcase(p); },
+    back: () => { showWeapon = null; rebuildShowcase(); setHero(); showTitle(); },
+    preview: (p) => { showWeapon = p.weapon || null; if (p.reset) rebuildShowcase(); else if (p.weapon) { if (!showcase) rebuildShowcase(); } else rebuildShowcase(p); },
     onEquip: (cat, id) => { if (cat === 'operator') { loadout.waifu = Math.max(0, WAIFUS.findIndex((w) => w.id === id)); persist(); } rebuildShowcase(); renderPCard(); },
   });
 }
@@ -474,7 +474,7 @@ function beginMatch(m, w) {
   viewmodel.setup(match.player.team, st.hair, st.eye);
   hud.root.classList.remove('hidden'); hud.bind(match);
   mstats = { kills: 0, heads: 0, perfects: 0, sniper: 0, sword: 0, grenade: 0, caps: 0, ballSec: 0, medals: {}, streakBest: 0, awarded: false };
-  match.bus.on('kill', (r) => { if (r.killer === match.player && !r.suicide) { mstats.kills++; if (r.head) mstats.heads++; if (r.weapon === 'sniper') mstats.sniper++; if (r.weapon === 'sword') mstats.sword++; if (r.weapon === 'frag' || r.weapon === 'plasma') mstats.grenade++; mstats.streakBest = Math.max(mstats.streakBest, match.player.streak); } });
+  match.bus.on('kill', (r) => { if (r.killer === match.player && !r.suicide) { if (!Net.online) hitstop = r.head || r.weapon === 'sword' || r.weapon === 'hammer' ? 0.1 : 0.06; trauma = Math.min(1, trauma + 0.12); mstats.kills++; if (r.head) mstats.heads++; if (r.weapon === 'sniper') mstats.sniper++; if (r.weapon === 'sword') mstats.sword++; if (r.weapon === 'frag' || r.weapon === 'plasma') mstats.grenade++; mstats.streakBest = Math.max(mstats.streakBest, match.player.streak); } });
   match.bus.on('medal', (a, n) => { if (a === match.player) { mstats.medals[n] = (mstats.medals[n] || 0) + 1; if (n === 'PERFECT') mstats.perfects++; } });
   match.bus.on('obj', (t, a) => { if (a === match.player) { if (t === 'cap') mstats.caps++; else if (t === 'ballsec') mstats.ballSec++; } });
   match.bus.on('shake', (a) => { trauma = Math.min(1, trauma + a); });
@@ -700,7 +700,7 @@ function menuFrame(dt) {
   camera.up.set(0, 1, 0); camera.lookAt(...mc.look);
   if (showcase) {
     showcase.root.rotation.y = 2.05 + Math.sin(menuT * 0.4) * 0.12;
-    animateRig(showcase, dt, { speed: 0, lx: 0, lz: 1, weaponId: null, grounded: true, pitch: Math.sin(menuT * 0.5) * 0.05 });
+    animateRig(showcase, dt, { speed: 0, lx: 0, lz: 1, weaponId: showWeapon, grounded: true, pitch: Math.sin(menuT * 0.5) * 0.05 });
   }
   fx && fx.update(dt); world && world.snow.update(dt, camera.position, menuT);
   fx && fx.setScale(H * renderer.getPixelRatio(), 44);
@@ -735,7 +735,7 @@ function frame(now, dt, lastNow0) {
   if (state === 'menu') { UI.tick(); menuFrame(dt); }
   else if (state === 'results') { UI.tick(); if (match) { updateCamera(dt); fx.update(dt); } render(false); }
   else if (state === 'paused') { UI.tick(); if (Net.online && match) idleOnline(dt); else render(false); }
-  else if (state === 'playing') { play(dt); adaptRes((now - lastNow0) / 1000); }
+  else if (state === 'playing') { let sdt = dt; if (hitstop > 0) { hitstop -= dt; sdt = dt * 0.12; } play(sdt); adaptRes((now - lastNow0) / 1000); }
   else if (state === 'splash' || state === 'loading') { UI.tick(); }
 }
 

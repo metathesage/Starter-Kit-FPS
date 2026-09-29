@@ -49,7 +49,7 @@ function tileVisual(it) {
     case 'halo': return `<i class="hl" style="--c:${it.color}"></i>`;
     case 'emblem': return emblemHtml(it.id, 52);
     case 'title': return `<i class="tt">${C.glyphSvg('chevron')}</i>`;
-    case 'weapons': return svg(ICONS[it.id] || ICONS.br, 'wi');
+    case 'weapons': return `<img class="wimg" alt="" src="models/weapons/thumb/${it.id}.webp" onerror="this.style.display='none'">`;
     case 'power': return `<span style="color:${it.color}">${svg(ICONS[it.id], 'wi')}</span>`;
     case 'maps': return `<i class="tt">${C.glyphSvg('hex')}</i>`;
     case 'modes': return `<i class="tt">${C.glyphSvg(it.id === 'ctf' ? 'flag' : it.id === 'oddball' ? 'orbit' : it.id === 'rumble' ? 'skull' : 'crosshair')}</i>`;
@@ -79,6 +79,7 @@ function detail(it) {
   const box = $('#armDetail'); if (!it) { box.innerHTML = ''; return; }
   const st = stateOf(it);
   let body = `<p>${it.blurb || ''}</p>`;
+  if (it.cat === 'weapons') body = `<img class="wbig" alt="" src="models/weapons/thumb/${it.id}.webp" onerror="this.remove()">` + body;
   if (it.cat === 'weapons') body += `<div class="stat-tbl">${C.weaponStats(it.id).map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join('')}</div>`;
   if (it.cat === 'modes') body += `<div class="stat-tbl"><div><span>LIMITS</span><b>${MODES[it.id].limits.join(' / ')} ${MODES[it.id].unit}</b></div><div><span>PLAYERS</span><b>${it.id === 'rumble' ? '8 FFA' : '4 v 4'}</b></div></div>`;
   let action = '', hint = '';
@@ -107,6 +108,8 @@ function preview(it) {
   if (!ctx || !ctx.preview) return;
   if (it.cat === 'operator') ctx.preview({ operator: it.id });
   else if (it.cat === 'halo') ctx.preview({ halo: it.id });
+  else if (it.cat === 'weapons') ctx.preview({ weapon: it.id });
+  else ctx.preview({ weapon: null });
 }
 
 function setTab(t) { tab = t; sel = 0; render(); }

@@ -27,6 +27,7 @@ export const DIFFICULTY = {
 
 let _uid = 1;
 // weapons that can earn a PERFECT: every shot of the engagement landed, headshot finish, no damage taken. Value = min hits.
+const ENERGY = new Set(['plasmarifle', 'needler', 'carbine']);
 const SHELLS = new Set(['br', 'magnum', 'smg', 'shotgun', 'sniper']);
 const PERFECT_W = new Map([['br', 4], ['carbine', 5], ['magnum', 3], ['sniper', 1]]);
 
@@ -584,7 +585,7 @@ export class Match {
     const mp = this.muzzlePos(a, _mz);
     const mx = mp.x, my = mp.y, mz = mp.z;
     this.sfx(def.snd, a, def.snd === 'sniper' || def.snd === 'shotgun' ? 1.1 : 0.9);
-    fx.flash(mx, my, mz, def.pellets ? 0.9 : def.snd === 'sniper' ? 0.8 : 0.5);
+    fx.flash(mx, my, mz, def.pellets ? 0.9 : def.snd === 'sniper' ? 0.8 : 0.5, ENERGY.has(def.id) ? def.tracer : 0xffffff);
     fx.light(mx, my, mz, 0xffc070, def.pellets ? 9 : 5, 0.06, 9);
     if (SHELLS.has(def.id)) fx.eject(mx, my - 0.03, mz, Math.cos(a.yaw), -Math.sin(a.yaw), def.id === 'shotgun' || def.id === 'sniper');
     this.bus.emit('shot', a, def);
