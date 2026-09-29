@@ -11,6 +11,7 @@ import { Profile, rollCallsign } from './profile.js';
 import { MODES } from './modes.js';
 import { showArmory, showRecord, emblemHtml, titleText } from './armory.js';
 import * as C from './catalog.js';
+import { Challenges } from './challenges.js';
 import { FX } from './fx.js';
 import { Viewmodel } from './fps.js';
 import { Match, DIFFICULTY } from './match.js';
@@ -180,20 +181,30 @@ function showTitle() {
   hud.root.classList.add('hidden');
   const menu = $('#titleMenu'); menu.innerHTML = '';
   const rows = [
-    UI.item(menu, 'Play Match', '01', () => showSetup()),
-    UI.item(menu, 'Play Online', '02', () => openOnline()),
-    UI.item(menu, 'Armory', '03', () => openArmory()),
-    UI.item(menu, 'Service Record', '04', () => openRecord()),
-    UI.item(menu, 'Controls', '05', () => showControls('title')),
-    UI.item(menu, 'Settings', '06', () => showSettings(() => showTitle())),
+    UI.item(menu, 'Quick Play', '01', () => quickPlay()),
+    UI.item(menu, 'Custom Game', '02', () => showSetup()),
+    UI.item(menu, 'Play Online', '03', () => openOnline()),
+    UI.item(menu, 'Armory', '04', () => openArmory()),
+    UI.item(menu, 'Service Record', '05', () => openRecord()),
+    UI.item(menu, 'Controls', '06', () => showControls('title')),
+    UI.item(menu, 'Settings', '07', () => showSettings(() => showTitle())),
   ];
   renderPCard();
   UI.show('title', { rows });
   $('#btnFull').onclick = () => { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen && document.documentElement.requestFullscreen().catch(() => {}); };
   $('#btnMute').onclick = () => { muted = !muted; applySettings(); UI.toast(muted ? 'AUDIO MUTED' : 'AUDIO ON'); };
   setHero(); refreshPrompts();
-  Sound.music('menu');
+  Sound.music('menu'); Sound.ambience(loadout.map === 'cryostat' ? 'wind' : 'hum');
   $('#hero-fallback')?.remove();
+}
+
+// random mode + map, saved settings otherwise; does not overwrite your custom-game choices
+function quickPlay() {
+  const modes = Object.keys(MODES), maps = World.MAP_LIST.map((x) => x.id);
+  const keep = { mode: loadout.mode, map: loadout.map };
+  loadout.mode = modes[(Math.random() * modes.length) | 0]; loadout.map = maps[(Math.random() * maps.length) | 0];
+  UI.toast(`${MODES[loadout.mode].name} · ${World.MAP_LIST.find((x) => x.id === loadout.map).name}`, 1800);
+  startMatch().then(() => { loadout.mode = keep.mode; loadout.map = keep.map; });
 }
 
 function renderPCard() {
@@ -447,6 +458,7 @@ async function startMatch() {
 
 function beginMatch(m, w) {
   if (match) { match.dispose(); match = null; }
+  fx.clearDecals();
   $$('.screen').forEach((s) => s.classList.remove('active'));
   UI.cur = null; UI.rows = [];
   showcase.root.visible = false;
@@ -463,7 +475,7 @@ function beginMatch(m, w) {
   match.bus.on('state', (s) => { if (s === 'ended') onMatchEnd(); });
   match.player.pitch = 0; fovCur = settings.fov; endShown = false; padCrouch = false; trauma = 0; netAcc = 0; netEdges = 0;
   state = 'playing'; document.body.classList.add('playing');
-  Input.lock(); Sound.music('match');
+  Input.lock(); Sound.music('match'); Sound.ambience(loadout.map === 'cryostat' ? 'wind' : 'hum');
   hud.announce('', null);
 }
 
@@ -520,7 +532,9 @@ function award(m, p, won, tie) {
   if (!mstats || mstats.awarded) return; mstats.awarded = true;
   const S = mstats, medalN = Object.values(S.medals).reduce((a, b) => a + b, 0);
   const parts = [['KILLS', S.kills * 10], ['HEADSHOTS', S.heads * 5], ['PERFECTS', S.perfects * 40], ['ASSISTS', p.assists * 4], ['MEDALS', medalN * 8], ['CAPTURES', S.caps * 60], ['BALL TIME', Math.round(S.ballSec * 1.5)], [won ? 'VICTORY' : tie ? 'DRAW' : 'COMPLETION', won ? 120 : tie ? 70 : 40]].filter((x) => x[1] > 0);
-  const xp = parts.reduce((a, b) => a + b[1], 0), cr = Math.round(xp * 0.55);
+  const chDone = Challenges.apply({ kills: S.kills, heads: S.heads, perfects: S.perfects, sniper: S.sniper, sword: S.sword, grenade: S.grenade, caps: S.caps, ballSec: S.ballSec, medals: medalN, wins: won ? 1 : 0, matches: 1, streakBest: S.streakBest });
+  for (const c of chDone) parts.push(['CHALLENGE', c.xp]);
+  const xp = parts.reduce((a, b) => a + b[1], 0), cr = Math.round(xp * 0.55) + chDone.reduce((a, c) => a + c.cr, 0);
   const before = { level: Profile.level, xp: Profile.xp, need: Profile.level >= 50 ? 1 : (function () { return 0; })() };
   const fromLevel = Profile.level;
   const d = Profile.d, st = d.stats;
@@ -534,7 +548,7 @@ function award(m, p, won, tie) {
     + parts.map(([k, v]) => `<div class="rx-r"><span>${k}</span><b>+${v}</b></div>`).join('')
     + `<div class="xp-bar"><i style="width:${Profile.progress() * 100}%"></i></div>`
     + (res.levels.length ? `<div class="rx-up">LEVEL UP  ${fromLevel} > ${Profile.level}</div>` : '')
-    + (news.length || badges.length ? `<div class="rx-new">${news.map((n) => `<span class="rm">${n.cat}: ${n.name}</span>`).join('')}${badges.map((b) => `<span class="rm">BADGE: ${b.name}</span>`).join('')}</div>` : '');
+    + (news.length || badges.length || chDone.length ? `<div class="rx-new">${chDone.map((c) => `<span class="rm">CHALLENGE: ${c.text}</span>`).join('')}${news.map((n) => `<span class="rm">${n.cat}: ${n.name}</span>`).join('')}${badges.map((b) => `<span class="rm">BADGE: ${b.name}</span>`).join('')}</div>` : '');
   if (res.levels.length) Sound.play('win', { vol: 0.6 });
 }
 

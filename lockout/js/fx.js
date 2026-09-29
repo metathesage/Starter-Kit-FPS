@@ -61,6 +61,35 @@ export class FX {
       s.visible = false; scene.add(s); this.flashes.push({ s, t: 0 });
     }
     this._v = new THREE.Vector3();
+    // bullet holes / scorch marks: one instanced draw, oldest overwritten
+    const dc = document.createElement('canvas'); dc.width = dc.height = 64; const dg = dc.getContext('2d');
+    const gr = dg.createRadialGradient(32, 32, 0, 32, 32, 30); gr.addColorStop(0, 'rgba(0,0,0,.95)'); gr.addColorStop(0.28, 'rgba(8,8,10,.8)'); gr.addColorStop(0.55, 'rgba(20,20,24,.35)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    dg.fillStyle = gr; dg.fillRect(0, 0, 64, 64); dg.strokeStyle = 'rgba(0,0,0,.6)'; dg.lineWidth = 1.5;
+    for (let i = 0; i < 7; i++) { const a = (i / 7) * 6.283 + 0.3, r0 = 6, r1 = 15 + (i % 3) * 5; dg.beginPath(); dg.moveTo(32 + Math.cos(a) * r0, 32 + Math.sin(a) * r0); dg.lineTo(32 + Math.cos(a + 0.12) * r1, 32 + Math.sin(a + 0.12) * r1); dg.stroke(); }
+    const dt = new THREE.CanvasTexture(dc); dt.colorSpace = THREE.SRGBColorSpace;
+    this.DN = 128;
+    this.decals = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: dt, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 }), this.DN);
+    this.decals.frustumCulled = false; this.decals.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    this.dData = Array.from({ length: this.DN }, () => ({ p: new THREE.Vector3(), q: new THREE.Quaternion(), s: 0, age: 999 }));
+    this._m = new THREE.Matrix4(); this._q = new THREE.Quaternion(); this._q2 = new THREE.Quaternion(); this._n = new THREE.Vector3(); this._one = new THREE.Vector3(); this._Z = new THREE.Vector3(0, 0, 1);
+    for (let i = 0; i < this.DN; i++) { this._m.makeScale(0, 0, 0); this.decals.setMatrixAt(i, this._m); }
+    this.dHead = 0; scene.add(this.decals);
+  }
+
+  decal(x, y, z, nx, ny, nz, size = 0.1) {
+    const d = this.dData[this.dHead], i = this.dHead; this.dHead = (this.dHead + 1) % this.DN;
+    this._n.set(nx, ny, nz).normalize();
+    d.p.set(x + this._n.x * 0.014, y + this._n.y * 0.014, z + this._n.z * 0.014);
+    d.q.setFromUnitVectors(this._Z, this._n); this._q2.setFromAxisAngle(this._Z, rand(0, 6.283)); d.q.multiply(this._q2);
+    d.s = size * rand(0.8, 1.3); d.age = 0;
+    this._m.compose(d.p, d.q, this._one.setScalar(d.s)); this.decals.setMatrixAt(i, this._m); this.decals.instanceMatrix.needsUpdate = true;
+  }
+
+  clearDecals() { for (let i = 0; i < this.DN; i++) { this.dData[i].age = 999; this._m.makeScale(0, 0, 0); this.decals.setMatrixAt(i, this._m); } this.decals.instanceMatrix.needsUpdate = true; }
+
+  // spent brass: small bright sparks that arc out to the right and bounce
+  eject(x, y, z, rx, rz, big = false) {
+    this.emit(x, y, z, rx * rand(1.6, 2.6) + rand(-0.3, 0.3), rand(1.6, 2.8), rz * rand(1.6, 2.6) + rand(-0.3, 0.3), rand(0.7, 1.0), big ? 0.075 : 0.05, 0.04, 1, 0.78, 0.3, 1, 13);
   }
 
   setScale(h, fov) { this.mat.uniforms.uScale.value = h / (2 * Math.tan((fov * Math.PI) / 360)); }
@@ -146,6 +175,13 @@ export class FX {
       b.m.scale.setScalar(b.R * (0.3 + 0.7 * (1 - Math.pow(1 - k, 3))) * 0.55);
       b.m.material.opacity = (1 - k) * 0.55;
     }
+    let dirty = false;
+    for (let i = 0; i < this.DN; i++) {
+      const d = this.dData[i]; if (d.age > 900) continue;
+      d.age += dt;
+      if (d.age > 26) { const k = Math.max(0, 1 - (d.age - 26) / 2); this._m.compose(d.p, d.q, this._one.setScalar(d.s * k)); this.decals.setMatrixAt(i, this._m); dirty = true; if (k <= 0) d.age = 999; }
+    }
+    if (dirty) this.decals.instanceMatrix.needsUpdate = true;
     for (const f of this.flashes) if (f.t > 0) { f.t -= dt; if (f.t <= 0) { f.s.visible = false; } else f.s.material.opacity = 1; }
   }
 }

@@ -27,6 +27,7 @@ export const DIFFICULTY = {
 
 let _uid = 1;
 // weapons that can earn a PERFECT: every shot of the engagement landed, headshot finish, no damage taken. Value = min hits.
+const SHELLS = new Set(['br', 'magnum', 'smg', 'shotgun', 'sniper']);
 const PERFECT_W = new Map([['br', 4], ['carbine', 5], ['magnum', 3], ['sniper', 1]]);
 
 export class Actor {
@@ -585,6 +586,7 @@ export class Match {
     this.sfx(def.snd, a, def.snd === 'sniper' || def.snd === 'shotgun' ? 1.1 : 0.9);
     fx.flash(mx, my, mz, def.pellets ? 0.9 : def.snd === 'sniper' ? 0.8 : 0.5);
     fx.light(mx, my, mz, 0xffc070, def.pellets ? 9 : 5, 0.06, 9);
+    if (SHELLS.has(def.id)) fx.eject(mx, my - 0.03, mz, Math.cos(a.yaw), -Math.sin(a.yaw), def.id === 'shotgun' || def.id === 'sniper');
     this.bus.emit('shot', a, def);
     a.zoomHold = a.zoomLevel;
 
@@ -626,6 +628,7 @@ export class Match {
         if (pfw && a.pf) a.pf.h++;
       } else if (tw < def.range) {
         fx.sparks(hx - dx * 0.05, hy - dy * 0.05, hz - dz * 0.05, -dx * 0.5, 0.6, -dz * 0.5, def.pellets ? 4 : 7);
+        fx.decal(hx, hy, hz, -dx, -dy, -dz, def.pellets ? 0.07 : def.id === 'sniper' ? 0.16 : 0.1);
         if (Math.random() < 0.5) fx.dust(hx, hy, hz, 2);
       }
       if (i < 3 || !def.pellets) fx.tracer(mp, { x: hx, y: hy, z: hz }, def.tracer, def.snd === 'sniper' ? 0.04 : 0.018, def.snd === 'sniper' ? 0.16 : 0.07);
@@ -940,7 +943,7 @@ export class Match {
     this.hosting = true;
     const fx = this.fx, cp = (v) => (v && typeof v === 'object' && 'x' in v ? { x: +v.x.toFixed(2), y: +v.y.toFixed(2), z: +v.z.toFixed(2) } : typeof v === 'number' ? +v.toFixed(3) : v);
     fx._o ||= {};
-    for (const m of ['flash', 'tracer', 'sparks', 'dust', 'blood', 'explosion', 'light']) {
+    for (const m of ['flash', 'tracer', 'sparks', 'dust', 'blood', 'explosion', 'light', 'decal', 'eject']) {
       fx._o[m] ||= fx[m].bind(fx);
       fx[m] = (...a) => { fx._o[m](...a); if (this.hosting) this.ev.push(['f', m, ...a.map(cp)]); };
     }

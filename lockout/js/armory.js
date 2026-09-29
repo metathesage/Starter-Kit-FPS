@@ -10,6 +10,7 @@ import { MODES } from './modes.js';
 import { svg, MEDAL_ICONS } from './hud.js';
 import { Profile, rankOf, xpToNext, MAX_LEVEL, rollCallsign } from './profile.js';
 import * as C from './catalog.js';
+import { Challenges } from './challenges.js';
 
 const hex = (n) => '#' + new THREE.Color(n).getHexString();
 const fmtN = (n) => Math.round(n).toLocaleString('en-US');
@@ -133,6 +134,9 @@ export function showRecord({ back, onChange }) {
   const d = Profile.d, s = d.stats, L = Profile.level, need = xpToNext(L);
   $('#recHead').innerHTML = `${emblemHtml(d.eq.emblem, 84)}<div class="rc-id"><div class="rc-tag">${Profile.callsign}</div><div class="rc-title">${titleText(d.eq.title)}</div><div class="rc-rank">${rankOf(L)} · LEVEL ${L}</div></div>`;
   $('#recXp').innerHTML = `<div class="xp-bar"><i style="width:${(L >= MAX_LEVEL ? 1 : d.xp / need) * 100}%"></i></div><div class="xp-n">${L >= MAX_LEVEL ? 'MAX LEVEL' : fmtN(d.xp) + ' / ' + fmtN(need) + ' XP'}<span>${fmtN(Profile.credits)} CR</span></div>`;
+  const chs = Challenges.all();
+  $('#recReset').textContent = 'RESET IN ' + Challenges.resetIn();
+  $('#recCh').innerHTML = chs.map((c) => `<div class="ch${c.done ? ' done' : ''}${c.weekly ? ' wk' : ''}"><div class="ch-t"><em>${c.weekly ? 'WEEKLY' : 'DAILY'}</em><span>${c.text}</span><b>+${c.xp} XP</b></div><div class="xp-bar"><i style="width:${(c.prog / c.goal) * 100}%"></i></div><div class="ch-p">${c.done ? 'COMPLETE' : c.prog + ' / ' + c.goal}</div></div>`).join('');
   const kd = s.deaths ? (s.kills / s.deaths).toFixed(2) : s.kills.toFixed(2);
   const S = (k, v) => `<div class="rs"><b>${v}</b><span>${k}</span></div>`;
   $('#recStats').innerHTML = [S('KILLS', fmtN(s.kills)), S('DEATHS', fmtN(s.deaths)), S('K/D', kd), S('HEADSHOTS', fmtN(s.headshots)), S('PERFECTS', fmtN(s.perfects)), S('ASSISTS', fmtN(s.assists)), S('MATCHES', fmtN(s.matches)), S('WINS', fmtN(s.wins)), S('CAPTURES', fmtN(s.caps)), S('BEST STREAK', fmtN(s.streakBest))].join('');
@@ -153,5 +157,5 @@ export function showRecord({ back, onChange }) {
   row.querySelector('.roll').onclick = (e) => { e.stopPropagation(); roll(); };
   row._act = roll; row.onclick = () => inp.focus();
   const b = $('#btnRecBack'); UI.button(b, back);
-  UI.show('record', { rows: [row, b], onBack: back, focus: 1 });
+  UI.show('record', { rows: [row, b], onBack: back, focus: 0 });
 }

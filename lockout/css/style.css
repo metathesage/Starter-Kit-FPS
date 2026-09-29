@@ -387,3 +387,8 @@ body.touch-on.playing #touch, body.touch-on.online-play #touch { display: block;
 .pcard .xp-bar { margin-left: auto; }
 @media (max-height: 760px) { .menu-item { padding-top: 9px !important; padding-bottom: 9px !important; } .rc-stats { margin-top: 8px; } .rc-h { margin: 10px 0 6px; } .rc-badges { max-height: 16vh; } .rs { padding: 6px 10px; } .rs b { font-size: 17px; } }
 .arm-grid { grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); } .arm-body { grid-template-columns: 1fr 230px; }
+.ch-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.ch { padding: 10px 12px; border: 1px solid var(--line); background: rgba(255, 255, 255, .03); display: grid; gap: 6px; } .ch.wk { border-color: rgba(255, 216, 74, .35); } .ch.done { opacity: .6; }
+.ch-t { display: flex; align-items: baseline; gap: 10px; font: 500 11px var(--f-mono); letter-spacing: .1em; } .ch-t em { font-style: normal; font-size: 8px; letter-spacing: .3em; color: var(--dim); } .ch-t span { flex: 1; color: #fff; } .ch-t b { color: #ffd84a; font-weight: 700; }
+.ch-p { font: 400 9px var(--f-mono); letter-spacing: .22em; color: var(--dim); } .ch .xp-bar { height: 4px; } .rc-h span { color: #ffd84a; margin-left: 12px; letter-spacing: .3em; }
+@media (max-width: 900px) { .ch-list { grid-template-columns: 1fr; } }

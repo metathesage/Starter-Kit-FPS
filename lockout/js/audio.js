@@ -119,6 +119,28 @@ function musicStep() {
   beat++;
 }
 
+// map ambience: wind over the snow / reactor hum, with the odd distant creak
+let amb = null, ambKind = null, ambTimer = null;
+function buildAmbience(kind) {
+  const bus = ctx.createGain(); bus.gain.value = 0; bus.connect(comp);
+  const nodes = [];
+  const src = ctx.createBufferSource(); src.buffer = noiseBuf; src.loop = true;
+  const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = kind === 'wind' ? 520 : 160; src.connect(lp);
+  const g1 = ctx.createGain(); g1.gain.value = kind === 'wind' ? 0.16 : 0.09; lp.connect(g1); g1.connect(bus);
+  const lfo = ctx.createOscillator(); lfo.frequency.value = kind === 'wind' ? 0.07 : 0.03; const lg = ctx.createGain(); lg.gain.value = kind === 'wind' ? 0.09 : 0.03; lfo.connect(lg); lg.connect(g1.gain); lfo.start();
+  src.start(); nodes.push(src, lfo);
+  if (kind === 'wind') {
+    const s2 = ctx.createBufferSource(); s2.buffer = noiseBuf; s2.loop = true; s2.playbackRate.value = 0.7;
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1500; bp.Q.value = 7; const g2 = ctx.createGain(); g2.gain.value = 0.02;
+    s2.connect(bp); bp.connect(g2); g2.connect(bus);
+    const l2 = ctx.createOscillator(); l2.frequency.value = 0.11; const lg2 = ctx.createGain(); lg2.gain.value = 0.018; l2.connect(lg2); lg2.connect(g2.gain); l2.start(); s2.start(); nodes.push(s2, l2);
+  } else {
+    for (const f of [55, 55.45, 110.3]) { const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = f; const g = ctx.createGain(); g.gain.value = f > 100 ? 0.012 : 0.03; o.connect(g); g.connect(bus); o.start(); nodes.push(o); }
+  }
+  bus.gain.setTargetAtTime(vol.sfx * 0.9, ctx.currentTime, 1.5);
+  return { bus, nodes };
+}
+
 export const Sound = {
   ready: false,
   unlock() {
@@ -147,6 +169,14 @@ export const Sound = {
     // listener right vector = (cos yaw, -sin yaw)
     const pan = d > 0.01 ? ((dx * Math.cos(listener.yaw) - dz * Math.sin(listener.yaw)) / d) * 0.8 : 0;
     this.play(name, { vol: att, pan, pitch: rand(0.95, 1.05) });
+  },
+  ambience(kind) {
+    if (!ctx || kind === ambKind) return;
+    if (amb) { const o = amb; o.bus.gain.setTargetAtTime(0, ctx.currentTime, 0.4); setTimeout(() => { for (const n of o.nodes) { try { n.stop(); } catch { /* */ } } o.bus.disconnect(); }, 1800); amb = null; }
+    if (ambTimer) { clearInterval(ambTimer); ambTimer = null; }
+    ambKind = kind; if (!kind) return;
+    amb = buildAmbience(kind);
+    ambTimer = setInterval(() => { if (ctx.state !== 'running' || Math.random() > 0.5) return; if (kind === 'wind') tone(sfxBus, { type: 'sine', f0: 240 + Math.random() * 200, f1: 180, dur: 2.4, gain: 0.02, atk: 1 }); else { tone(sfxBus, { type: 'triangle', f0: 90 + Math.random() * 40, f1: 60, dur: 1.4, gain: 0.05, atk: 0.4 }); noise(sfxBus, { dur: 0.5, f0: 900, f1: 200, gain: 0.05, type: 'bandpass', q: 5, at: 0.3 }); } }, 7000);
   },
   music(mode) {
     musicMode = mode;
