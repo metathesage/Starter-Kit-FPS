@@ -13,6 +13,7 @@ export let MAP = null;
 export const MAP_LIST = [
   { id: 'lockout', name: 'LOCKOUT', tag: 'Cold storage. Glass deck, drum towers, elbow bridge, void below.' },
   { id: 'cryostat', name: 'CRYOSTAT', tag: 'Night snow station. Twin snipe towers, reactor core, power-ups everywhere.' },
+  { id: 'mesa', name: 'MESA', tag: 'Sunset canyon. A central plateau, two sniper spires, sandstone bases and long sightlines.' },
 ];
 
 const add = (o) => { solids.push(o); return o; };
@@ -142,9 +143,53 @@ function defineCryostat() {
   MAP = { id: 'cryostat', nav: { x0: -34, x1: 34, z0: -24, z1: 24 }, obj: { flags: { blue: [28.5, 3, 5], red: [-28.5, 3, -5] }, ball: [0, 6, -4.5] } };
 }
 
+// ================= MESA: sunset canyon arena =================
+// Rotationally symmetric. Ground floor inside canyon walls, a central plateau (y4) with four ramps,
+// a sniper spire per side (y8) reached by a long ramp, sandstone bases (y3) and side pods.
+function defineMesa() {
+  BOUNDS = { x: 36, z: 26 }; KILL_Y = -60;
+  box(-37, 37, -27, 27, -T, 0, 'sand');
+  box(-37, 37, 26, 27, 0, 10, 'rock'); box(-37, 37, -27, -26, 0, 10, 'rock'); box(36, 37, -27, 27, 0, 10, 'rock'); box(-37, -36, -27, 27, 0, 10, 'rock');
+  // central plateau
+  box(-8, 8, -8, 8, 0, 4, 'tower');
+  pRamp(8, 16, -2, 2, 0, 'x', 16, 8, 0, 4);
+  pRamp(-2, 2, 8, 16, 0, 'z', 16, 8, 0, 4);
+  box(-1.4, 1.4, -1.4, 1.4, 4, 11, 'pillar');
+  pBox(4, 7.4, 4, 7.4, 4, 5.1, 'post'); pBox(4, 7.4, -7.4, -4, 4, 5.1, 'post');
+  // sniper spires
+  pBox(20, 28, -16, -10, 0, 8, 'tower');
+  pRamp(6, 20, -15.5, -12.5, 0, 'x', 6, 20, 0, 8);
+  pBox(20, 28, -16.4, -16, 8, 8.9, 'rail'); pBox(27.6, 28, -16, -10, 8, 8.9, 'rail'); pBox(20, 28, -10, -9.6, 8, 8.9, 'rail');
+  pBox(23, 24.6, -15.4, -14, 8, 9.2, 'crate'); pBox(25.6, 26.8, -11.6, -10.4, 8, 9.2, 'crate');
+  // bases
+  pBox(24, 35, -6, 6, 0, 3, 'base');
+  pRamp(16, 24, 2, 5.5, 0, 'x', 16, 24, 0, 3);
+  pRamp(27, 31, 6, 14, 0, 'z', 14, 6, 0, 3);
+  pBox(24, 35, -6, -5.6, 3, 3.9, 'rail'); pBox(24, 27, 5.6, 6, 3, 3.9, 'rail'); pBox(31, 35, 5.6, 6, 3, 3.9, 'rail'); pBox(34.6, 35, -6, 6, 3, 3.9, 'rail'); pBox(24, 24.4, -6, 2, 3, 3.9, 'rail');
+  pBox(27, 28.4, -2.4, -0.8, 3, 4.2, 'crate'); pBox(31, 33, 1.2, 2.6, 3, 4.2, 'crate');
+  // side pods
+  pBox(12, 18, 10, 16, 0, 3, 'base');
+  pRamp(6, 12, 11.5, 14.5, 0, 'x', 6, 12, 0, 3);
+  pRamp(13.5, 16.5, 16, 22, 0, 'z', 22, 16, 0, 3);
+  pBox(12, 18, 10, 10.4, 3, 3.9, 'rail'); pBox(17.6, 18, 10, 16, 3, 3.9, 'rail'); pBox(14.2, 15.8, 12.4, 13.6, 3, 4.5, 'crate');
+  // ground cover
+  pBox(11, 12, -9, -3, 0, 2.4, 'rock'); pBox(20, 21, -6, -3, 0, 2.2, 'rock'); pBox(12, 14, 3.5, 5.5, 0, 1.1, 'crate'); pBox(2, 3.6, -20, -18.4, 0, 1.2, 'crate'); pBox(26, 28, -22, -20, 0, 1.2, 'crate');
+  pBox(4, 5.4, 17.4, 18.8, 0, 3.2, 'pillar'); pBox(9, 10.4, -6, -4.6, 0, 3.2, 'pillar'); pBox(21, 22.4, 10, 11.4, 0, 3.2, 'pillar'); pBox(33, 34.4, -13, -11.6, 0, 3.2, 'pillar');
+  pBox(6, 10, 19, 21, 0, 1, 'rock'); pBox(30, 34, -20, -18, 0, 1, 'rock'); pBox(15, 17, -22, -20.5, 0, 1.6, 'rock');
+  const pad = [[26, -3.5], [26, 0], [26, 3.5], [29, -4], [29, 4], [31, 0], [33, -3.4], [33, 3.4]];
+  SPAWNS = { red: pad.map(([x, z]) => ({ x: -x, y: 3, z: -z, yaw: -Math.PI / 2 })), blue: pad.map(([x, z]) => ({ x, y: 3, z, yaw: Math.PI / 2 })) };
+  PICKUPS = mirrorPickups([
+    { id: 'br', x: 28.4, y: 3, z: 4.4, t: 25 }, { id: 'br', x: 28.4, y: 3, z: -4.4, t: 25 }, { id: 'magnum', x: 33.4, y: 3, z: 0, t: 30 },
+    { id: 'smg', x: 14, y: 0, z: -6, t: 30 }, { id: 'carbine', x: 14, y: 3, z: 15.2, t: 45 }, { id: 'plasmarifle', x: 22, y: 0, z: 7, t: 40 },
+    { id: 'needler', x: 0, y: 4, z: -5, t: 45 }, { id: 'shotgun', x: 9, y: 0, z: 9, t: 55 }, { id: 'rocket', x: 22, y: 0, z: -19, t: 90 },
+    { id: 'sniper', x: 24, y: 8, z: -13, t: 70 }, { id: 'camo', x: 15, y: 0, z: -9.6, t: 120 }, { id: 'overshield', x: 33.6, y: 3, z: -4.6, t: 120 },
+  ], [{ id: 'sword', x: 0, y: 4, z: 3.2, t: 90 }, { id: 'hammer', x: 0, y: 0, z: 20, t: 100 }, { id: 'boost', x: 0, y: 0, z: -20, t: 120 }]);
+  MAP = { id: 'mesa', nav: { x0: -34, x1: 34, z0: -24, z1: 24 }, obj: { flags: { blue: [30.4, 3, 2.4], red: [-30.4, 3, -2.4] }, ball: [0, 4, -2] } };
+}
+
 export function defineMap(id) {
   solids.length = 0; nav.nodes.length = 0; nav.built = false;
-  if (id === 'cryostat') defineCryostat(); else defineLockout();
+  if (id === 'cryostat') defineCryostat(); else if (id === 'mesa') defineMesa(); else defineLockout();
 }
 
 // ---- collision --------------------------------------------------------------
@@ -529,11 +574,11 @@ function haloTex() {
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
 }
 
-function makeSnow(root, N, spread, height, size) {
+function makeSnow(root, N, spread, height, size, color = 0xffffff) {
   const sp = new Float32Array(N * 3), sv = new Float32Array(N);
   for (let i = 0; i < N; i++) { sp[i * 3] = (Math.random() - 0.5) * spread; sp[i * 3 + 1] = Math.random() * height; sp[i * 3 + 2] = (Math.random() - 0.5) * spread; sv[i] = 0.6 + Math.random() * 1.4; }
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(sp, 3));
-  const pts = new THREE.Points(g, new THREE.PointsMaterial({ color: 0xffffff, size, transparent: true, opacity: 0.85, depthWrite: false }));
+  const pts = new THREE.Points(g, new THREE.PointsMaterial({ color, size, transparent: true, opacity: 0.85, depthWrite: false }));
   pts.frustumCulled = false; root.add(pts);
   return {
     pts, extra: null,
@@ -653,6 +698,97 @@ async function buildCryostatVisuals(scene, renderer, onProgress) {
   return { root, sky, dir, hemi, mats, glow, snow };
 }
 
+// ---------- MESA visuals: low sun, warm haze, sandstone ----------
+function makeDayTextures() {
+  const sand = canvasTex(256, (g, s) => {
+    g.fillStyle = '#d9b483'; g.fillRect(0, 0, s, s);
+    for (let i = 0; i < 1400; i++) { g.fillStyle = `rgba(${Math.random() < 0.5 ? '255,236,200' : '140,96,52'},${Math.random() * 0.28})`; g.fillRect(Math.random() * s, Math.random() * s, 2 + Math.random() * 5, 1 + Math.random() * 2); }
+    g.strokeStyle = 'rgba(120,80,40,.10)'; g.lineWidth = 2; for (let i = 0; i < 9; i++) { g.beginPath(); g.moveTo(0, Math.random() * s); g.bezierCurveTo(s * 0.3, Math.random() * s, s * 0.7, Math.random() * s, s, Math.random() * s); g.stroke(); }
+  });
+  const rock = canvasTex(256, (g, s) => {
+    g.fillStyle = '#b9683f'; g.fillRect(0, 0, s, s);
+    for (let y = 0; y < s; y += 22 + ((y / 22) % 3) * 6) { g.fillStyle = `rgba(${Math.random() < 0.5 ? '90,40,20' : '240,170,110'},${0.12 + Math.random() * 0.14})`; g.fillRect(0, y, s, 5 + Math.random() * 9); }
+    speck(g, s, 500, 0.12);
+  });
+  const stone = canvasTex(256, (g, s) => {
+    g.fillStyle = '#cdb28c'; g.fillRect(0, 0, s, s); speck(g, s, 500, 0.1);
+    g.strokeStyle = 'rgba(70,46,24,.65)'; g.lineWidth = 4; g.strokeRect(2, 2, s - 4, s - 4); g.strokeStyle = 'rgba(70,46,24,.3)'; g.lineWidth = 2; g.strokeRect(24, 24, s - 48, s - 48);
+    g.fillStyle = 'rgba(255,150,60,.55)'; g.fillRect(s / 2 - 3, 30, 6, s - 60);
+  });
+  const crate = canvasTex(128, (g, s) => {
+    g.fillStyle = '#4b5261'; g.fillRect(0, 0, s, s); speck(g, s, 200, 0.12);
+    g.fillStyle = '#ff8a3a'; g.fillRect(0, s * 0.42, s, s * 0.16); g.strokeStyle = 'rgba(0,0,0,.6)'; g.lineWidth = 6; g.strokeRect(3, 3, s - 6, s - 6);
+  });
+  const rampT = canvasTex(256, (g, s) => {
+    g.fillStyle = '#a9835a'; g.fillRect(0, 0, s, s); speck(g, s, 400, 0.1); g.fillStyle = 'rgba(60,36,16,.25)';
+    for (let i = -s; i < s * 2; i += 64) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i + 32, 0); g.lineTo(i + 32 - s, s); g.lineTo(i - s, s); g.fill(); }
+  });
+  return { sand, rock, stone, crate, ramp: rampT };
+}
+
+async function buildMesaVisuals(scene, renderer, onProgress) {
+  const root = new THREE.Group(); scene.add(root);
+  const tex = makeDayTextures();
+  await onProgress(0.15, 'Baking the sand');
+  const M = (map, o = {}) => new THREE.MeshStandardMaterial({ map, roughness: 0.9, metalness: 0.04, ...o });
+  const mats = {
+    sand: M(tex.sand, { roughness: 1, metalness: 0 }), rock: M(tex.rock), tower: M(tex.stone, { color: 0xe8d6bc }), base: M(tex.stone), wall: M(tex.rock),
+    post: M(tex.stone, { color: 0xf3e2c8 }), pillar: M(tex.stone, { color: 0xb59a76 }), rail: M(tex.crate, { color: 0xc8ccd6 }), ramp: M(tex.ramp, { side: THREE.DoubleSide }), crate: M(tex.crate),
+  };
+  const world = new THREE.Group(); root.add(world);
+  for (const s of solids) {
+    const m = new THREE.Mesh(s.ramp ? prismGeo(s, 5) : boxGeo(s, s.mat === 'sand' ? 8 : 5), mats[s.mat] || mats.wall);
+    if (!s.ramp) m.position.set((s.x0 + s.x1) / 2, (s.y0 + s.y1) / 2, (s.z0 + s.z1) / 2);
+    m.castShadow = true; m.receiveShadow = true; world.add(m);
+  }
+  await onProgress(0.4, 'Raising the spires');
+  const glow = (c, i = 2.4) => new THREE.MeshStandardMaterial({ color: 0x050505, emissive: c, emissiveIntensity: i, roughness: 0.4 });
+  const red = glow(0xff3b4a, 2.8), blue = glow(0x3b8dff, 2.8), amber = glow(0xffa24a, 2.6);
+  const strip = (m, x, y, z, w, h, d) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(x, y, z); world.add(b); return b; };
+  for (const sg of [1, -1]) {
+    const tm = sg === 1 ? blue : red;
+    strip(tm, sg * 29.5, 3.02, sg * -5.9, 11, 0.05, 0.12); strip(tm, sg * 24.1, 3.02, sg * -2, 0.12, 0.05, 8); strip(tm, sg * 34.9, 3.5, 0, 0.12, 1.2, 12);
+    strip(amber, sg * 24, 8.04, sg * -13, 8, 0.05, 0.1); strip(amber, sg * 15, 3.02, sg * 10.2, 6, 0.05, 0.1);
+  }
+  for (const [x, z, w, d] of [[0, 8.05, 16, 0.1], [0, -8.05, 16, 0.1], [8.05, 0, 0.1, 16], [-8.05, 0, 0.1, 16]]) strip(amber, x, 4.03, z, w, 0.05, d);
+  mergeStatic(world);
+  // obelisk glow on the plateau
+  const obelisk = new THREE.Mesh(new THREE.CylinderGeometry(1.45, 1.45, 7, 4, 1, true), new THREE.MeshBasicMaterial({ color: 0xffb060, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
+  obelisk.position.set(0, 7.5, 0); obelisk.rotation.y = Math.PI / 4; root.add(obelisk);
+  const halo = haloTex(); const glowTex = halo;
+  // sky: warm gradient + low sun with a big halo
+  const skyGeo = new THREE.SphereGeometry(320, 18, 12), col = [], pp = skyGeo.attributes.position, c = new THREE.Color();
+  const top = new THREE.Color(0x27336e), mid = new THREE.Color(0xc4626c), low = new THREE.Color(0xffb46a);
+  for (let i = 0; i < pp.count; i++) { const y = pp.getY(i) / 320; c.copy(y > 0 ? low.clone().lerp(mid, clamp(y * 3, 0, 1)).lerp(top, clamp((y - 0.18) * 2.2, 0, 1)) : low); col.push(c.r, c.g, c.b); }
+  skyGeo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  const sky = new THREE.Mesh(skyGeo, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, fog: false, depthWrite: false })); sky.renderOrder = -10; root.add(sky);
+  const sunPos = new THREE.Vector3(-150, 42, -200);
+  const sun = new THREE.Mesh(new THREE.SphereGeometry(11, 14, 10), new THREE.MeshBasicMaterial({ color: 0xfff0cc, fog: false })); sun.position.copy(sunPos); root.add(sun);
+  const sh = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0xffa860, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })); sh.scale.setScalar(240); sh.position.copy(sunPos); root.add(sh);
+  await onProgress(0.7, 'Setting the sun');
+  // outer desert, distant buttes, boulders
+  const outer = new THREE.Mesh(new THREE.PlaneGeometry(900, 900).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xc99a68, roughness: 1 })); outer.position.y = -0.7; outer.receiveShadow = true; root.add(outer);
+  let seed = 11; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  const butteM = new THREE.MeshStandardMaterial({ color: 0x8e4a34, flatShading: true, roughness: 1 }), capM = new THREE.MeshStandardMaterial({ color: 0xc78257, flatShading: true, roughness: 1 });
+  const buttes = new THREE.Group();
+  for (let i = 0; i < 26; i++) { const a = rnd() * 6.283, r = 120 + rnd() * 110, h = 22 + rnd() * 46, rad = 10 + rnd() * 16; const b = new THREE.Mesh(new THREE.CylinderGeometry(rad * 0.8, rad, h, 7), butteM); b.position.set(Math.cos(a) * r, h / 2 - 3, Math.sin(a) * r); buttes.add(b); const cp = new THREE.Mesh(new THREE.CylinderGeometry(rad * 0.85, rad * 0.8, 3, 7), capM); cp.position.set(b.position.x, h - 2, b.position.z); buttes.add(cp); }
+  for (let i = 0; i < 70; i++) { let x, z; do { x = (rnd() - 0.5) * 220; z = (rnd() - 0.5) * 170; } while (Math.abs(x) < 42 && Math.abs(z) < 32); const s = 1 + rnd() * 3.4; const b = new THREE.Mesh(new THREE.DodecahedronGeometry(s, 0), butteM); b.position.set(x, s * 0.5, z); b.rotation.set(rnd() * 3, rnd() * 3, 0); buttes.add(b); }
+  root.add(mergeStatic(buttes));
+  {
+    const envScene = new THREE.Scene();
+    envScene.add(new THREE.Mesh(skyGeo, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide })));
+    const pm = new THREE.PMREMGenerator(renderer); scene.environment = pm.fromScene(envScene, 0.03).texture; scene.environmentIntensity = 1.0; pm.dispose();
+  }
+  scene.fog = new THREE.Fog(0xe0a274, 30, 170); scene.background = new THREE.Color(0xf0a86a);
+  const hemi = new THREE.HemisphereLight(0xffd7ae, 0x7a5638, 2.0); root.add(hemi);
+  const dir = new THREE.DirectionalLight(0xffc98a, 3.4); dir.position.set(-34, 40, -46); dir.castShadow = true; dir.shadow.mapSize.set(2048, 2048);
+  Object.assign(dir.shadow.camera, { left: -46, right: 46, top: 34, bottom: -34, near: 10, far: 160 }); dir.shadow.bias = -0.0006; dir.shadow.normalBias = 0.04; root.add(dir);
+  const snow = makeSnow(root, 1100, 70, 22, 0.13, 0xffdcae);
+  snow.extra = (dt, t) => { obelisk.material.opacity = 0.26 + Math.sin(t * 1.6) * 0.08; };
+  await onProgress(1, 'Ready');
+  return { root, sky, dir, hemi, mats, glow, snow };
+}
+
 let current = null;
 export function disposeMap(scene) {
   if (!current) return;
@@ -666,6 +802,6 @@ export function disposeMap(scene) {
 export async function loadMap(scene, renderer, id, onProgress = () => {}) {
   disposeMap(scene);
   defineMap(id); buildNav();
-  current = id === 'cryostat' ? await buildCryostatVisuals(scene, renderer, onProgress) : await buildLockoutVisuals(scene, renderer, onProgress);
+  current = id === 'cryostat' ? await buildCryostatVisuals(scene, renderer, onProgress) : id === 'mesa' ? await buildMesaVisuals(scene, renderer, onProgress) : await buildLockoutVisuals(scene, renderer, onProgress);
   return current;
 }

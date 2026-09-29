@@ -34,14 +34,15 @@ if (!VARIANTS.some((v) => v[0] === loadout.variant)) loadout.variant = 'standard
 const matchCfg = () => ({ variant: loadout.variant, mode: loadout.mode, limit: limitOf(), haloColor: haloHex(), skinTint: skinHex() });
 { const i = WAIFUS.findIndex((w) => w.id === Profile.d.eq.operator); if (i >= 0) loadout.waifu = i; else loadout.waifu = 0; }
 if (Q.get('map')) loadout.map = Q.get('map');
-if (!['lockout', 'cryostat'].includes(loadout.map)) loadout.map = 'lockout';
+if (!['lockout', 'cryostat', 'mesa'].includes(loadout.map)) loadout.map = 'lockout';
 const persist = () => { save('settings', settings); save('loadout', loadout); };
 
-const EXPOSURE = { lockout: 1.05, cryostat: 1.3 };
+const EXPOSURE = { lockout: 1.05, cryostat: 1.3, mesa: 0.95 };
 // title-screen framing per map: operator position, camera position, look-at
 const MENU = {
   lockout: { show: [-24.6, 4, 2.6], cam: [-27.3, 5.2, 4.7], look: [-22.4, 5.0, -0.2] },
   cryostat: { show: [-29.4, 3, -2.2], cam: [-33.6, 4.5, 2.4], look: [-24.4, 4.3, -4.4] },
+  mesa: { show: [-29.6, 3, 1.4], cam: [-32.3, 4.2, 3.5], look: [-27.4, 4.0, -1.4] },
 };
 const TIPS = [
   'Shields recharge after a few seconds out of fire. Break line of sight, then re-peek.',
@@ -201,7 +202,7 @@ function showTitle() {
   $('#btnFull').onclick = () => { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen && document.documentElement.requestFullscreen().catch(() => {}); };
   $('#btnMute').onclick = () => { muted = !muted; applySettings(); UI.toast(muted ? 'AUDIO MUTED' : 'AUDIO ON'); };
   setHero(); refreshPrompts();
-  Sound.music('menu'); Sound.ambience(loadout.map === 'cryostat' ? 'wind' : 'hum');
+  Sound.music('menu'); Sound.ambience(loadout.map === 'lockout' ? 'hum' : 'wind');
   $('#hero-fallback')?.remove();
 }
 
@@ -491,7 +492,7 @@ function beginMatch(m, w) {
   match.bus.on('state', (s) => { if (s === 'ended') onMatchEnd(); });
   match.player.pitch = 0; fovCur = settings.fov; endShown = false; padCrouch = false; trauma = 0; netAcc = 0; netEdges = 0;
   state = 'playing'; document.body.classList.add('playing');
-  Input.lock(); Sound.music('match'); Sound.ambience(loadout.map === 'cryostat' ? 'wind' : 'hum');
+  Input.lock(); Sound.music('match'); Sound.ambience(loadout.map === 'lockout' ? 'hum' : 'wind');
   hud.announce('', null);
 }
 

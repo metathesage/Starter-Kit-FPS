@@ -1,7 +1,7 @@
 # LOCKOUT — Team Slayer, Waifu Edition
 
 A browser arena shooter built as a tribute to classic console team-slayer on a symmetrical map.
-4v4 against bots or friends. Cyber-angel armored operators (halo, wing blades, twin tails), two symmetrical maps, a full sandbox of Halo-style weapons and power-ups. Noir minimal UI.
+4v4 against bots or friends. Cyber-angel armored operators (halo, wing blades, twin tails), three symmetrical maps, a full sandbox of Halo-style weapons and power-ups. Noir minimal UI.
 No install, no build step, no downloaded assets: geometry, textures, audio and music are all generated at runtime.
 
 **Stack:** Three.js r186 (WebGL2, vendored in `vendor/`), ES modules, Web Audio synth.
@@ -102,6 +102,7 @@ Weapon skins (tints) are unlocked with level and credits.
 Both are rotationally symmetric about the origin (Red -X, Blue +X) with mirrored spawns and pickups. Pick in Deployment -> Map (or `?map=lockout|cryostat`).
 
 - **Lockout** - two raised bases, catwalk bridges, central tower with ramps to every height, sniper ledges at the top, dense cover and rails. No floor: fall and you die.
+- **Mesa** - sunset canyon. Central plateau with four ramps, one sniper spire per side reached by a long ramp, sandstone bases, side pods, big sightlines.
 - **Cryostat** - night snow yard. Two sniper towers (one per side, one rifle each), central reactor deck, base pads, skybridges, ramps to every level, lots of spawn pads, camo, damage boost, overshield, sword, hammer. Aurora, moon, drifting snow.
 
 Original layouts inspired by classic symmetrical arena design. Not a copy of any existing map or asset.
