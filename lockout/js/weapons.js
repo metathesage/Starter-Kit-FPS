@@ -223,6 +223,19 @@ function normalizeModel(scene, id, o) {
 }
 
 const _cache = {};
+// per-owner tint: clones the (shared) materials so other players' guns keep their finish
+export function applySkin(mesh, tint) {
+  if (tint == null || !mesh) return mesh;
+  const col = new THREE.Color(tint);
+  mesh.traverse((o) => {
+    if (!o.isMesh || !o.material) return;
+    if (!o.userData.skinned) { o.material = o.material.clone(); o.userData.skinned = true; }
+    const m = o.material; if (m.color) m.color.copy(col);
+    if (m.emissive && m.emissiveMap) m.emissive.setScalar(0.34).lerp(col, 0.25);
+  });
+  return mesh;
+}
+
 export function makeWeaponMesh(id) {
   if (MODELS[id]) {
     const g = MODELS[id].clone(true);

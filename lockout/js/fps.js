@@ -1,6 +1,6 @@
 // First-person viewmodel: separate scene + camera so the gun never clips into walls.
 import * as THREE from 'three';
-import { makeWeaponMesh } from './weapons.js';
+import { makeWeaponMesh, applySkin } from './weapons.js';
 import { makeArm, makeMats, solveArm } from './rig.js';
 import { damp, clamp } from './util.js';
 
@@ -16,12 +16,13 @@ export class Viewmodel {
     const d = new THREE.DirectionalLight(0xfff0d8, 2.4); d.position.set(-1, 2, 1); this.scene.add(d);
     this.root = new THREE.Group(); this.cam.add(this.root);
     this.weapons = {};
-    this.team = null; this.armR = null; this.armL = null;
+    this.skin = null; this.team = null; this.armR = null; this.armL = null;
     this.sway = { x: 0, y: 0 }; this.t = 0; this.bob = 0; this.kick = 0; this.wid = null; this.swap = 0; this.zoomT = 0; this.melee = 0; this.throwT = 0;
     this.visible = true;
   }
 
-  setup(team, hair, eye) {
+  setup(team, hair, eye, skin = null) {
+    this.skin = skin;
     if (this.armR) { this.cam.remove(this.armR.arm); this.cam.remove(this.armL.arm); }
     this.mats = makeMats(team, hair, eye);
     this.armR = makeArm(this.mats, 0.34, 0.36, 1.0); this.armL = makeArm(this.mats, 0.34, 0.36, 1.0);
@@ -32,7 +33,7 @@ export class Viewmodel {
   }
 
   weapon(id) {
-    if (!this.weapons[id]) { const w = makeWeaponMesh(id); w.scale.setScalar(0.62); w.visible = false; this.root.add(w); this.weapons[id] = w; }
+    if (!this.weapons[id]) { const w = applySkin(makeWeaponMesh(id), this.skin); w.scale.setScalar(0.62); w.visible = false; this.root.add(w); this.weapons[id] = w; }
     return this.weapons[id];
   }
 

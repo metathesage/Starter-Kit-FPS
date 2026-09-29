@@ -14,7 +14,7 @@ export const rankOf = (L) => RANKS[Math.min(RANKS.length - 1, Math.floor((L - 1)
 
 const DEF = () => ({
   v: 1, callsign: rollCallsign(), xp: 0, level: 1, credits: 400,
-  owned: {}, eq: { operator: 'aoi', halo: 'team', emblem: 'chevron', title: 'rookie' },
+  owned: {}, eq: { operator: 'aoi', halo: 'team', skin: 'stock', emblem: 'chevron', title: 'rookie' },
   stats: { kills: 0, deaths: 0, assists: 0, headshots: 0, matches: 0, wins: 0, perfects: 0, caps: 0, ballTime: 0, sniper: 0, sword: 0, grenade: 0, streakBest: 0 },
   medals: {}, badges: {}, seen: {},
 });

@@ -34,7 +34,7 @@ const PERFECT_W = new Map([['br', 4], ['carbine', 5], ['magnum', 3], ['sniper', 
 export class Actor {
   constructor(match, { name, team, style, isPlayer = false, id = null, remote = null, helmet }) {
     this.m = match; this.id = id ?? _uid++; if (id !== null && id >= _uid) _uid = id + 1; this.remote = remote; this.netT = null; this.spawnSeq = 0; this.name = name; this.team = team; this.isPlayer = isPlayer; this.style = style;
-    this.rig = buildWaifu({ team, hair: style.hair, eye: style.eye, helmet: helmet ?? (isPlayer ? match.cfg.helmet === true : false), haloColor: isPlayer ? match.cfg.haloColor : undefined });
+    this.rig = buildWaifu({ team, hair: style.hair, eye: style.eye, helmet: helmet ?? (isPlayer ? match.cfg.helmet === true : false), haloColor: isPlayer ? match.cfg.haloColor : undefined, skin: isPlayer ? match.cfg.skinTint : null });
     this.rig.root.visible = false;
     match.scene.add(this.rig.root);
     this.cmd = { mx: 0, mz: 0, fire: false, fireEdge: false, zoom: false, jump: false, crouch: false, melee: false, grenade: false, reload: false, swap: false, use: false, gswitch: false };

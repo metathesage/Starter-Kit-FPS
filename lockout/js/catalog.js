@@ -43,6 +43,16 @@ export const HALOS = [
   { id: 'void', name: 'THE VOID', color: 0xffffff, lvl: 38, price: 1500, blurb: 'Pure white. Nothing else in the room is this bright.' },
 ];
 
+export const SKINS = [
+  { id: 'stock', name: 'ISSUE', tint: null, lvl: 1, price: 0, blurb: 'Factory finish.' },
+  { id: 'frost', name: 'FROSTBITE', tint: 0xa9dcff, lvl: 6, price: 0, blurb: 'Ice-blue anodizing.' },
+  { id: 'onyx', name: 'ONYX', tint: 0x55555f, lvl: 11, price: 300, blurb: 'Blacked out. Quiet on the eyes.' },
+  { id: 'ember', name: 'EMBER', tint: 0xff9a7a, lvl: 17, price: 450, blurb: 'Hot copper with a glow.' },
+  { id: 'gilt', name: 'GILT', tint: 0xffd98a, lvl: 24, price: 700, blurb: 'Gold leaf over everything.' },
+  { id: 'void', name: 'VOIDGLASS', tint: 0xa58cff, lvl: 32, price: 900, blurb: 'Violet crystal finish.' },
+  { id: 'angel', name: 'ARCHANGEL', tint: 0xfff4ee, lvl: 42, price: 1400, blurb: 'Pearl white. Nothing else looks this clean.' },
+];
+
 const E = (id, name, glyph, tier, lvl, price = 0, blurb = '') => ({ id, name, glyph, tier, lvl, price, blurb });
 export const EMBLEMS = [
   E('chevron', 'VANGUARD', 'chevron', 0, 1), E('halo', 'HALOED', 'halo', 0, 1), E('target', 'SIGHTLINE', 'target', 0, 2),
@@ -115,7 +125,7 @@ export const MEDAL_INFO = [
 // ---- rules ----
 export const levelOf = () => Profile.level;
 export const cats = () => [
-  { id: 'operator', name: 'OPERATORS' }, { id: 'halo', name: 'HALOS' }, { id: 'emblem', name: 'EMBLEMS' }, { id: 'title', name: 'TITLES' },
+  { id: 'operator', name: 'OPERATORS' }, { id: 'halo', name: 'HALOS' }, { id: 'skin', name: 'WEAPON SKINS' }, { id: 'emblem', name: 'EMBLEMS' }, { id: 'title', name: 'TITLES' },
   { id: 'weapons', name: 'WEAPONS' }, { id: 'power', name: 'POWER-UPS' }, { id: 'maps', name: 'MAPS' }, { id: 'modes', name: 'MODES' },
 ];
 export function state(item) {

@@ -30,6 +30,7 @@ function items(cat) {
   switch (cat) {
     case 'operator': return WAIFUS.map((w) => ({ cat, id: w.id, name: w.name, sub: w.role, lvl: C.OPERATOR_UNLOCK[w.id] || 1, price: 0, blurb: w.blurb, color: hex(w.hair), w }));
     case 'halo': return C.HALOS.map((h) => ({ ...h, cat, sub: h.price ? fmtN(h.price) + ' CR' : 'LEVEL ' + h.lvl, color: hex(h.color) }));
+    case 'skin': return C.SKINS.map((s) => ({ ...s, cat, sub: s.price ? fmtN(s.price) + ' CR' : 'LEVEL ' + s.lvl, color: s.tint ? hex(s.tint) : '#c9c9c4' }));
     case 'emblem': return C.EMBLEMS.map((e) => ({ ...e, cat, sub: C.TIER[e.tier].name, color: C.TIER[e.tier].color }));
     case 'title': return C.TITLES.map((t) => ({ ...t, cat, name: t.text, sub: t.stat ? 'ACHIEVEMENT' : 'LEVEL ' + t.lvl, price: 0, blurb: t.stat ? 'Earned by play: ' + C.unlockText(t) : 'Unlocks at level ' + t.lvl + '.' }));
     case 'weapons': return Object.values(WEAPONS).map((w) => ({ cat, id: w.id, name: w.short, sub: w.melee ? 'MELEE' : w.power >= 3 ? 'POWER' : 'STANDARD', state: 'info', blurb: C.WEAPON_INFO[w.id] || '', w }));
@@ -43,9 +44,11 @@ function items(cat) {
 const stateOf = (it) => it.state || C.state({ ...it, cat: it.cat });
 const isEq = (it) => Profile.d.eq[it.cat] === it.id;
 
+const tintFilter = (t) => { const c = new THREE.Color(t); return `drop-shadow(0 0 0 transparent) brightness(${(0.55 + c.getHSL({}).l * 0.7).toFixed(2)}) sepia(1) saturate(${(1.5 + (Math.max(c.r, c.g, c.b) - Math.min(c.r, c.g, c.b)) * 4).toFixed(1)}) hue-rotate(${Math.round(c.getHSL({}).h * 360 - 40)}deg)`; };
 function tileVisual(it) {
   switch (it.cat) {
     case 'operator': return `<i class="sw" style="--c:${it.color}"></i>`;
+    case 'skin': return `<img class="wimg" alt="" style="${it.tint ? 'filter:' + tintFilter(it.tint) : ''}" src="models/weapons/thumb/br.webp">`;
     case 'halo': return `<i class="hl" style="--c:${it.color}"></i>`;
     case 'emblem': return emblemHtml(it.id, 52);
     case 'title': return `<i class="tt">${C.glyphSvg('chevron')}</i>`;
@@ -99,7 +102,7 @@ function act() {
     if (!Profile.spend(it.price)) { UI.toast('NOT ENOUGH CREDITS', 1600); Sound.play('menuBack', { vol: 0.6 }); return; }
     Profile.own(it.cat + ':' + it.id); UI.toast(it.name + ' UNLOCKED'); Sound.play('medal', { vol: 0.7 }); render(); return;
   }
-  if (st === 'open' && !isEq(it) && ['operator', 'halo', 'emblem', 'title'].includes(it.cat)) {
+  if (st === 'open' && !isEq(it) && ['operator', 'halo', 'skin', 'emblem', 'title'].includes(it.cat)) {
     Profile.equip(it.cat, it.id); if (ctx.onEquip) ctx.onEquip(it.cat, it.id); UI.toast(it.name + ' EQUIPPED'); Sound.play('menuOk', { vol: 0.7 }); render();
   }
 }
@@ -108,6 +111,7 @@ function preview(it) {
   if (!ctx || !ctx.preview) return;
   if (it.cat === 'operator') ctx.preview({ operator: it.id });
   else if (it.cat === 'halo') ctx.preview({ halo: it.id });
+  else if (it.cat === 'skin') ctx.preview({ weapon: 'br', skin: it.id });
   else if (it.cat === 'weapons') ctx.preview({ weapon: it.id });
   else ctx.preview({ weapon: null });
 }

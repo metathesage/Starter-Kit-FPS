@@ -27,7 +27,8 @@ if (!MODES[loadout.mode]) loadout.mode = 'slayer';
 if (Q.get('mode') && MODES[Q.get('mode')]) loadout.mode = Q.get('mode');
 const limitOf = () => { const l = MODES[loadout.mode].limits, v = loadout.limits && loadout.limits[loadout.mode]; return l.includes(v) ? v : l[1]; };
 const haloHex = (id) => { const h = C.HALOS.find((x) => x.id === (id || Profile.d.eq.halo)); return h ? h.color : undefined; };
-const matchCfg = () => ({ mode: loadout.mode, limit: limitOf(), haloColor: haloHex() });
+const skinHex = (id) => { const s = C.SKINS.find((x) => x.id === (id || Profile.d.eq.skin)); return s ? s.tint : null; };
+const matchCfg = () => ({ mode: loadout.mode, limit: limitOf(), haloColor: haloHex(), skinTint: skinHex() });
 { const i = WAIFUS.findIndex((w) => w.id === Profile.d.eq.operator); if (i >= 0) loadout.waifu = i; else loadout.waifu = 0; }
 if (Q.get('map')) loadout.map = Q.get('map');
 if (!['lockout', 'cryostat'].includes(loadout.map)) loadout.map = 'lockout';
@@ -166,7 +167,7 @@ function refreshPrompts() {
 function rebuildShowcase(pv = {}) {
   if (showcase) { scene.remove(showcase.root); disposeRig(showcase); }
   const w = WAIFUS.find((x) => x.id === pv.operator) || WAIFUS[loadout.waifu];
-  showcase = buildWaifu({ team: loadout.team, hair: w.hair, eye: w.eye, helmet: loadout.helmet, haloColor: haloHex(pv.halo) });
+  showcase = buildWaifu({ team: loadout.team, hair: w.hair, eye: w.eye, helmet: loadout.helmet, haloColor: haloHex(pv.halo), skin: skinHex(pv.skin) });
   showcase.root.position.set(...MENU[loadout.map].show); showcase.root.rotation.y = 1.75; scene.add(showcase.root);
 }
 
@@ -217,7 +218,7 @@ function renderPCard() {
 function openArmory() {
   showArmory({
     back: () => { showWeapon = null; rebuildShowcase(); setHero(); showTitle(); },
-    preview: (p) => { showWeapon = p.weapon || null; if (p.reset) rebuildShowcase(); else if (p.weapon) { if (!showcase) rebuildShowcase(); } else rebuildShowcase(p); },
+    preview: (p) => { showWeapon = p.weapon || null; if (p.reset) rebuildShowcase(); else if (p.skin) rebuildShowcase(p); else if (p.weapon) { if (!showcase) rebuildShowcase(); } else rebuildShowcase(p); },
     onEquip: (cat, id) => { if (cat === 'operator') { loadout.waifu = Math.max(0, WAIFUS.findIndex((w) => w.id === id)); persist(); } rebuildShowcase(); renderPCard(); },
   });
 }
@@ -471,7 +472,7 @@ function beginMatch(m, w) {
   showcase.root.visible = false;
   match = m;
   const st = w || match.player.style;
-  viewmodel.setup(match.player.team, st.hair, st.eye);
+  viewmodel.setup(match.player.team, st.hair, st.eye, skinHex());
   hud.root.classList.remove('hidden'); hud.bind(match);
   mstats = { kills: 0, heads: 0, perfects: 0, sniper: 0, sword: 0, grenade: 0, caps: 0, ballSec: 0, medals: {}, streakBest: 0, awarded: false };
   match.bus.on('kill', (r) => { if (r.killer === match.player && !r.suicide) { if (!Net.online) hitstop = r.head || r.weapon === 'sword' || r.weapon === 'hammer' ? 0.1 : 0.06; trauma = Math.min(1, trauma + 0.12); mstats.kills++; if (r.head) mstats.heads++; if (r.weapon === 'sniper') mstats.sniper++; if (r.weapon === 'sword') mstats.sword++; if (r.weapon === 'frag' || r.weapon === 'plasma') mstats.grenade++; mstats.streakBest = Math.max(mstats.streakBest, match.player.streak); } });

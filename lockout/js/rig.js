@@ -1,7 +1,7 @@
 // Low-poly armored waifu: hierarchical rig, procedural animation, two-bone arm IK.
 import * as THREE from 'three';
 import { TAU, clamp, damp, lerp } from './util.js';
-import { makeWeaponMesh } from './weapons.js';
+import { makeWeaponMesh, applySkin } from './weapons.js';
 import { angelReady, attachAngel, syncAngel, angelCamo } from './angel.js';
 
 export const WAIFUS = [
@@ -172,7 +172,7 @@ export function makeMats(team, hair, eye) {
 
 const rnd01 = (() => { let sd = 3; return () => ((sd = (sd * 16807) % 2147483647) / 2147483647); })();
 
-export function buildWaifu({ team = 'blue', hair = 0xff86c2, eye = 0x5ce1ff, scale = 1.04, helmet = false, angel = true, haloColor = null } = {}) {
+export function buildWaifu({ skin = null, team = 'blue', hair = 0xff86c2, eye = 0x5ce1ff, scale = 1.04, helmet = false, angel = true, haloColor = null } = {}) {
   const mats = makeMats(team, hair, eye);
   if (haloColor != null) mats.halo.color.setHex(haloColor);
   const root = new THREE.Group(); root.rotation.order = 'YXZ';
@@ -286,7 +286,7 @@ export function buildWaifu({ team = 'blue', hair = 0xff86c2, eye = 0x5ce1ff, sca
 
   const wRoot = new THREE.Group(); wRoot.position.set(0.09, 0.08, -0.06); chest.add(wRoot);
   const rig = {
-    root, model, hips, spine, chest, head, skirt, crown, tails, backHair, bh2, halo, wings: wingRig, legL: L.leg, kneeL: L.knee, legR: R.leg, kneeR: R.knee, aL, aR, wRoot, mats,
+    skin, root, model, hips, spine, chest, head, skirt, crown, tails, backHair, bh2, halo, wings: wingRig, legL: L.leg, kneeL: L.knee, legR: R.leg, kneeR: R.knee, aL, aR, wRoot, mats,
     weaponId: null, weapon: null, flash: 0,
     a: { phase: 0, speed: 0, crouch: 0, air: 0, dead: 0, t: Math.random() * 10, flinch: 0, melee: 0, throw: 0, reloading: 0, kick: 0 },
   };
@@ -295,7 +295,7 @@ export function buildWaifu({ team = 'blue', hair = 0xff86c2, eye = 0x5ce1ff, sca
     if (rig.weaponId === id) return;
     rig.weaponId = id;
     if (rig.weapon) wRoot.remove(rig.weapon);
-    rig.weapon = id ? makeWeaponMesh(id) : null;
+    rig.weapon = id ? applySkin(makeWeaponMesh(id), rig.skin) : null;
     if (rig.weapon) wRoot.add(rig.weapon);
   };
   rig.setStyle = () => {};
