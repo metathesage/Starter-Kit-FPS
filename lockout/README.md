@@ -62,8 +62,12 @@ js/hud.js      HUD, radar, reticle, feed, scoreboard
 js/ui.js       screen manager, controller-navigable rows
 js/input.js    one action map for keyboard/mouse/gamepad
 js/audio.js    synthesized SFX + ambient music
+js/merge.js    merges static meshes per material (draw-call budget)
 js/main.js     boot, loading, menus, camera, loop
 ```
+
+Operators wear Spartan-style armor (bulk, domed helm, gold visor) with twin tails out the back.
+Setup lets you swap the helm for a bare anime face. Real weapon models: see `models/README.md`.
 
 Debug: `?fps` shows an FPS counter (or F3), `?quick` skips splash and drops straight into a match,
 `?quick&bot` lets the AI play for you.

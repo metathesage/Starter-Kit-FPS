@@ -18,3 +18,7 @@ mono_crash.*.json
 build/
 # https://github.com/godotengine/godot/issues/82270
 *~*.TMP
+
+# private/licensed model drops (never commit ripped game assets)
+lockout/models/private/*
+!lockout/models/private/.gitkeep

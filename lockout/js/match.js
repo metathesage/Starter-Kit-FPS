@@ -26,7 +26,7 @@ let _uid = 1;
 export class Actor {
   constructor(match, { name, team, style, isPlayer = false }) {
     this.m = match; this.id = _uid++; this.name = name; this.team = team; this.isPlayer = isPlayer; this.style = style;
-    this.rig = buildWaifu({ team, hair: style.hair, eye: style.eye });
+    this.rig = buildWaifu({ team, hair: style.hair, eye: style.eye, helmet: isPlayer ? match.cfg.helmet !== false : true });
     this.rig.root.visible = false;
     match.scene.add(this.rig.root);
     this.cmd = { mx: 0, mz: 0, fire: false, fireEdge: false, zoom: false, jump: false, crouch: false, melee: false, grenade: false, reload: false, swap: false, use: false, gswitch: false };
@@ -118,6 +118,15 @@ export class Actor {
     if (c.jump && this.grounded && !frozen) { this.vy = JUMP; this.grounded = false; if (this.isPlayer) Sound.play('jump', { vol: 0.5 }); }
     this.physics(dt, wx, wz, false);
     this.separate();
+    // embedded in geometry (knockback, spawn overlap, edge cases): pop out to the nearest walkable spot
+    if (W.blocked(this.x, this.z, this.y, RAD * 0.55, this.h)) {
+      this.embedT = (this.embedT || 0) + dt;
+      if (this.embedT > 0.35) {
+        const n = W.nav.nodes[W.nearestNode(this.x, this.y, this.z)];
+        if (n) { this.x = n.x; this.y = n.y; this.z = n.z; this.vx = this.vz = this.vy = 0; this.grounded = true; }
+        this.embedT = 0;
+      }
+    } else this.embedT = 0;
     this.lastMoveSpeed = Math.hypot(this.vx, this.vz);
 
     // footsteps

@@ -4,8 +4,8 @@ import { $, $$, clamp, lerp, damp, nextFrame, store, save, forward, TAU, angDiff
 import { Input } from './input.js';
 import { Sound } from './audio.js';
 import * as World from './world.js';
-import { WAIFUS, TEAM, buildWaifu, animateRig } from './rig.js';
-import { WEAPONS } from './weapons.js';
+import { WAIFUS, TEAM, buildWaifu, animateRig, disposeRig } from './rig.js';
+import { WEAPONS, loadWeaponModels } from './weapons.js';
 import { FX } from './fx.js';
 import { Viewmodel } from './fps.js';
 import { Match, DIFFICULTY } from './match.js';
@@ -14,7 +14,7 @@ import { UI } from './ui.js';
 
 const Q = new URLSearchParams(location.search);
 const settings = Object.assign({ sens: 1, padSens: 1, invertY: false, fov: 66, master: 0.8, sfx: 1, music: 0.5, shadows: true }, store('settings', {}));
-const loadout = Object.assign({ waifu: 0, team: 'blue', diff: 'normal', limit: 25 }, store('loadout', {}));
+const loadout = Object.assign({ waifu: 0, team: 'blue', diff: 'normal', limit: 25, helmet: true }, store('loadout', {}));
 const persist = () => { save('settings', settings); save('loadout', loadout); };
 
 const TIPS = [
@@ -52,7 +52,7 @@ let state = 'splash', world = null, fx = null, viewmodel = null, hud = null, mat
 let trauma = 0, camKick = 0, fovCur = 62, menuT = 0, last = performance.now(), padCrouch = false, fpsAcc = 0, fpsN = 0, showFps = Q.has('fps'), muted = false;
 let lastDevice = 'kbm', endShown = false, quick = Q.has('quick');
 const shakeN = { t: 0 };
-window.__game = { get match() { return match; }, get state() { return state; }, get scene() { return scene; }, get camera() { return camera; }, start: () => startMatch(), Input, THREE };
+window.__game = { renderer, get fx() { return fx; }, get match() { return match; }, get state() { return state; }, get scene() { return scene; }, get camera() { return camera; }, start: () => startMatch(), Input, THREE };
 
 function applySettings() {
   Input.sens = settings.sens; Input.padSens = settings.padSens; Input.invertY = settings.invertY;
@@ -93,12 +93,13 @@ async function boot() {
   world = await World.buildWorld(scene, renderer, (p, l) => setProg(0.02 + p * 0.5, l));
   await setProg(0.55, 'Charting nav mesh');
   World.buildNav();
+  await setProg(0.62, 'Checking weapon models');
+  try { const got = await loadWeaponModels((l) => setProg(0.64, l)); if (got.length) console.info('custom weapon models:', got.join(', ')); } catch (e) { console.warn(e); }
   await setProg(0.7, 'Rigging operators');
   fx = new FX(scene);
   viewmodel = new Viewmodel();
   hud = new HUD($('#hud'));
-  showcase = buildWaifu({ team: loadout.team, hair: WAIFUS[loadout.waifu].hair, eye: WAIFUS[loadout.waifu].eye });
-  showcase.root.position.set(-26.6, 5, 3.4); showcase.root.rotation.y = 1.75; scene.add(showcase.root);
+  rebuildShowcase();
   await setProg(0.86, 'Compiling shaders');
   camera.position.set(-30.6, 6.4, 4.6); camera.lookAt(-24.6, 6.15, 0.8);
   try { await renderer.compileAsync(scene, camera); } catch { renderer.compile(scene, camera); }
@@ -130,12 +131,19 @@ function refreshPrompts() {
   UI.prompts($('#setupPrompts'), [['left+right', 'CHANGE'], ['confirm', 'CONFIRM'], ['back', 'BACK']]);
 }
 
+function rebuildShowcase() {
+  if (showcase) { scene.remove(showcase.root); disposeRig(showcase); }
+  const w = WAIFUS[loadout.waifu];
+  showcase = buildWaifu({ team: loadout.team, hair: w.hair, eye: w.eye, helmet: loadout.helmet });
+  showcase.root.position.set(-26.6, 5, 3.4); showcase.root.rotation.y = 1.75; scene.add(showcase.root);
+}
+
 function setHero() {
   const w = WAIFUS[loadout.waifu];
   $('#hcRole').textContent = w.role; $('#hcName').textContent = w.name; $('#hcBlurb').textContent = w.blurb;
   const c = '#' + new THREE.Color(w.hair).getHexString();
   $('#hcName').style.textShadow = `0 0 40px ${c}88, 0 6px 24px rgba(0,0,0,.5)`;
-  if (showcase) { showcase.setStyle(w.hair, w.eye); showcase.setTeam(loadout.team); if (fx) fx.sparks(showcase.root.position.x, 6.4, showcase.root.position.z, 0, 1, 0, 14, [(w.hair >> 16 & 255) / 255, (w.hair >> 8 & 255) / 255, (w.hair & 255) / 255], 4); }
+  if (showcase) { showcase.setStyle(w.hair, w.eye); if (fx) fx.sparks(showcase.root.position.x, 6.4, showcase.root.position.z, 0, 1, 0, 14, [(w.hair >> 16 & 255) / 255, (w.hair >> 8 & 255) / 255, (w.hair & 255) / 255], 4); }
 }
 
 function showTitle() {
@@ -191,7 +199,8 @@ function showSetup() {
   cardsRow._adj = (d) => select(loadout.waifu + d);
   select(loadout.waifu);
   const rows = [cardsRow];
-  rows.push(UI.choice(box, 'Team', [{ label: 'BLUE', value: 'blue' }, { label: 'RED', value: 'red' }], loadout.team === 'blue' ? 0 : 1, (v) => { loadout.team = v; showcase.setTeam(v); persist(); }));
+  rows.push(UI.choice(box, 'Team', [{ label: 'BLUE', value: 'blue' }, { label: 'RED', value: 'red' }], loadout.team === 'blue' ? 0 : 1, (v) => { loadout.team = v; rebuildShowcase(); persist(); }));
+  rows.push(UI.choice(box, 'Armor', [{ label: 'SPARTAN HELM', value: true }, { label: 'BARE FACE', value: false }], loadout.helmet ? 0 : 1, (v) => { loadout.helmet = v; rebuildShowcase(); setHero(); persist(); }));
   const dk = Object.keys(DIFFICULTY);
   rows.push(UI.choice(box, 'Bot difficulty', dk.map((k) => ({ label: DIFFICULTY[k].name, value: k })), dk.indexOf(loadout.diff), (v) => { loadout.diff = v; persist(); }));
   rows.push(UI.choice(box, 'Score to win', [15, 25, 50].map((n) => ({ label: n + ' KILLS', value: n })), [15, 25, 50].indexOf(loadout.limit), (v) => { loadout.limit = v; persist(); }));
@@ -208,7 +217,7 @@ function startMatch() {
   UI.cur = null; UI.rows = [];
   const w = WAIFUS[loadout.waifu];
   showcase.root.visible = false;
-  match = new Match(scene, fx, { waifu: w, name: w.name, team: loadout.team, difficulty: loadout.diff, limit: loadout.limit, autoPlayer: Q.has('bot') });
+  match = new Match(scene, fx, { waifu: w, name: w.name, team: loadout.team, helmet: loadout.helmet, difficulty: loadout.diff, limit: loadout.limit, autoPlayer: Q.has('bot') });
   viewmodel.setup(loadout.team, w.hair, w.eye);
   hud.root.classList.remove('hidden'); hud.bind(match);
   match.bus.on('shake', (a) => { trauma = Math.min(1, trauma + a); });
@@ -366,7 +375,7 @@ function play(dt) {
   const showVM = p.alive && !m.thirdPerson && !scope;
   viewmodel.update(dt, p, Input.look, p.lastMoveSpeed, WEAPONS);
   fx.setScale(H * renderer.getPixelRatio(), camera.fov);
-  hud.update(dt, { match: m, player: p, aimEnemy, camYaw: camera.rotation.y });
+  hud.update(dt, { match: m, player: p, aimEnemy, camYaw: camera.rotation.y, camera });
   render(showVM);
   if (m.state === 'ended' && m.endT > 3.2 && !endShown) showResults();
   if (Input.pressed.score || false) { /* held handled above */ }
@@ -409,6 +418,15 @@ function loop(now) {
   if (Input.last !== lastDevice) { lastDevice = Input.last; if (state === 'menu') refreshPrompts(); if (hud && match) { /* hud glyphs re-render each frame */ } }
   if (showFps) { fpsAcc += (now - lastNow) / 1000; fpsN++; if (fpsAcc > 0.5 && hud) { hud.el.fps.textContent = `${Math.round(fpsN / fpsAcc)} FPS · ${resScale.toFixed(2)}x`; fpsAcc = 0; fpsN = 0; } }
   lastNow = now;
+  try { frame(now, dt, lastNow0); } catch (e) {
+    console.error(e);
+    if (!loop.errT || now - loop.errT > 4000) { loop.errT = now; UI.toast('RECOVERED: ' + e.message, 3000); }
+    // never leave the player frozen on a bad frame: drop held input and keep rendering
+    try { if (state === 'playing') { render(false); } } catch { /* renderer itself failed */ }
+  }
+}
+
+function frame(now, dt, lastNow0) {
   if (state === 'menu') { UI.tick(); menuFrame(dt); }
   else if (state === 'results') { UI.tick(); if (match) { updateCamera(dt); fx.update(dt); } render(false); }
   else if (state === 'paused') { UI.tick(); render(false); }

@@ -46,7 +46,7 @@ export class FX {
     }
     // dynamic lights (fixed count so shaders never recompile)
     this.lights = [];
-    for (let i = 0; i < 4; i++) { const l = new THREE.PointLight(0xffaa55, 0, 14, 1.6); scene.add(l); this.lights.push({ l, t: 0, dur: 0.1, i0: 0 }); }
+    for (let i = 0; i < 3; i++) { const l = new THREE.PointLight(0xffaa55, 0, 14, 1.6); scene.add(l); this.lights.push({ l, t: 0, dur: 0.1, i0: 0 }); }
     // explosion shells
     this.boom = [];
     for (let i = 0; i < 4; i++) {

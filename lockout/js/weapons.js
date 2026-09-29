@@ -1,5 +1,6 @@
 // Weapon data + low-poly meshes. Meshes face -Z, origin at the grip.
 import * as THREE from 'three';
+import { mergeStatic } from './merge.js';
 
 export const WEAPONS = {
   br: { name: 'BR55 Battle Rifle', short: 'BATTLE RIFLE', mag: 36, reserve: 144, reload: 2.0, cycle: 0.46, burst: 3, gap: 0.07, dmg: 12.5, head: 1.9, spread: 0.0035, range: 130, zoom: [2.2], kick: 0.011, snd: 'br', tracer: 0xffe6a0, ret: 'br', slot: 0, power: 0 },
@@ -78,11 +79,68 @@ const BUILD = {
   },
 };
 
+// ---- optional real models: drop .glb files in models/weapons (or git-ignored models/private) ----
+const MODELS = {};
+const DEFAULT_LEN = { br: 0.95, magnum: 0.32, smg: 0.55, shotgun: 0.9, sniper: 1.25, rocket: 1.05, sword: 1.2 };
+export async function loadWeaponModels(onStatus = () => {}) {
+  let loader = null;
+  for (const dir of ['models/private/', 'models/weapons/']) {
+    let man;
+    try { const r = await fetch(dir + 'manifest.json', { cache: 'no-cache' }); if (!r.ok) continue; man = await r.json(); } catch { continue; }
+    if (!Object.keys(man).length) continue;
+    if (!loader) { const { GLTFLoader } = await import('../vendor/jsm/loaders/GLTFLoader.js'); loader = new GLTFLoader(); }
+    for (const [id, raw] of Object.entries(man)) {
+      if (MODELS[id] || !WEAPONS[id]) continue;
+      const o = typeof raw === 'string' ? { file: raw } : raw;
+      try {
+        onStatus('Loading ' + WEAPONS[id].short);
+        const gltf = await loader.loadAsync(dir + o.file);
+        MODELS[id] = normalizeModel(gltf.scene, id, o);
+      } catch (e) { console.warn('weapon model failed', id, e); }
+    }
+  }
+  return Object.keys(MODELS);
+}
+
+function normalizeModel(scene, id, o) {
+  const len = o.length || DEFAULT_LEN[id] || 0.9;
+  const inner = new THREE.Group(); inner.add(scene);
+  if (o.rotY) inner.rotation.y = (o.rotY * Math.PI) / 180;
+  if (o.rotX) inner.rotation.x = (o.rotX * Math.PI) / 180;
+  if (o.rotZ) inner.rotation.z = (o.rotZ * Math.PI) / 180;
+  const root = new THREE.Group(); root.add(inner); root.updateMatrixWorld(true);
+  let box = new THREE.Box3().setFromObject(root), size = box.getSize(new THREE.Vector3());
+  // longest axis is the barrel: turn it onto Z if the author faced it along X
+  if (!o.rotY && !o.rotX && !o.rotZ && size.x > size.z * 1.2) { inner.rotation.y = Math.PI / 2; root.updateMatrixWorld(true); box = new THREE.Box3().setFromObject(root); size = box.getSize(new THREE.Vector3()); }
+  const k = len / Math.max(size.z, 0.001);
+  root.scale.setScalar(k); root.updateMatrixWorld(true);
+  box = new THREE.Box3().setFromObject(root);
+  const c = box.getCenter(new THREE.Vector3());
+  // origin at the grip: a third of the way forward of the stock, centred, a little below the barrel line
+  const gz = box.max.z - (o.gripFromStock ?? 0.33) * (box.max.z - box.min.z), gy = box.min.y + (box.max.y - box.min.y) * (o.gripHeight ?? 0.35);
+  const out = new THREE.Group(); out.add(root);
+  root.position.set(-c.x, -gy, -gz);
+  const zf = (box.min.z - gz), zb = (box.max.z - gz);
+  out.userData = {
+    grip: o.grip || [0, 0, 0], fore: o.fore || [0, -0.02, zf * 0.55],
+    muzzle: new THREE.Vector3(...(o.muzzle || [0, (box.max.y - gy) * 0.6, zf])),
+    model: true, back: zb,
+  };
+  out.traverse((m) => { if (m.isMesh) { m.frustumCulled = false; if (m.material) m.material.envMapIntensity = 1.2; } });
+  return out;
+}
+
 const _cache = {};
 export function makeWeaponMesh(id) {
+  if (MODELS[id]) {
+    const g = MODELS[id].clone(true);
+    g.userData = { ...MODELS[id].userData, muzzle: MODELS[id].userData.muzzle.clone() };
+    return g;
+  }
   const g = new THREE.Group();
   (BUILD[id] || BUILD.br)(g);
   g.traverse((o) => { if (o.isMesh) { o.castShadow = false; } });
+  const ud = g.userData; mergeStatic(g); g.userData = ud;
   return g;
 }
 

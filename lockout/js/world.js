@@ -2,6 +2,7 @@
 // Layout is symmetric under a 180 degree turn about the origin: Red holds -X, Blue holds +X.
 import * as THREE from 'three';
 import { clamp, lerp } from './util.js';
+import { mergeStatic } from './merge.js';
 
 export const STEP = 0.42;
 export const solids = [];
@@ -369,6 +370,7 @@ export async function buildWorld(scene, renderer, onProgress = () => {}) {
       world.add(b);
     }
   }
+  mergeStatic(world);
   await onProgress(0.5, 'Wiring the trim');
 
   // sky ---------------------------------------------------------------

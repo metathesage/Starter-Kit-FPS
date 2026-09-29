@@ -40,19 +40,24 @@ export class HUD {
     this.root = root;
     root.innerHTML = `
       <div class="h-over"></div><div class="h-warn"></div><div class="h-flash"></div><div class="h-dmg"></div><div class="h-scope"><div class="zt"></div></div>
-      <div class="h-shield">
-        <div class="sh-row"><div class="sh-ghost"></div><div class="sh-fill"></div><div class="sh-over"></div><div class="sh-lbl">SHIELD</div></div>
+      <div class="h-markers"></div>
+      <div class="h-top">
+        <div class="compass"><div class="cmp-track"></div><b class="cmp-hd">000</b><i class="cmp-tick"></i></div>
+        <div class="trap"><div class="trap-in"><div class="sh-ghost"></div><div class="sh-fill"></div><div class="sh-over"></div></div></div>
         <div class="hp-row"></div>
+      </div>
+      <div class="h-weapon">
+        <div class="wp-top"><div class="wp-icon"></div><div class="wp-mag">36</div><div class="wp-res">/ 144</div></div>
+        <div class="wp-name"></div><div class="wp-reload"></div>
         <div class="gr-row"><div class="gr frag on">${svg(ICONS.frag)}<b>2</b></div><div class="gr plasma">${svg(ICONS.plasma)}<b>2</b></div></div>
       </div>
-      <div class="h-score">
-        <div class="sc-row blue"><div class="sc-bar"><i></i></div><div class="sc-n">0</div></div>
-        <div class="sc-row red"><div class="sc-bar"><i></i></div><div class="sc-n">0</div></div>
-        <div class="sc-meta"><span class="sc-mode">SLAYER</span><span class="sc-clock">12:00</span></div>
-      </div>
       <div class="feed"></div>
-      <div class="h-radar"><canvas width="336" height="336"></canvas></div>
-      <div class="h-weapon"><div class="wp-icon"></div><div class="wp-name"></div><div class="wp-ammo"><div class="wp-mag">36</div><div class="wp-res">/ 144</div></div><div class="wp-reload"></div></div>
+      <div class="h-radar"><div class="rd-tilt"><canvas width="360" height="360"></canvas></div><div class="rd-place">THE YARD</div></div>
+      <div class="h-score">
+        <div class="sc-meta"><span class="sc-mode">TEAM SLAYER</span><span class="sc-clock">12:00</span></div>
+        <div class="sc-row red"><i class="sq"></i><div class="sc-bar"><i></i></div><div class="sc-n">0</div></div>
+        <div class="sc-row blue"><i class="sq"></i><div class="sc-bar"><i></i></div><div class="sc-n">0</div></div>
+      </div>
       <div class="h-reticle"><svg viewBox="-40 -40 80 80"></svg></div>
       <div class="h-hit"><svg viewBox="-20 -20 40 40"><path d="M-14-14L-6-6M14-14L6-6M-14 14L-6 6M14 14L6 6"/></svg></div>
       <div class="h-announce"></div><div class="h-count"></div><div class="h-mode"></div>
@@ -60,12 +65,21 @@ export class HUD {
       <div class="h-cam"></div>
       <div class="h-death"><div class="dd"><div class="k">ELIMINATED BY</div><div class="nm"></div><div class="rs"></div></div></div>
       <div class="h-board"></div><div class="h-fps"></div>`;
+    // compass strip: ticks every 5 degrees across three turns so it wraps
+    const cmp = root.querySelector('.cmp-track'); let ch = '';
+    const CARD = { 0: 'N', 90: 'E', 180: 'S', 270: 'W' };
+    for (let d = -360; d <= 720; d += 5) {
+      const dd = ((d % 360) + 360) % 360, major = dd % 15 === 0;
+      ch += `<i class="${major ? 'mj' : ''}" style="left:${(d + 360) * 3}px">${CARD[dd] ? `<b class="cd">${CARD[dd]}</b>` : dd % 30 === 0 ? `<b>${dd}</b>` : ''}</i>`;
+    }
+    cmp.innerHTML = ch;
     const q = (s) => root.querySelector(s);
     this.el = { fill: q('.sh-fill'), ghost: q('.sh-ghost'), over: q('.sh-over'), hp: q('.hp-row'), frag: q('.gr.frag'), plasma: q('.gr.plasma'),
       sc: { blue: q('.sc-row.blue'), red: q('.sc-row.red') }, clock: q('.sc-clock'), mode: q('.sc-mode'), feed: q('.feed'), radar: q('.h-radar canvas'),
       wIcon: q('.wp-icon'), wName: q('.wp-name'), wMag: q('.wp-mag'), wRes: q('.wp-res'), wRel: q('.wp-reload'), ret: q('.h-reticle'), retSvg: q('.h-reticle svg'),
       hit: q('.h-hit'), ann: q('.h-announce'), count: q('.h-count'), modeBig: q('.h-mode'), medals: q('.h-medals'), prompt: q('.h-prompt'), cam: q('.h-cam'),
-      death: q('.h-death'), dName: q('.dd .nm'), dRes: q('.dd .rs'), board: q('.h-board'), fps: q('.h-fps'), flash: q('.h-flash'), dmg: q('.h-dmg'), scope: q('.h-scope'), zt: q('.h-scope .zt') };
+      death: q('.h-death'), dName: q('.dd .nm'), dRes: q('.dd .rs'), board: q('.h-board'), fps: q('.h-fps'), flash: q('.h-flash'), dmg: q('.h-dmg'), scope: q('.h-scope'), zt: q('.h-scope .zt'),
+      cmpTrack: cmp, cmpHd: q('.cmp-hd'), markers: q('.h-markers'), weaponBox: q('.h-weapon') };
     this.el.hp.innerHTML = '<i></i>'.repeat(5);
     this.rctx = this.el.radar.getContext('2d');
     this.ghost = 1; this.retId = null; this.alarmT = 0; this.subs = [];
@@ -102,8 +116,8 @@ export class HUD {
     this.el.feed.innerHTML = ''; this.el.medals.innerHTML = '';
     this.el.sc.blue.querySelector('.sc-n').textContent = '0'; this.el.sc.red.querySelector('.sc-n').textContent = '0';
     this.el.sc[this.p.team].classList.add('mine'); this.el.sc[this.p.team === 'red' ? 'blue' : 'red'].classList.remove('mine');
-    this.el.sc.blue.parentNode.insertBefore(this.el.sc[this.p.team], this.el.sc.blue.parentNode.firstChild);
-    this.el.mode.textContent = 'SLAYER · FIRST TO ' + match.limit;
+    this.el.mode.textContent = 'TEAM SLAYER · ' + match.limit;
+    this.mk = new Map();
   }
   unbind() { this.subs.forEach((u) => u()); this.subs = []; }
 
@@ -150,9 +164,10 @@ export class HUD {
     const E = this.el;
     // shield + health
     const tot = 100, sh = clamp(p.shield / tot, 0, 1), ov = clamp((p.shield - tot) / 200, 0, 1);
-    E.fill.style.width = `calc(${sh * 100}% - 6px * ${sh})`;
-    this.ghost = Math.max(sh, this.ghost - dt * 0.0); E.ghost.style.width = E.fill.style.width;
-    E.over.style.width = `calc(${ov * 100}% - 6px * ${ov})`; E.over.style.opacity = p.over > 0 ? 1 : 0;
+    E.fill.style.width = sh * 100 + '%'; E.ghost.style.width = sh * 100 + '%';
+    E.over.style.width = ov * 100 + '%'; E.over.style.opacity = p.over > 0 ? 1 : 0;
+    const hd = (((-(ctx.camYaw ?? p.yaw) * 180) / Math.PI) % 360 + 360) % 360;
+    E.cmpTrack.style.transform = `translateX(${-(hd + 360) * 3}px)`; E.cmpHd.textContent = String(Math.round(hd) % 360).padStart(3, '0');
     const hpOn = Math.ceil((clamp(p.health, 0, 45) / 45) * 5);
     [...E.hp.children].forEach((c, i) => c.classList.toggle('on', i < hpOn));
     const low = p.alive && p.shield <= 0.5;
@@ -182,7 +197,7 @@ export class HUD {
       E.wMag.classList.toggle('low', !melee && w.mag <= Math.max(1, def.mag * 0.25));
       E.wRel.textContent = p.reloadT > 0 ? 'RELOADING' : (!melee && w.mag === 0 && w.res === 0 ? 'NO AMMO' : (!melee && w.mag <= def.mag * 0.25 && w.res > 0 ? `${glyphText('reload')} RELOAD` : ''));
     }
-    E.wIcon.parentNode.style.display = p.alive ? '' : 'none';
+    E.weaponBox.style.display = p.alive ? '' : 'none';
     // reticle
     const retId = def ? def.ret : 'none';
     const zoomScope = p.alive && def && def.id === 'sniper' && p.zoomLevel > 0;
@@ -214,13 +229,45 @@ export class HUD {
       E.dRes.textContent = m.state === 'live' ? `REDEPLOY IN ${Math.max(0, Math.ceil(p.respawnAt - m.time))}` : '';
     } else E.death.classList.remove('on');
     this.radar(m, p);
+    this.markers(ctx);
+  }
+
+  // teammate nameplates + power-weapon callouts, projected to screen
+  markers(ctx) {
+    const { match: m, player: p, camera: cam } = ctx; if (!cam) return;
+    const box = this.el.markers, live = new Set();
+    const W = innerWidth, H = innerHeight, v = this._v || (this._v = new cam.position.constructor());
+    const put = (key, x, y, z, html, cls, fade) => {
+      v.set(x, y, z).project(cam);
+      let el = this.mk.get(key);
+      if (v.z > 1 || Math.abs(v.x) > 1.05 || Math.abs(v.y) > 1.05) { if (el) el.style.display = 'none'; live.add(key); return; }
+      if (!el) { el = document.createElement('div'); el.className = 'mk ' + cls; el.innerHTML = html; box.appendChild(el); this.mk.set(key, el); }
+      el.style.display = ''; el.style.opacity = fade;
+      el.style.transform = `translate(${((v.x + 1) / 2) * W}px, ${((1 - v.y) / 2) * H}px)`; live.add(key);
+    };
+    if (p.alive && !m.thirdPerson) {
+      for (const o of m.actors) {
+        if (o === p || !o.alive || o.team !== p.team) continue;
+        const d = Math.hypot(o.x - p.x, o.z - p.z);
+        put('a' + o.id, o.x, o.y + o.h + 0.45, o.z, `<i></i><span>${o.name}</span>`, 'ally', d > 55 ? 0.4 : 1);
+      }
+      for (const [i, pk] of m.pickups.entries()) {
+        if (!pk.active || pk.isPower === undefined) continue;
+        const def = pk.isPower ? null : WEAPONS[pk.id];
+        if (!pk.isPower && (!def || def.power < 3)) continue;
+        const d = Math.hypot(pk.mesh.position.x - p.x, pk.mesh.position.z - p.z);
+        if (d > 45) continue;
+        put('p' + i + pk.id, pk.mesh.position.x, pk.mesh.position.y + 1.7, pk.mesh.position.z, `<i></i><span>${pk.isPower ? 'OVERSHIELD' : def.short}</span>`, 'pick', clamp(1.3 - d / 45, 0.35, 1));
+      }
+    }
+    for (const [k, el] of this.mk) if (!live.has(k)) { el.remove(); this.mk.delete(k); }
   }
 
   radar(m, p) {
-    const c = this.rctx, W = 336, R = 150, cx = W / 2, range = 26;
+    const c = this.rctx, W = 360, R = 160, cx = W / 2, range = 26;
     c.clearRect(0, 0, W, W);
     c.save(); c.translate(cx, cx);
-    c.strokeStyle = 'rgba(98,228,255,.28)'; c.lineWidth = 2;
+    c.strokeStyle = 'rgba(120,225,255,.35)'; c.lineWidth = 2;
     for (const r of [R, R * 0.66, R * 0.33]) { c.beginPath(); c.arc(0, 0, r, 0, TAU); c.stroke(); }
     c.beginPath(); c.moveTo(-R, 0); c.lineTo(R, 0); c.moveTo(0, -R); c.lineTo(0, R); c.globalAlpha = 0.5; c.stroke(); c.globalAlpha = 1;
     const yaw = this.camYaw ?? p.yaw;
@@ -243,7 +290,8 @@ export class HUD {
       else c.arc(px, py, 8, 0, TAU);
       c.fill(); c.shadowBlur = 0;
     }
-    c.fillStyle = '#fff'; c.beginPath(); c.moveTo(0, -12); c.lineTo(9, 10); c.lineTo(0, 5); c.lineTo(-9, 10); c.closePath(); c.fill();
+    c.fillStyle = 'rgba(120,225,255,.14)'; c.beginPath(); c.moveTo(0, 0); c.arc(0, 0, R, -Math.PI / 2 - 0.62, -Math.PI / 2 + 0.62); c.closePath(); c.fill();
+    c.fillStyle = '#ffd84a'; c.shadowColor = '#ffd84a'; c.shadowBlur = 12; c.beginPath(); c.arc(0, 0, 9, 0, TAU); c.fill(); c.shadowBlur = 0;
     c.restore();
   }
 }
