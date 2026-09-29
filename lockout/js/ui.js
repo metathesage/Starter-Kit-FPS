@@ -36,6 +36,7 @@ export const UI = {
   // called every frame while a menu is up
   tick() {
     if (!this.cur || !this.rows.length) return;
+    if (document.activeElement && document.activeElement.tagName === 'TEXTAREA') return;   // typing a save code
     const N = Input.nav;
     const cur = this.rows[this.fi];
     if (N.up) { if (cur && cur._vert && cur._vert(-1)) Sound.play('menuMove', { vol: 0.6 }); else { this.focus((this.fi + this.rows.length - 1) % this.rows.length); Sound.play('menuMove', { vol: 0.6 }); } }

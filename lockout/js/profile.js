@@ -12,17 +12,23 @@ export const xpToNext = (L) => 260 + 90 * (L - 1) + 6 * (L - 1) * (L - 1);
 export const RANKS = ['RECRUIT', 'APPRENTICE', 'PRIVATE', 'CORPORAL', 'SERGEANT', 'GUNNERY SGT', 'LIEUTENANT', 'CAPTAIN', 'MAJOR', 'COMMANDER', 'COLONEL', 'BRIGADIER', 'GENERAL', 'ANGEL'];
 export const rankOf = (L) => RANKS[Math.min(RANKS.length - 1, Math.floor((L - 1) / 4))];
 
+const rid = () => Array.from(crypto.getRandomValues(new Uint8Array(8)), (b) => b.toString(16).padStart(2, '0')).join('');
+const hash = (s) => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); };
+export const SAVE_VERSION = 2;
+// v1 -> v2: stable player id (future cloud key / hub identity), skill slot, look slot (character customizer)
+const migrate = (d) => { if (!d.id) d.id = rid(); if (!d.skills) d.skills = {}; if (!d.look) d.look = {}; if (!d.created) d.created = Date.now(); d.v = SAVE_VERSION; return d; };
+
 const DEF = () => ({
-  v: 1, callsign: rollCallsign(), xp: 0, level: 1, credits: 400,
+  v: SAVE_VERSION, id: rid(), created: Date.now(), updated: 0, skills: {}, look: {}, callsign: rollCallsign(), xp: 0, level: 1, credits: 400,
   owned: {}, eq: { operator: 'aoi', halo: 'team', skin: 'stock', emblem: 'chevron', title: 'rookie' },
   stats: { kills: 0, deaths: 0, assists: 0, headshots: 0, matches: 0, wins: 0, perfects: 0, caps: 0, ballTime: 0, sniper: 0, sword: 0, grenade: 0, streakBest: 0 },
   medals: {}, badges: {}, seen: {},
 });
 
-let data = Object.assign(DEF(), store('profile', {}));
-data.eq = Object.assign(DEF().eq, data.eq); data.stats = Object.assign(DEF().stats, data.stats);
+const fill = (o) => { const d = migrate(Object.assign(DEF(), o)); d.eq = Object.assign(DEF().eq, d.eq); d.stats = Object.assign(DEF().stats, d.stats); return d; };
+let data = fill(store('profile', {}));
 if (!data.callsign) data.callsign = rollCallsign();
-const persist = () => save('profile', data);
+const persist = () => { data.updated = Date.now(); save('profile', data); };
 persist();
 
 export const Profile = {
@@ -35,6 +41,24 @@ export const Profile = {
   get rank() { return rankOf(data.level); },
   progress() { return data.level >= MAX_LEVEL ? 1 : data.xp / xpToNext(data.level); },
   save: persist,
+  get id() { return data.id; },
+  // portable save: paste it on another device or keep it as a backup. Checksummed so a truncated paste is rejected.
+  exportCode() {
+    const j = JSON.stringify({ p: data, l: store('loadout', {}) });
+    return `LOCKOUT${SAVE_VERSION}.${hash(j)}.${btoa(unescape(encodeURIComponent(j)))}`;
+  },
+  importCode(str) {
+    try {
+      const [tag, h, b] = String(str).trim().split('.');
+      if (!tag || !tag.startsWith('LOCKOUT') || !b) return { ok: false, err: 'Not a Lockout save code' };
+      const j = decodeURIComponent(escape(atob(b)));
+      if (hash(j) !== h) return { ok: false, err: 'Code is damaged or cut off' };
+      const o = JSON.parse(j);
+      if (!o.p || typeof o.p.level !== 'number') return { ok: false, err: 'Save data is empty' };
+      data = fill(o.p); persist(); if (o.l) save('loadout', o.l);
+      return { ok: true, level: data.level, callsign: data.callsign };
+    } catch { return { ok: false, err: 'Could not read that code' }; }
+  },
   owns(id) { return !!data.owned[id]; },
   own(id) { data.owned[id] = 1; persist(); },
   spend(n) { if (data.credits < n) return false; data.credits -= n; persist(); return true; },

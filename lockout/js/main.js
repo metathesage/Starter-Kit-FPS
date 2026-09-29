@@ -238,6 +238,22 @@ function showControls(from) {
   UI.show('controls', { rows: [b], onBack: back });
 }
 
+function showSaveData(backFn) {
+  const box = $('#saveOpts'); box.innerHTML = ''; const ta = $('#saveText'), st = $('#saveStatus');
+  const say = (t, bad) => { st.textContent = t; st.style.color = bad ? '#ff6b6b' : ''; };
+  say(`Callsign ${Profile.callsign} · level ${Profile.level} · ${Profile.credits} credits · player id ${Profile.id.slice(0, 8)}`);
+  ta.value = ''; ta.onkeydown = (e) => { e.stopPropagation(); if (e.key === 'Escape') ta.blur(); };
+  const mk = (label, fn) => { const b = document.createElement('button'); b.className = 'btn'; b.innerHTML = `<span>${label}</span><i></i>`; box.appendChild(b); UI.button(b, fn); return b; };
+  const apply = (code) => { const r = Profile.importCode(code); if (r.ok) { say(`Loaded ${r.callsign}, level ${r.level}. Reloading...`); setTimeout(() => location.reload(), 900); } else say(r.err, true); };
+  const rows = [
+    mk('EXPORT AND COPY CODE', async () => { const c = Profile.exportCode(); ta.value = c; ta.select(); try { await navigator.clipboard.writeText(c); say('Code copied. Keep it somewhere safe.'); } catch { say('Select the code above and copy it.'); } }),
+    mk('IMPORT FROM CLIPBOARD', async () => { try { apply(await navigator.clipboard.readText()); } catch { say('Clipboard is blocked here. Paste the code into the box, then use Import from box.', true); } }),
+    mk('IMPORT FROM BOX', () => apply(ta.value)),
+  ];
+  const back = $('#btnSaveBack'); UI.button(back, backFn); rows.push(back);
+  UI.show('savedata', { rows, onBack: backFn });
+}
+
 function showSettings(backFn) {
   const box = $('#settingsOpts'); box.innerHTML = '';
   const rows = [];
@@ -253,6 +269,8 @@ function showSettings(backFn) {
   rows.push(UI.choice(box, 'Reticle colour', [{ label: 'WHITE', value: '#ffffff' }, { label: 'CYAN', value: '#7fe6ff' }, { label: 'GREEN', value: '#7dff9b' }, { label: 'GOLD', value: '#ffd84a' }], ['#ffffff', '#7fe6ff', '#7dff9b', '#ffd84a'].indexOf(settings.reticle), (v) => { settings.reticle = v; applySettings(); persist(); }));
   rows.push(UI.choice(box, 'Announcer voice', [{ label: 'OFF', value: false }, { label: 'ON', value: true }], settings.announcer ? 1 : 0, (v) => { settings.announcer = v; applySettings(); persist(); if (v) Sound.say('Announcer online'); }));
   rows.push(UI.choice(box, 'Shadows', [{ label: 'ON', value: true }, { label: 'OFF', value: false }], settings.shadows ? 0 : 1, (v) => { settings.shadows = v; applySettings(); persist(); }));
+  const sd = document.createElement('button'); sd.className = 'btn'; sd.innerHTML = '<span>SAVE DATA / BACKUP</span><i></i>'; box.appendChild(sd);
+  UI.button(sd, () => showSaveData(() => showSettings(backFn))); rows.push(sd);
   const b = $('#btnSetBack'); UI.button(b, backFn); rows.push(b);
   UI.show('settings', { rows, onBack: backFn });
 }

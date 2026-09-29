@@ -437,3 +437,8 @@ body.is-warlock .t-gren { display: none; }
 .h-novaw b { position: absolute; left: 50%; top: 30%; transform: translateX(-50%); font: 700 13px var(--f-mono); letter-spacing: .5em; text-indent: .5em; color: #d9c2ff; text-shadow: 0 0 14px #9a5cff; white-space: nowrap; }
 .h-novaw span { position: absolute; left: 50%; top: calc(30% + 24px); transform: translateX(-50%); font: 500 11px var(--f-mono); letter-spacing: .3em; color: var(--paper); font-variant-numeric: tabular-nums; }
 @keyframes novaWarn { 50% { filter: brightness(1.5); } }
+
+/* save data */
+#saveText { width: 100%; min-height: 96px; resize: vertical; margin: 6px 0 4px; padding: 12px 14px; font: 500 11px/1.5 var(--f-mono); letter-spacing: .04em; color: var(--paper); background: rgba(0, 0, 0, .5); border: 1px solid var(--line); outline: none; word-break: break-all; }
+#saveText:focus { border-color: var(--paper); }
+#saveOpts { display: grid; gap: 8px; margin-top: 10px; }

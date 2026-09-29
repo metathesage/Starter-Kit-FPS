@@ -150,3 +150,7 @@ Debug: `?fast` skips splash delays, `?touch` forces touch controls, `?peerhost=l
 `?quick&bot` lets the AI play for you, `?mode=slayer|rumble|hunt|ctf|oddball` (`&team=red|blue`) and `?map=lockout|cryostat` preselect.
 
 A fan tribute. Not affiliated with or endorsed by any publisher.
+
+## Saves
+
+Progress autosaves in the browser (`lockout.profile`, save version 2: player id, skills slot, look slot for the future customizer). Settings > Save data exports a checksummed `LOCKOUT2.` code you can paste on another device or keep as a backup; older v1 saves migrate automatically.
