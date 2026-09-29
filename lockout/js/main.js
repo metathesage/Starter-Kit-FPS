@@ -9,6 +9,7 @@ import { WEAPONS, loadWeaponModels } from './weapons.js';
 import { loadAngel } from './angel.js';
 import { Profile, rollCallsign } from './profile.js';
 import { Hub } from './hub.js';
+import { Post } from './post.js';
 import * as MS from './missions.js';
 import { MODES } from './modes.js';
 import { showArmory, showRecord, emblemHtml, titleText } from './armory.js';
@@ -23,7 +24,7 @@ import { Net, friendlyError } from './net.js';
 import { initTouch } from './touch.js';
 
 const Q = new URLSearchParams(location.search);
-const settings = Object.assign({ sens: 1, padSens: 1, invertY: false, fov: 66, master: 0.8, sfx: 1, music: 0.5, shadows: true, quality: 'auto', reticle: '#ffffff', hudScale: 1, announcer: false }, store('settings', {}));
+const settings = Object.assign({ sens: 1, padSens: 1, invertY: false, fov: 66, master: 0.8, sfx: 1, music: 0.5, shadows: true, bloom: true, quality: 'auto', reticle: '#ffffff', hudScale: 1, announcer: false }, store('settings', {}));
 const loadout = Object.assign({ waifu: 0, team: 'blue', diff: 'normal', limit: 25, helmet: false, map: 'lockout', mode: 'slayer', variant: 'standard', limits: {} }, store('loadout', {}));
 if (!MODES[loadout.mode]) loadout.mode = 'slayer';
 if (Q.get('mode') && MODES[Q.get('mode')]) loadout.mode = Q.get('mode');
@@ -69,6 +70,15 @@ const TIPS = [
 const canvas = $('#game');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
 renderer.autoClear = false;
+const post = new Post(renderer);
+const GRADE = {
+  lockout: { tint: [0.97, 1, 1.06], sat: 1.08, con: 1.06, bloom: 0.6, vig: 0.24, thr: 1.1 },
+  cryostat: { tint: [0.94, 1.02, 1.1], sat: 1.1, con: 1.08, bloom: 0.7, vig: 0.26, thr: 1.0 },
+  mesa: { tint: [1.07, 1, 0.92], sat: 1.12, con: 1.05, bloom: 0.55, vig: 0.22, thr: 1.15 },
+  overgrowth: { tint: [0.95, 1.04, 1], sat: 1.1, con: 1.07, bloom: 0.65, vig: 0.26, thr: 1.0 },
+  warsat: { tint: [1.06, 1.02, 0.92], sat: 1.08, con: 1.06, bloom: 0.5, vig: 0.22, thr: 1.15 },
+  sanctum: { tint: [1.04, 1, 1.02], sat: 1.12, con: 1.04, bloom: 0.8, vig: 0.2, thr: 0.95 },
+};
 renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap;
 const scene = new THREE.Scene();
@@ -79,6 +89,7 @@ function resize() {
   W = innerWidth; H = innerHeight;
   renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2) * resScale);
   renderer.setSize(W, H, false);
+  { const db = renderer.getDrawingBufferSize(new THREE.Vector2()); post.resize(db.x, db.y); }
   camera.aspect = W / H; camera.updateProjectionMatrix();
   document.documentElement.style.setProperty('--ui', clamp(Math.min(W / 1600, H / 900) * (settings.hudScale || 1), 0.6, 1.7));
 }
@@ -90,14 +101,14 @@ let state = 'splash', world = null, fx = null, viewmodel = null, hud = null, mat
 let trauma = 0, camKick = 0, fovCur = 62, menuT = 0, last = performance.now(), padCrouch = false, fpsAcc = 0, fpsN = 0, showFps = Q.has('fps'), muted = false;
 let hitstop = 0, showWeapon = null, mstats = null, lastDevice = 'kbm', endShown = false, quick = Q.has('quick'), fast = Q.has('fast') || Q.has('quick'), netAcc = 0, netEdges = 0;
 const shakeN = { t: 0 };
-window.__game = { get hub() { return hub; }, ensureMap: (id) => ensureMap(id), World, get world() { return world; }, render: () => render(false), Net, hostLobby: () => hostLobby(), joinLobby: (c) => joinLobby(c), startOnlineHost: () => startOnlineHost(), renderer, get fx() { return fx; }, get match() { return match; }, get state() { return state; }, get scene() { return scene; }, get camera() { return camera; }, start: () => startMatch(), Input, THREE };
+window.__game = { get post() { return post; }, get hub() { return hub; }, ensureMap: (id) => ensureMap(id), World, get world() { return world; }, render: () => render(false), Net, hostLobby: () => hostLobby(), joinLobby: (c) => joinLobby(c), startOnlineHost: () => startOnlineHost(), renderer, get fx() { return fx; }, get match() { return match; }, get state() { return state; }, get scene() { return scene; }, get camera() { return camera; }, start: () => startMatch(), Input, THREE };
 
 function applySettings() {
   Input.sens = settings.sens; Input.padSens = settings.padSens; Input.invertY = settings.invertY;
   Sound.setVolume(muted ? 0 : settings.master, settings.sfx, settings.music);
   renderer.shadowMap.enabled = settings.shadows;
   document.documentElement.style.setProperty('--ret', settings.reticle);
-  Sound.announcer = !!settings.announcer;
+  Sound.announcer = !!settings.announcer; post.on = settings.bloom !== false;
   const q = { high: 1, medium: 0.8, low: 0.6 }[settings.quality]; if (q && resScale !== q) { resScale = q; resize(); } else if (!q) resize();
   if (world) world.dir.castShadow = settings.shadows;
 }
@@ -112,7 +123,7 @@ const setProg = (p, label) => {
 
 async function boot() {
   const touchDevice = initTouch();
-  if (touchDevice) { if (store('settings', {}).shadows === undefined) settings.shadows = false; resScale = 0.75; }
+  if (touchDevice) { if (store('settings', {}).shadows === undefined) settings.shadows = false; if (store('settings', {}).bloom === undefined) settings.bloom = false; resScale = 0.75; }
   resize(); applySettings();
   Input.init(canvas);
   Input.onLockChange = (locked) => { if (!locked && state === 'playing' && !Input.fallback) pauseGame(); else if (!locked && state === 'hub' && !Input.fallback) openHubPause(); };
@@ -273,6 +284,7 @@ function showSettings(backFn) {
   rows.push(UI.slider(box, 'HUD size', 0.7, 1.4, 0.1, settings.hudScale, (v) => Math.round(v * 100) + '%', (v) => { settings.hudScale = v; resize(); persist(); }));
   rows.push(UI.choice(box, 'Reticle colour', [{ label: 'WHITE', value: '#ffffff' }, { label: 'CYAN', value: '#7fe6ff' }, { label: 'GREEN', value: '#7dff9b' }, { label: 'GOLD', value: '#ffd84a' }], ['#ffffff', '#7fe6ff', '#7dff9b', '#ffd84a'].indexOf(settings.reticle), (v) => { settings.reticle = v; applySettings(); persist(); }));
   rows.push(UI.choice(box, 'Announcer voice', [{ label: 'OFF', value: false }, { label: 'ON', value: true }], settings.announcer ? 1 : 0, (v) => { settings.announcer = v; applySettings(); persist(); if (v) Sound.say('Announcer online'); }));
+  rows.push(UI.choice(box, 'Bloom and grade', [{ label: 'ON', value: true }, { label: 'OFF', value: false }], settings.bloom !== false ? 0 : 1, (v) => { settings.bloom = v; applySettings(); persist(); }));
   rows.push(UI.choice(box, 'Shadows', [{ label: 'ON', value: true }, { label: 'OFF', value: false }], settings.shadows ? 0 : 1, (v) => { settings.shadows = v; applySettings(); persist(); }));
   const sd = document.createElement('button'); sd.className = 'btn'; sd.innerHTML = '<span>SAVE DATA / BACKUP</span><i></i>'; box.appendChild(sd);
   UI.button(sd, () => showSaveData(() => showSettings(backFn))); rows.push(sd);
@@ -489,7 +501,7 @@ async function ensureMap(id) {
   state = 'loading'; UI.show('loading'); $('#loadTip').textContent = TIPS[(Math.random() * TIPS.length) | 0];
   await setProg(0.02, 'Loading ' + id.toUpperCase());
   world = await World.loadMap(scene, renderer, id, (p, l) => setProg(0.02 + p * 0.96, l));
-  applySettings(); renderer.toneMappingExposure = EXPOSURE[id] || 1.05;
+  applySettings(); renderer.toneMappingExposure = EXPOSURE[id] || 1.05; post.setGrade(GRADE[id] || GRADE.lockout);
   if (showcase) showcase.root.position.set(...MENU[id].show);
   await setProg(1, 'Ready');
 }
@@ -821,8 +833,8 @@ function idleOnline(dt) {
 }
 
 function render(showVM) {
-  renderer.clear();
-  renderer.render(scene, camera);
+  renderer.setRenderTarget(null); renderer.clear();
+  post.render(scene, camera);
   if (showVM) viewmodel.render(renderer, 62 * (1 - (0) * 0), W / H, scene.environment);
 }
 

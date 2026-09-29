@@ -930,7 +930,7 @@ async function buildOvergrowthVisuals(scene, renderer, onProgress) {
   await onProgress(0.1, 'Pouring the concrete');
   const conc = concreteSet({ base: '#46524f', trim: '#a23c36', rows: 4, cols: 2 }), pale = concreteSet({ base: '#7a837d', trim: '#d9dcd4', rows: 3, cols: 2 });
   const steel = concreteSet({ base: '#2b3332', rows: 2, cols: 5, groove: 'rgba(0,0,0,.7)' }), floorS = floorSet({ base: '#2b3634', tiles: 2 }), fac = makeFacade(), bark = barkSet();
-  const S = (t, o = {}) => new THREE.MeshStandardMaterial({ map: t.map, normalMap: t.normalMap, roughness: 0.85, metalness: 0.04, ...o });
+  const S = (t, o = {}) => new THREE.MeshStandardMaterial({ map: t.map, ...(t.normalMap ? { normalMap: t.normalMap } : {}), roughness: 0.85, metalness: 0.04, ...o });
   const mats = {
     floor: S(floorS, { roughness: 0.5, metalness: 0.15 }), wall: new THREE.MeshStandardMaterial({ map: fac.map, emissiveMap: fac.emissiveMap, emissive: 0xffffff, emissiveIntensity: 1.5, normalMap: fac.normalMap, roughness: 0.9 }),
     ruin: S(conc), plinth: S(pale), column: S(conc), spire: S(pale), bridge: S(steel, { metalness: 0.35, roughness: 0.6 }), shard: S(steel, { metalness: 0.35, roughness: 0.6 }),
@@ -1053,7 +1053,7 @@ async function buildWarsatVisuals(scene, renderer, onProgress) {
   await onProgress(0.1, 'Pouring the slab');
   const slab = concreteSet({ base: '#524c44', trim: '#e0aa22', rows: 4, cols: 2 }), slab2 = concreteSet({ base: '#5e574d', trim: '#d9a521', rows: 3, cols: 3 }), dark = concreteSet({ base: '#34333a', rows: 2, cols: 4, groove: 'rgba(0,0,0,.75)' });
   const quilt = quiltSet({ base: '#6a645a' }), floorS = floorSet({ base: '#5a544c', tiles: 2 }), yel = steelSet();
-  const S = (t, o = {}) => new THREE.MeshStandardMaterial({ map: t.map, normalMap: t.normalMap, roughness: 0.82, metalness: 0.08, ...o });
+  const S = (t, o = {}) => new THREE.MeshStandardMaterial({ map: t.map, ...(t.normalMap ? { normalMap: t.normalMap } : {}), roughness: 0.82, metalness: 0.08, ...o });
   quilt.map.repeat.set(1, 1);
   const mats = {
     floor: S(floorS, { roughness: 0.9 }), wall: S(slab), bunker: S(slab2), roof: S(quilt, { metalness: 0.3, roughness: 0.6 }), tower: S(slab), deck: S(dark, { metalness: 0.45, roughness: 0.55 }),
