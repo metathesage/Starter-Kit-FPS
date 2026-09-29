@@ -83,7 +83,7 @@ function defineLockout() {
     { id: 'rocket', x: 19, y: 0, z: 17, t: 90 }, { id: 'carbine', x: 23.5, y: 8, z: -7.6, t: 45 },
     { id: 'needler', x: 7, y: 8, z: 4.4, t: 45 }, { id: 'plasmarifle', x: 14, y: 0, z: 4.6, t: 40 },
   ], [{ id: 'sword', x: 0, y: 8, z: 0, t: 90 }, { id: 'overshield', x: 0, y: 4, z: 0, t: 120 }, { id: 'hammer', x: 0, y: 0, z: 0, t: 100 }, { id: 'camo', x: 0, y: 8, z: 4.2, t: 120 }]);
-  MAP = { id: 'lockout', nav: { x0: -30, x1: 30, z0: -26, z1: 26 } };
+  MAP = { id: 'lockout', nav: { x0: -30, x1: 30, z0: -26, z1: 26 }, obj: { flags: { blue: [26.4, 4, 0], red: [-26.4, 4, 0] }, ball: [0, 8, -4] } };
 }
 
 // ================= CRYOSTAT: night snow research station on a frozen plateau =================
@@ -139,7 +139,7 @@ function defineCryostat() {
     { id: 'overshield', x: 34, y: 3, z: -1.6, t: 120 }, { id: 'camo', x: 17.6, y: 3.5, z: 13, t: 120 },
     { id: 'boost', x: 7, y: 0, z: -22.5, t: 120 },
   ]);
-  MAP = { id: 'cryostat', nav: { x0: -34, x1: 34, z0: -24, z1: 24 } };
+  MAP = { id: 'cryostat', nav: { x0: -34, x1: 34, z0: -24, z1: 24 }, obj: { flags: { blue: [28.5, 3, 5], red: [-28.5, 3, -5] }, ball: [0, 6, -4.5] } };
 }
 
 export function defineMap(id) {

@@ -113,7 +113,7 @@ const D = new THREE.Vector3(0, -1, 0);
 const W = (p) => new THREE.Vector3(-p[0] * S, (p[1] + 0.5) * S, 0);   // joint in rig frame
 
 // Attach the skinned angel to a procedural rig. Hides the classic body, keeps halo + weapon + joints.
-export function attachAngel(rig, { hair = 0xff86c2, team = 'blue' } = {}) {
+export function attachAngel(rig, { hair = 0xff86c2, tint = 0x4aa0ff } = {}) {
   if (!cache) return false;
   const bones = {}, list = [];
   for (const b of BONES) {
@@ -125,7 +125,7 @@ export function attachAngel(rig, { hair = 0xff86c2, team = 'blue' } = {}) {
   }
   const mat = new THREE.MeshStandardMaterial({ map: hairTexture(hair), roughness: 0.78, metalness: 0.05, side: THREE.DoubleSide, emissiveMap: null, emissive: new THREE.Color(0x000000) });
   mat.emissiveMap = mat.map; mat.emissive.setScalar(0.42);
-  const teamCol = new THREE.Color(team === 'red' ? 0xff5a66 : 0x5aa8ff); mat.color.set(0xffffff).lerp(teamCol, 0.2);
+  mat.color.set(0xffffff).lerp(new THREE.Color(tint), 0.2);
   const mesh = new THREE.SkinnedMesh(cache.geo, mat);
   mesh.castShadow = true; mesh.receiveShadow = false; mesh.frustumCulled = false;
   mesh.add(bones.hips); mesh.updateMatrixWorld(true);

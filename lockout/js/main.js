@@ -7,6 +7,8 @@ import * as World from './world.js';
 import { WAIFUS, TEAM, buildWaifu, animateRig, disposeRig } from './rig.js';
 import { WEAPONS, loadWeaponModels } from './weapons.js';
 import { loadAngel } from './angel.js';
+import { Profile, rollCallsign } from './profile.js';
+import { MODES } from './modes.js';
 import { FX } from './fx.js';
 import { Viewmodel } from './fps.js';
 import { Match, DIFFICULTY } from './match.js';
@@ -17,7 +19,11 @@ import { initTouch } from './touch.js';
 
 const Q = new URLSearchParams(location.search);
 const settings = Object.assign({ sens: 1, padSens: 1, invertY: false, fov: 66, master: 0.8, sfx: 1, music: 0.5, shadows: true }, store('settings', {}));
-const loadout = Object.assign({ waifu: 0, team: 'blue', diff: 'normal', limit: 25, helmet: false, map: 'lockout' }, store('loadout', {}));
+const loadout = Object.assign({ waifu: 0, team: 'blue', diff: 'normal', limit: 25, helmet: false, map: 'lockout', mode: 'slayer', limits: {} }, store('loadout', {}));
+if (!MODES[loadout.mode]) loadout.mode = 'slayer';
+if (Q.get('mode') && MODES[Q.get('mode')]) loadout.mode = Q.get('mode');
+const limitOf = () => { const l = MODES[loadout.mode].limits, v = loadout.limits && loadout.limits[loadout.mode]; return l.includes(v) ? v : l[1]; };
+const matchCfg = () => ({ mode: loadout.mode, limit: limitOf() });
 if (Q.get('map')) loadout.map = Q.get('map');
 if (!['lockout', 'cryostat'].includes(loadout.map)) loadout.map = 'lockout';
 const persist = () => { save('settings', settings); save('loadout', loadout); };
@@ -200,7 +206,32 @@ function showSettings(backFn) {
   UI.show('settings', { rows, onBack: backFn });
 }
 
-function showSetup() {
+function callsignRow(box) {
+  const row = document.createElement('div'); row.className = 'opt';
+  row.innerHTML = '<span class="lbl">Callsign</span><span class="val"><input class="join-input tag" maxlength="14" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Callsign"><button aria-label="Roll a new callsign" class="roll"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5l2 2M20 12a8 8 0 0 1-14 5l-2-2M20 4v5h-5M4 20v-5h5"/></svg></button></span>';
+  box.appendChild(row);
+  const inp = row.querySelector('input'); inp.value = Profile.callsign;
+  const commit = () => { inp.value = Profile.setCallsign(inp.value); };
+  inp.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); commit(); inp.blur(); } });
+  inp.addEventListener('input', () => { inp.value = inp.value.toUpperCase().replace(/[^A-Z0-9_ ]/g, ''); });
+  inp.addEventListener('blur', commit);
+  const roll = () => { inp.value = Profile.setCallsign(rollCallsign()); };
+  row.querySelector('.roll').onclick = (e) => { e.stopPropagation(); roll(); };
+  row._act = () => { roll(); }; row.onclick = () => inp.focus();
+  return row;
+}
+
+function modeRow(box, rebuild) {
+  const ids = Object.keys(MODES);
+  const row = UI.choice(box, 'Game mode', ids.map((k) => ({ label: MODES[k].name, value: k })), ids.indexOf(loadout.mode), (v) => { if (v !== loadout.mode) { loadout.mode = v; persist(); rebuild(); } });
+  return row;
+}
+function limitRow(box) {
+  const md = MODES[loadout.mode], ls = md.limits;
+  return UI.choice(box, md.unit === 'SECONDS' ? 'Hold time' : md.unit === 'CAPTURES' ? 'Captures to win' : 'Score to win', ls.map((n) => ({ label: n + ' ' + md.unit, value: n })), ls.indexOf(limitOf()), (v) => { loadout.limits = loadout.limits || {}; loadout.limits[loadout.mode] = v; persist(); });
+}
+
+function showSetup(focusRow) {
   const cards = $('#waifuCards'); cards.innerHTML = '';
   cardEls = WAIFUS.map((w, i) => {
     const c = document.createElement('div'); c.className = 'card'; c.style.setProperty('--c', '#' + new THREE.Color(w.hair).getHexString());
@@ -214,15 +245,18 @@ function showSetup() {
   cardsRow._adj = (d) => select(loadout.waifu + d);
   select(loadout.waifu);
   const rows = [cardsRow];
+  rows.push(modeRow(box, () => showSetup(1)));
   rows.push(UI.choice(box, 'Map', World.MAP_LIST.map((m) => ({ label: m.name, value: m.id })), World.MAP_LIST.findIndex((m) => m.id === loadout.map), (v) => { loadout.map = v; persist(); $('#mapTag').textContent = World.MAP_LIST.find((m) => m.id === v).tag; }));
-  rows.push(UI.choice(box, 'Team', [{ label: 'BLUE', value: 'blue' }, { label: 'RED', value: 'red' }], loadout.team === 'blue' ? 0 : 1, (v) => { loadout.team = v; rebuildShowcase(); persist(); }));
+  if (loadout.mode !== 'rumble') rows.push(UI.choice(box, 'Team', [{ label: 'BLUE', value: 'blue' }, { label: 'RED', value: 'red' }], loadout.team === 'blue' ? 0 : 1, (v) => { loadout.team = v; rebuildShowcase(); persist(); }));
   rows.push(UI.choice(box, 'Armor', [{ label: 'SPARTAN HELM', value: true }, { label: 'ANGEL', value: false }], loadout.helmet ? 0 : 1, (v) => { loadout.helmet = v; rebuildShowcase(); setHero(); persist(); }));
+  rows.push(callsignRow(box));
   const dk = Object.keys(DIFFICULTY);
   rows.push(UI.choice(box, 'Bot difficulty', dk.map((k) => ({ label: DIFFICULTY[k].name, value: k })), dk.indexOf(loadout.diff), (v) => { loadout.diff = v; persist(); }));
-  rows.push(UI.choice(box, 'Score to win', [15, 25, 50].map((n) => ({ label: n + ' KILLS', value: n })), [15, 25, 50].indexOf(loadout.limit), (v) => { loadout.limit = v; persist(); }));
+  rows.push(limitRow(box));
   $('#mapTag').textContent = (World.MAP_LIST.find((m) => m.id === loadout.map) || World.MAP_LIST[0]).tag;
   const drop = $('#btnDrop'); UI.button(drop, () => startMatch()); rows.push(drop);
-  UI.show('setup', { rows, onBack: () => showTitle(), focus: rows.length - 1 });
+  UI.show('setup', { rows, onBack: () => showTitle(), focus: focusRow ?? rows.length - 1 });
+  $('#modeBlurb') && ($('#modeBlurb').textContent = MODES[loadout.mode].blurb);
   refreshPrompts();
 }
 
@@ -264,12 +298,12 @@ async function hostLobby() {
 async function joinLobby(code) {
   goFullscreen(); onlineStatus('Connecting...');
   try { await Net.join(code); } catch (e) { onlineStatus(friendlyError(e), true); Net.close(); return; }
-  Net.send({ t: 'hello', name: WAIFUS[loadout.waifu].name, waifu: loadout.waifu, helmet: loadout.helmet, v: 1 });
+  Net.send({ t: 'hello', name: Profile.callsign, waifu: loadout.waifu, helmet: loadout.helmet, v: 1 });
   showLobby(false);
 }
 
 function lobbyList() {
-  const list = [{ name: WAIFUS[loadout.waifu].name, host: true, team: loadout.team }];
+  const list = [{ name: Profile.callsign, host: true, team: loadout.team }];
   for (const [, p] of lobby.players) list.push({ name: p.name, team: lobby.sameTeam ? loadout.team : loadout.team === 'blue' ? 'red' : 'blue' });
   return list;
 }
@@ -303,7 +337,8 @@ function showLobby(host) {
     rows.push(UI.choice(opts, 'Friends join', [{ label: 'MY TEAM', value: true }, { label: 'OTHER TEAM', value: false }], lobby.sameTeam ? 0 : 1, (v) => { lobby.sameTeam = v; pushLobby(); }));
     const dk = Object.keys(DIFFICULTY);
     rows.push(UI.choice(opts, 'Bot difficulty', dk.map((k) => ({ label: DIFFICULTY[k].name, value: k })), dk.indexOf(loadout.diff), (v) => { loadout.diff = v; persist(); }));
-    rows.push(UI.choice(opts, 'Score to win', [15, 25, 50].map((n) => ({ label: n + ' KILLS', value: n })), [15, 25, 50].indexOf(loadout.limit), (v) => { loadout.limit = v; persist(); }));
+    rows.push(modeRow(opts, () => showLobby(true)));
+    rows.push(limitRow(opts));
     const go = document.createElement('button'); go.className = 'btn primary'; go.innerHTML = '<span>START MATCH</span><i></i>';
     UI.button(go, () => startOnlineHost());
     btns.appendChild(leave); btns.appendChild(go); rows.push(go, leave);
@@ -317,17 +352,17 @@ async function startOnlineHost() {
   const other = loadout.team === 'blue' ? 'red' : 'blue';
   const humans = [...lobby.players].map(([peer, p]) => ({ peer, name: p.name, waifu: WAIFUS[p.waifu] || WAIFUS[0], team: lobby.sameTeam ? loadout.team : other, helmet: p.helmet }));
   const w = WAIFUS[loadout.waifu];
-  const m = new Match(scene, fx, { waifu: w, name: w.name, team: loadout.team, helmet: loadout.helmet, difficulty: loadout.diff, limit: loadout.limit, humans });
+  const m = new Match(scene, fx, { waifu: w, name: Profile.callsign, team: loadout.team, helmet: loadout.helmet, difficulty: loadout.diff, ...matchCfg(), humans });
   beginMatch(m, w);
   m.enableHost();
   const roster = m.actors.map((a) => ({ id: a.id, name: a.name, team: a.team, hair: a.style.hair, eye: a.style.eye, helmet: a.rig.helmet }));
-  for (const h of humans) { const a = m.actors.find((x) => x.remote === h.peer); if (a) Net.sendTo(h.peer, { t: 'start', roster, you: a.id, limit: m.limit, minutes: 12, map: loadout.map }); }
+  for (const h of humans) { const a = m.actors.find((x) => x.remote === h.peer); if (a) Net.sendTo(h.peer, { t: 'start', roster, you: a.id, limit: m.limit, mode: m.mode, minutes: 12, map: loadout.map }); }
   m.bus.emit('count', 3);
 }
 
 async function startReplica(msg) {
   await ensureMap(msg.map || 'lockout');
-  beginMatch(new Match(scene, fx, { replica: true, roster: msg.roster, you: msg.you, limit: msg.limit, minutes: msg.minutes }));
+  beginMatch(new Match(scene, fx, { replica: true, roster: msg.roster, you: msg.you, limit: msg.limit, mode: msg.mode, minutes: msg.minutes }));
 }
 
 function leaveOnline() {
@@ -380,7 +415,7 @@ async function ensureMap(id) {
 async function startMatch() {
   await ensureMap(loadout.map);
   const w = WAIFUS[loadout.waifu];
-  beginMatch(new Match(scene, fx, { waifu: w, name: w.name, team: loadout.team, helmet: loadout.helmet, difficulty: loadout.diff, limit: loadout.limit, autoPlayer: Q.has('bot') }), w);
+  beginMatch(new Match(scene, fx, { waifu: w, name: Profile.callsign, team: loadout.team, helmet: loadout.helmet, difficulty: loadout.diff, ...matchCfg(), autoPlayer: Q.has('bot') }), w);
 }
 
 function beginMatch(m, w) {
@@ -404,7 +439,8 @@ function beginMatch(m, w) {
 function onMatchEnd() {
   const win = match.winner;
   const mine = match.player.team;
-  hud.announce(win === 'tie' ? 'DRAW' : `${TEAM[win].name} TEAM WINS`, win === 'tie' ? null : win);
+  const wn = match.ffa && win !== 'tie' ? match.actors.find((a) => a.team === win) : null;
+  hud.announce(win === 'tie' ? 'DRAW' : wn ? (wn.isPlayer ? 'YOU WIN' : `${wn.name} WINS`) : `${TEAM[win].name} TEAM WINS`, win === 'tie' ? null : win);
   Sound.play(win === mine ? 'win' : 'lose', { vol: 0.9 });
 }
 
@@ -417,13 +453,16 @@ function showResults() {
   const won = win === p.team;
   const title = win === 'tie' ? 'DRAW' : won ? 'VICTORY' : 'DEFEAT';
   $('#results').style.setProperty('--team', win === 'tie' ? '#8fa1bd' : TEAM[win].css);
-  $('#resKicker').textContent = 'MATCH COMPLETE · TEAM SLAYER';
+  $('#resKicker').textContent = 'MATCH COMPLETE · ' + MODES[m.mode].name;
   $('#resTitle').textContent = title;
-  $('#resScore').textContent = `BLUE ${m.score.blue}  —  RED ${m.score.red}`;
-  const rows = (t) => m.ranking().filter((a) => a.team === t).map((a) => `<tr class="${a.team}${a === p ? ' me' : ''}"><td class="nm">${a.name}</td><td>${a.kills}</td><td>${a.assists}</td><td>${a.deaths}</td></tr>`).join('');
+  const fmt = (v) => (m.mode === 'oddball' ? Math.floor(v) : v);
+  if (m.ffa) { const top = m.ranking().slice(0, 3); $('#resScore').textContent = top.map((a) => `${a.name} ${a.kills}`).join('  /  '); }
+  else $('#resScore').textContent = `BLUE ${fmt(m.score.blue)}  —  RED ${fmt(m.score.red)}`;
+  const rows = (list) => list.map((a) => `<tr class="${a.team}${a === p ? ' me' : ''}" style="--tc:${TEAM[a.team].css}"><td class="nm">${a.name}</td><td>${a.kills}</td><td>${a.assists}</td><td>${a.deaths}</td></tr>`).join('');
   const head = '<tr><th>OPERATOR</th><th>KILLS</th><th>AST</th><th>DEATHS</th></tr>';
-  const order = m.score.blue >= m.score.red ? ['blue', 'red'] : ['red', 'blue'];
-  $('#resTable').innerHTML = `<table class="tbl">${head}${order.map((t) => rows(t)).join('')}</table>`;
+  const order = m.ffa ? null : m.score.blue >= m.score.red ? ['blue', 'red'] : ['red', 'blue'];
+  const ranked = m.ranking();
+  $('#resTable').innerHTML = `<table class="tbl">${head}${m.ffa ? rows(ranked) : order.map((t) => rows(ranked.filter((a) => a.team === t))).join('')}</table>`;
   const med = Object.entries(p.medals);
   $('#resMedals').innerHTML = med.length ? med.map(([n, c]) => `<span class="rm">${svg(MEDAL_ICONS.star)}${n}${c > 1 ? ' x' + c : ''}</span>`).join('') : '<span class="rm" style="opacity:.5">NO MEDALS</span>';
   const btns = $('#resBtns'); btns.innerHTML = '';

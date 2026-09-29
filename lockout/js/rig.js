@@ -22,6 +22,11 @@ export const TEAM = {
   red: { name: 'RED', armor: 0xd93a48, armor2: 0x2a2f3a, glow: 0xff4a58, css: '#ff4a58' },
   blue: { name: 'BLUE', armor: 0x2f6df0, armor2: 0x2a2f3a, glow: 0x4aa0ff, css: '#4aa0ff' },
 };
+// free-for-all slots: one hue each
+['#4aa0ff', '#ff4a58', '#ffd84a', '#5df2be', '#c58cff', '#ff9a3c', '#ff7ac8', '#e8f0ff'].forEach((css, i) => {
+  const c = parseInt(css.slice(1), 16);
+  TEAM['p' + i] = { name: 'P' + (i + 1), armor: c, armor2: 0x2a2f3a, glow: c, css };
+});
 
 // ---- geometry merging: many primitives -> one mesh per material ------------
 const _e = new THREE.Euler(), _q = new THREE.Quaternion(), _v = new THREE.Vector3(), _s = new THREE.Vector3();
@@ -245,6 +250,13 @@ export function buildWaifu({ team = 'blue', hair = 0xff86c2, eye = 0x5ce1ff, sca
   const halo = new THREE.Group(); halo.position.set(0, 0.44, 0.02); halo.rotation.x = 0.16; head.add(halo);
   halo.add(new Parts().add(new THREE.TorusGeometry(0.17, 0.007, 6, 32), 'halo', 0, 0, 0, Math.PI / 2, 0, 0).add(new THREE.TorusGeometry(0.205, 0.0035, 4, 32), 'halo', 0, 0.012, 0, Math.PI / 2, 0, 0).build(mats, false));
 
+  // kill-leader crown (shown by the match on whoever leads)
+  const crown = new THREE.Group(); crown.position.set(0, 0.24, 0); crown.visible = false; head.add(crown);
+  { const cp = new Parts().add(new THREE.TorusGeometry(0.088, 0.01, 4, 14), 'gold', 0, 0, 0, Math.PI / 2, 0, 0);
+    for (let i = 0; i < 7; i++) { const a = (i / 7) * TAU; cp.add(new THREE.ConeGeometry(0.017, 0.07 + (i % 2) * 0.025, 4), 'gold', Math.cos(a) * 0.088, 0.04 + (i % 2) * 0.012, Math.sin(a) * 0.088); }
+    cp.add(sph(0.014, 5, 4), 'glow', 0, 0.03, -0.088);
+    crown.add(cp.build(mats, false)); }
+
   // long back hair + twin tails
   const backHair = new THREE.Group(); backHair.position.set(0, 0.11, 0.09); head.add(backHair);
   backHair.add(new Parts().add(cyl(0.1, 0.085, 0.3, 8), 'hair', 0, -0.15, 0, 0, 0, 0, 1, 1, 0.62).build(mats, false));
@@ -267,7 +279,7 @@ export function buildWaifu({ team = 'blue', hair = 0xff86c2, eye = 0x5ce1ff, sca
 
   const wRoot = new THREE.Group(); wRoot.position.set(0.09, 0.13, -0.06); chest.add(wRoot);
   const rig = {
-    root, model, hips, spine, chest, head, skirt, tails, backHair, bh2, halo, wings: wingRig, legL: L.leg, kneeL: L.knee, legR: R.leg, kneeR: R.knee, aL, aR, wRoot, mats,
+    root, model, hips, spine, chest, head, skirt, crown, tails, backHair, bh2, halo, wings: wingRig, legL: L.leg, kneeL: L.knee, legR: R.leg, kneeR: R.knee, aL, aR, wRoot, mats,
     weaponId: null, weapon: null, flash: 0,
     a: { phase: 0, speed: 0, crouch: 0, air: 0, dead: 0, t: Math.random() * 10, flinch: 0, melee: 0, throw: 0, reloading: 0, kick: 0 },
   };
@@ -288,7 +300,7 @@ export function buildWaifu({ team = 'blue', hair = 0xff86c2, eye = 0x5ce1ff, sca
     for (const key of ['body', 'skirt', 'visor', 'face', 'wing', 'halo']) { const m = mats[key]; if (!m) continue; m.transparent = k > 0 || key === 'face' || key === 'wing' || key === 'halo'; m.opacity = key === 'wing' ? (k > 0 ? 0.03 : 0.6) : key === 'halo' ? (k > 0 ? 0.04 : 0.95) : k > 0 ? (k >= 1 ? 0.07 : 0.4) : 1; m.depthWrite = k === 0 && key !== 'wing' && key !== 'halo'; m.needsUpdate = true; }
   };
   rig.setVisible = (v) => { root.visible = v; };
-  if (angel && !helmet && angelReady()) attachAngel(rig, { hair, team });
+  if (angel && !helmet && angelReady()) attachAngel(rig, { hair, tint: (TEAM[team] || TEAM.blue).glow });
   return rig;
 }
 

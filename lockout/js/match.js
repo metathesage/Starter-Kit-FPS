@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import * as W from './world.js';
 import { WEAPONS, makeWeaponMesh, makeGrenadeMesh, makeRocketMesh } from './weapons.js';
 import { buildWaifu, animateRig, disposeRig, BOT_STYLES, TEAM } from './rig.js';
+import { MODES, P_TEAMS, Objectives } from './modes.js';
 import { Sound } from './audio.js';
 import { Bus, clamp, rand, pick, forward, lerp, damp, angDiff } from './util.js';
 import { Brain } from './bots.js';
@@ -25,6 +26,9 @@ export const DIFFICULTY = {
 };
 
 let _uid = 1;
+// weapons that can earn a PERFECT: every shot of the engagement landed, headshot finish, no damage taken. Value = min hits.
+const PERFECT_W = new Map([['br', 4], ['carbine', 5], ['magnum', 3], ['sniper', 1]]);
+
 export class Actor {
   constructor(match, { name, team, style, isPlayer = false, id = null, remote = null, helmet }) {
     this.m = match; this.id = id ?? _uid++; if (id !== null && id >= _uid) _uid = id + 1; this.remote = remote; this.netT = null; this.spawnSeq = 0; this.name = name; this.team = team; this.isPlayer = isPlayer; this.style = style;
@@ -38,7 +42,7 @@ export class Actor {
     this.grounded = true; this.crouch = 0; this.h = H_STAND;
     this.weapons = []; this.cur = 0; this.gren = { frag: 2, plasma: 2 }; this.gtype = 'frag';
     this.shield = SHIELD_MAX; this.health = HEALTH_MAX; this.over = 0; this.overT = 0; this.camoT = 0; this.boostT = 0; this.nd = 0; this.ndT = -9;
-    this.dmgBy = new Map(); this.brain = null; this.kick = 0; this.stepD = 0; this.lastFireT = -9; this.lastMoveSpeed = 0;
+    this.carry = null; this.dmgBy = new Map(); this.brain = null; this.kick = 0; this.stepD = 0; this.lastFireT = -9; this.lastMoveSpeed = 0;
     this.resetTimers();
   }
   resetTimers() {
@@ -59,7 +63,7 @@ export class Actor {
     this.weapons = [{ id: 'br', mag: WEAPONS.br.mag, res: WEAPONS.br.reserve }]; this.cur = 0;
     this.gren = { frag: 2, plasma: 2 }; this.gtype = 'frag';
     this.resetTimers(); this.spawnProt = 2.2; this.dmgBy.clear();
-    this.spawnSeq++; this.netT = null;
+    this.spawnSeq++; this.netT = null; this.carry = null; this.pf = null;
     this.rig.root.visible = !this.isPlayer || this.m.thirdPerson;
     this.rig.a.dead = 0;
     if (this.brain) this.brain.reset();
@@ -132,6 +136,7 @@ export class Actor {
     this.h = lerp(H_STAND, H_CROUCH, this.crouch);
     let spd = crouching ? CROUCH_SPEED : RUN;
     if (this.zoomLevel > 0) spd *= 0.65;
+    if (this.carry === 'flag') spd *= 0.94;
     if (this.reloadT > 0 && this.def && (this.def.id === 'sniper')) spd *= 0.85;
     let wx = frozen ? 0 : c.mx * spd, wz = frozen ? 0 : c.mz * spd;
     if (this.lunge) { wx = wz = 0; }
@@ -251,6 +256,7 @@ export class Actor {
 
   weaponsUpdate(dt) {
     const m = this.m, c = this.cmd, w = this.weapon, def = this.def;
+    if (this.carry === 'ball') { c.fire = false; c.fireEdge = false; c.reload = false; c.grenade = false; c.zoom = false; }
     this.fireT -= dt; this.swapT -= dt; this.fireBuf = c.fireEdge ? 0.16 : this.fireBuf - dt;
     if (this.meleeT > 0) this.meleeT -= dt;
     if (this.throwT > 0) this.throwT -= dt;
@@ -322,7 +328,7 @@ export class Actor {
       let best = null, bd = def.lungeRange;
       const f = forward(this.yaw, 0, { x: 0, y: 0, z: 0 });
       for (const o of m.actors) {
-        if (!o.alive || o.team === this.team) continue;
+        if (!o.alive || !this.m.foe(this, o)) continue;
         const dx = o.x - this.x, dz = o.z - this.z, d = Math.hypot(dx, dz);
         if (d < 2.7 || d > bd) continue;
         if ((dx * f.x + dz * f.z) / d < 0.93) continue;
@@ -356,7 +362,7 @@ export class Actor {
     const f = forward(this.yaw, 0, { x: 0, y: 0, z: 0 });
     let hit = false;
     for (const o of m.actors) {
-      if (!o.alive || o.team === this.team) continue;
+      if (!o.alive || !this.m.foe(this, o)) continue;
       const dx = o.x - this.x, dz = o.z - this.z, d = Math.hypot(dx, dz);
       if (d > p.range + 0.4 || Math.abs(o.y - this.y) > 1.6) continue;
       if (d > 0.5 && (dx * f.x + dz * f.z) / d < (p.lunge ? 0.2 : 0.35)) continue;
@@ -383,6 +389,7 @@ export class Actor {
     });
     this.rig.root.position.set(this.x, this.y, this.z);
     this.rig.root.rotation.y = yaw;
+    this.rig.crown.visible = this.m.leader === this && this.alive;
   }
 }
 
@@ -416,8 +423,10 @@ export class Match {
     this.scene = scene; this.fx = fx; this.cfg = cfg; this.bus = new Bus();
     this.diff = DIFFICULTY[cfg.difficulty] || DIFFICULTY.normal;
     this.actors = []; this.projs = []; this.pickups = [];
-    this.time = 0; this.state = 'countdown'; this.count = 3.99; this.limit = cfg.limit || 25; this.timeLimit = (cfg.minutes || 12) * 60; this.clock = this.timeLimit;
-    this.score = { red: 0, blue: 0 }; this.thirdPerson = false; this.winner = null; this.endT = 0; this.firstBlood = false;
+    this.mode = MODES[cfg.mode] ? cfg.mode : 'slayer'; this.ffa = this.mode === 'rumble'; this.teams = this.ffa ? P_TEAMS : ['red', 'blue'];
+    this.time = 0; this.state = 'countdown'; this.count = 3.99; this.limit = cfg.limit || MODES[this.mode].limits[1]; this.timeLimit = (cfg.minutes || 12) * 60; this.clock = this.timeLimit;
+    this.score = {}; for (const t of this.teams) this.score[t] = 0;
+    this.leader = null; this.obj = null; this.thirdPerson = false; this.winner = null; this.endT = 0; this.firstBlood = false;
     this.listener = { x: 0, y: 0, z: 0, yaw: 0 };
     this.lead = null; this.feed = [];
     this.pgroup = new THREE.Group(); scene.add(this.pgroup);
@@ -432,18 +441,25 @@ export class Match {
       }
       for (const p of W.PICKUPS) this.addPickup({ ...p });
       this.nStatic = this.pickups.length;
+      if (MODES[this.mode].obj) this.obj = new Objectives(this);
       return;
     }
 
-    const pt = cfg.team || 'blue', et = pt === 'blue' ? 'red' : 'blue';
+    const pt = this.ffa ? 'p0' : cfg.team || 'blue', et = pt === 'blue' ? 'red' : 'blue';
     const humans = cfg.humans || [], hb = (t) => humans.filter((h) => h.team === t).length;
     this.player = new Actor(this, { name: cfg.name || 'AOI', team: pt, style: cfg.waifu, isPlayer: true });
     this.actors.push(this.player);
-    for (const h of humans) this.actors.push(new Actor(this, { name: h.name, team: h.team, style: h.waifu, remote: h.peer, helmet: h.helmet !== false }));
     let si = 0;
-    const mk = (team) => { const s = BOT_STYLES[(si++ * 5 + 1) % BOT_STYLES.length]; const b = new Actor(this, { name: s.name, team, style: s }); this.actors.push(b); };
-    for (let i = 0; i < Math.max(0, 3 - hb(pt)); i++) mk(pt);
-    for (let i = 0; i < Math.max(0, 4 - hb(et)); i++) mk(et);
+    if (this.ffa) {
+      let pi = 1;
+      for (const h of humans) this.actors.push(new Actor(this, { name: h.name, team: 'p' + pi++, style: h.waifu, remote: h.peer, helmet: h.helmet !== false }));
+      while (pi < 8) { const s = BOT_STYLES[(si++ * 5 + 1) % BOT_STYLES.length]; this.actors.push(new Actor(this, { name: s.name, team: 'p' + pi++, style: s })); }
+    } else {
+      for (const h of humans) this.actors.push(new Actor(this, { name: h.name, team: h.team, style: h.waifu, remote: h.peer, helmet: h.helmet !== false }));
+      const mk = (team) => { const s = BOT_STYLES[(si++ * 5 + 1) % BOT_STYLES.length]; const b = new Actor(this, { name: s.name, team, style: s }); this.actors.push(b); };
+      for (let i = 0; i < Math.max(0, 3 - hb(pt)); i++) mk(pt);
+      for (let i = 0; i < Math.max(0, 4 - hb(et)); i++) mk(et);
+    }
     // unique names
     const seen = new Set();
     this.actors.forEach((a) => { while (seen.has(a.name)) a.name += '2'; seen.add(a.name); });
@@ -451,10 +467,15 @@ export class Match {
     this.actors.forEach((a) => this.byId.set(a.id, a));
 
     for (const p of W.PICKUPS) this.addPickup({ ...p });
+    if (MODES[this.mode].obj) this.obj = new Objectives(this);
     const used = { red: 0, blue: 0 };
-    for (const a of this.actors) { a.spawn(W.SPAWNS[a.team][used[a.team]++ % 8]); }
+    let fi = 0;
+    for (const a of this.actors) { if (this.ffa) { const all = this.spawnsFor(a); a.spawn(all[(fi++ * 5) % all.length]); } else a.spawn(W.SPAWNS[a.team][used[a.team]++ % 8]); }
     this.bus.emit('state', 'countdown');
   }
+
+  foe(a, b) { return a !== b && (this.ffa || a.team !== b.team); }
+  spawnsFor(a) { return this.ffa ? W.SPAWNS.red.concat(W.SPAWNS.blue) : W.SPAWNS[a.team]; }
 
   sfx(name, src, vol = 1) {
     Sound.at(name, { x: src.x, y: src.y ?? 0, z: src.z }, this.listener, vol);
@@ -580,6 +601,8 @@ export class Match {
     const rl = Math.hypot(rx, ry, rz) || 1; rx /= rl; ry /= rl; rz /= rl;
     const ux = ry * base.z - rz * base.y, uy = rz * base.x - rx * base.z, uz = rx * base.y - ry * base.x;
     let anyHead = false;
+    const pfw = PERFECT_W.has(def.id);
+    if (pfw) { if (!a.pf || this.time - a.pf.t > 2.5) a.pf = { s: 0, h: 0, t: this.time }; a.pf.s++; a.pf.t = this.time; }
     for (let i = 0; i < n; i++) {
       const ang = rand(0, 6.283), rad = sp * Math.sqrt(Math.random());
       const cx = Math.cos(ang) * rad, cy = Math.sin(ang) * rad;
@@ -589,7 +612,7 @@ export class Match {
       let tw = W.rayWorld(ox, oy, oz, dx, dy, dz, def.range);
       let hitA = null, hh = false, tt = Math.min(tw, def.range);
       for (const o of this.actors) {
-        if (o === a || !o.alive || o.team === a.team) continue;
+        if (o === a || !o.alive || !this.foe(a, o)) continue;
         const r = rayActor(ox, oy, oz, dx, dy, dz, o, tt);
         if (r && r.t < tt) { tt = r.t; hitA = o; hh = r.head; }
       }
@@ -600,6 +623,7 @@ export class Match {
         if (a.brain) dmg *= 1;
         this.damage(hitA, dmg, { attacker: a, weapon: def.id, head: hh, kind: 'bullet', dir: { x: dx, y: dy, z: dz }, point: { x: hx, y: hy, z: hz } });
         anyHead = anyHead || hh;
+        if (pfw && a.pf) a.pf.h++;
       } else if (tw < def.range) {
         fx.sparks(hx - dx * 0.05, hy - dy * 0.05, hz - dz * 0.05, -dx * 0.5, 0.6, -dz * 0.5, def.pellets ? 4 : 7);
         if (Math.random() < 0.5) fx.dust(hx, hy, hz, 2);
@@ -658,7 +682,7 @@ export class Match {
           if (W.pointSolid(p.x, p.y, p.z)) { boom = true; break; }
           for (const o of this.actors) {
             if (!o.alive || (o === p.owner && p.life > 5.85)) continue;
-            if (o.team === p.owner.team && o !== p.owner) continue;
+            if (!this.foe(p.owner, o) && o !== p.owner) continue;
             if (Math.abs(p.x - o.x) < 0.55 && Math.abs(p.z - o.z) < 0.55 && p.y > o.y && p.y < o.y + o.h) { boom = true; direct = o; break; }
           }
         }
@@ -716,7 +740,7 @@ export class Match {
   damage(v, amt, info) {
     if (!v.alive || v.spawnProt > 0 || this.state === 'ended') return 0;
     const a = info.attacker;
-    if (a && a !== v && a.team === v.team) return 0;
+    if (a && a !== v && !this.foe(a, v)) return 0;
     if (a && a.brain && v.isPlayer && !info.explosion) amt *= this.diff.dmgIn;
     if (a && a !== v && a.boostT > 0) amt *= 2;
     const wasShield = v.shield > 0;
@@ -756,19 +780,34 @@ export class Match {
     const suicide = !a || a === v;
     const wid = info.weapon || 'melee';
     const rec = { killer: suicide ? null : a, victim: v, weapon: wid, head: !!info.head, kind: info.kind, suicide, t: this.time };
-    if (suicide) { this.score[v.team] = Math.max(0, this.score[v.team] - 1); }
+    const scoring = this.mode === 'slayer' || this.ffa;
+    if (this.obj) this.obj.onDeath(v, a);
+    if (suicide) { if (scoring) this.score[v.team] = Math.max(0, this.score[v.team] - 1); }
     else {
-      a.kills++; a.streak++; this.score[a.team]++;
+      a.kills++; a.streak++; if (scoring) this.score[a.team]++;
       v.lastKiller = a.id;
       // assists
-      for (const [id, t] of v.dmgBy) { if (id === a.id || this.time - t > 6) continue; const s = this.actors.find((x) => x.id === id); if (s && s.team === a.team) s.assists++; }
+      for (const [id, t] of v.dmgBy) { if (id === a.id || this.time - t > 6) continue; const s = this.actors.find((x) => x.id === id); if (s && !this.ffa && s.team === a.team) s.assists++; }
       this.medals(a, v, info, wid);
+      rec.perfect = !!info.perfect; a.pf = null;
     }
     this.feed.push(rec);
     if (v.isPlayer) this.lastKillRec = rec;
     this.bus.emit('kill', rec);
+    this.updateLeader();
     this.checkLead(suicide ? null : a);
-    if (this.state === 'live' && (this.score.red >= this.limit || this.score.blue >= this.limit)) this.end();
+    if (this.state === 'live' && this.mode !== 'oddball' && this.teams.some((t) => this.score[t] >= this.limit)) this.end();
+  }
+
+  // kill leader: strictly most kills, at least 3
+  updateLeader() {
+    let best = null, bk = 2, tie = false;
+    for (const o of this.actors) { if (o.kills > bk) { bk = o.kills; best = o; tie = false; } else if (best && o.kills === bk) tie = true; }
+    const nl = tie ? null : best;
+    if (nl === this.leader) return;
+    this.leader = nl;
+    if (nl && this.state === 'live') { this.bus.emit('announce', `${nl.isPlayer ? 'YOU ARE' : nl.name + ' IS'} THE KILL LEADER`, nl.team); this.sfx('power', nl, 0.8); }
+    this.bus.emit('leader', nl);
   }
 
   medals(a, v, info, wid) {
@@ -779,6 +818,7 @@ export class Match {
     const MULTI = ['', '', 'DOUBLE KILL', 'TRIPLE KILL', 'OVERKILL', 'KILLTACULAR', 'KILLTROCITY', 'KILLIMANJARO', 'KILLTASTROPHE'];
     if (a.multi >= 2) M(MULTI[Math.min(a.multi, 8)], 'burst');
     if (info.head && info.kind === 'bullet') M('HEADSHOT', 'crosshair');
+    if (info.head && info.kind === 'bullet' && PERFECT_W.has(wid) && a.pf && a.pf.s === a.pf.h && a.pf.h >= PERFECT_W.get(wid) && a.lastHit > 4) { info.perfect = true; M('PERFECT', 'perfect'); }
     if (info.back) M('ASSASSINATION', 'blade');
     else if (info.kind === 'punch') M('BEATDOWN', 'fist');
     if (wid === 'sword') M('SWORD KILL', 'blade');
@@ -792,20 +832,26 @@ export class Match {
   }
 
   checkLead(a) {
+    if (this.ffa) {
+      const top = Math.max(...this.teams.map((t) => this.score[t])), left = this.limit - top;
+      if (this.state === 'live' && a && left <= 3 && left > 0 && !this['w' + left]) { this['w' + left] = true; this.bus.emit('announce', `${left} KILL${left > 1 ? 'S' : ''} TO WIN`, null); }
+      return;
+    }
     const { red, blue } = this.score;
     const lead = red === blue ? 'tied' : red > blue ? 'red' : 'blue';
     if (lead !== this.lead && this.state === 'live') {
       const first = this.lead === null; this.lead = lead;
       if (!first) this.bus.emit('announce', lead === 'tied' ? 'TEAMS TIED' : `${TEAM[lead].name} TEAM TAKES THE LEAD`, lead === 'tied' ? null : lead);
     }
-    const left = this.limit - Math.max(red, blue);
-    if (this.state === 'live' && a && left <= 3 && left > 0 && !this['w' + left]) { this['w' + left] = true; this.bus.emit('announce', `${left} KILL${left > 1 ? 'S' : ''} TO WIN`, red > blue ? 'red' : 'blue'); }
+    const left = this.limit - Math.max(red, blue), unit = { slayer: 'KILL', ctf: 'CAPTURE', oddball: 'SECOND' }[this.mode] || 'POINT';
+    const warnAt = this.mode === 'oddball' ? 10 : this.mode === 'ctf' ? 1 : 3;
+    if (this.state === 'live' && (a || this.mode !== 'slayer') && left <= warnAt && left > 0 && !this['w' + left]) { this['w' + left] = true; this.bus.emit('announce', `${Math.ceil(left)} ${unit}${left > 1 ? 'S' : ''} TO WIN`, red > blue ? 'red' : 'blue'); }
   }
 
   // ---- flow -------------------------------------------------------------------------------
   spawnPoint(a) {
-    const pts = W.SPAWNS[a.team];
-    const foes = this.actors.filter((o) => o.alive && o.team !== a.team);
+    const pts = this.spawnsFor(a);
+    const foes = this.actors.filter((o) => o.alive && this.foe(a, o));
     const mates = this.actors.filter((o) => o.alive && o !== a);
     let best = null, bs = -1;
     const cand = pts.map((p) => {
@@ -820,8 +866,8 @@ export class Match {
   end() {
     if (this.state === 'ended') return;
     this.state = 'ended'; this.endT = 0;
-    const { red, blue } = this.score;
-    this.winner = red === blue ? 'tie' : red > blue ? 'red' : 'blue';
+    const ts = this.teams.map((t) => [t, this.score[t]]).sort((x, y) => y[1] - x[1]);
+    this.winner = ts[0][1] === ts[1][1] ? 'tie' : ts[0][0];
     this.bus.emit('state', 'ended');
   }
 
@@ -855,6 +901,7 @@ export class Match {
       if (!a.alive && live && this.time >= a.respawnAt) a.spawn(this.spawnPoint(a));
       a.cmd.fireEdge = false; a.cmd.jump = false; a.cmd.melee = false; a.cmd.grenade = false; a.cmd.reload = false; a.cmd.swap = false; a.cmd.use = false; a.cmd.gswitch = false; a.cmd.zoom = false;
     }
+    if (this.obj) this.obj.update(dt, live);
     this.updateProjectiles(dt);
     this.updatePickups(dt);
   }
@@ -865,7 +912,7 @@ export class Match {
     const tw = W.rayWorld(a.x, a.eye, a.z, b.x, b.y, b.z, range);
     let best = null, bt = Math.min(tw, range);
     for (const o of this.actors) {
-      if (o === a || !o.alive || o.team === a.team) continue;
+      if (o === a || !o.alive || !this.foe(a, o)) continue;
       const r = rayActor(a.x, a.eye, a.z, b.x, b.y, b.z, o, bt);
       if (r && r.t < bt) { bt = r.t; best = o; }
     }
@@ -877,7 +924,7 @@ export class Match {
     const b = forward(a.yaw, a.pitch, { x: 0, y: 0, z: 0 });
     let best = null, bd = cone;
     for (const o of this.actors) {
-      if (o === a || !o.alive || o.team === a.team) continue;
+      if (o === a || !o.alive || !this.foe(a, o)) continue;
       const dx = o.x - a.x, dy = o.chest - a.eye, dz = o.z - a.z, d = Math.hypot(dx, dy, dz);
       if (d > range) continue;
       const ang = Math.acos(clamp((dx * b.x + dy * b.y + dz * b.z) / d, -1, 1));
@@ -931,7 +978,7 @@ export class Match {
   snapshot() {
     const r2 = (v) => Math.round(v * 100) / 100;
     return {
-      t: r2(this.time), st: this.state, cl: r2(this.clock), cn: r2(this.count), sc: [this.score.red, this.score.blue], w: this.winner,
+      t: r2(this.time), st: this.state, cl: r2(this.clock), cn: r2(this.count), sc: this.teams.map((t) => this.score[t]), w: this.winner, ld: this.leader ? this.leader.id : -1, ob: this.obj ? this.obj.snapshot() : undefined,
       a: this.actors.map((a) => ({
         i: a.id, x: r2(a.x), y: r2(a.y), z: r2(a.z), yw: r2(a.yaw), pt: r2(a.pitch), vx: r2(a.vx), vz: r2(a.vz), al: a.alive ? 1 : 0, cr: r2(a.crouch), g: a.grounded ? 1 : 0,
         sh: Math.round(a.shield), hp: Math.round(a.health), ov: Math.round(a.over), cu: a.cur, w: a.weapons.map((w) => [w.id, w.mag, w.res]),
@@ -956,7 +1003,9 @@ export class Match {
 
   // friend <- host
   applySnapshot(s) {
-    this.state = s.st; this.clock = s.cl; this.count = s.cn; this.score.red = s.sc[0]; this.score.blue = s.sc[1]; if (s.w) this.winner = s.w;
+    this.state = s.st; this.clock = s.cl; this.count = s.cn; this.teams.forEach((t, i) => { this.score[t] = s.sc[i] || 0; }); if (s.w) this.winner = s.w;
+    this.leader = s.ld >= 0 ? this.byId.get(s.ld) || null : null;
+    if (this.obj && s.ob) this.obj.apply(s.ob);
     this.hostT = s.t;
     for (const o of s.a) {
       const a = this.byId.get(o.i); if (!a) continue;
@@ -1012,6 +1061,7 @@ export class Match {
   replicaUpdate(dt) {
     this.time += dt;
     if (this.state === 'ended') this.endT += dt;
+    if (this.obj) this.obj.update(dt, false);
     for (const a of this.actors) {
       a.update(dt);
       const c = a.cmd; c.fireEdge = false; c.jump = false; c.melee = false; c.grenade = false; c.reload = false; c.swap = false; c.use = false; c.gswitch = false; c.zoom = false;
@@ -1033,6 +1083,7 @@ export class Match {
   dispose() {
     if (this.hosting && this.fx._o) { for (const m of Object.keys(this.fx._o)) this.fx[m] = this.fx._o[m]; }
     this.hosting = false;
+    if (this.obj) this.obj.dispose();
     for (const a of this.actors) { this.scene.remove(a.rig.root); disposeRig(a.rig); }
     this.scene.remove(this.pgroup);
     this.pgroup.traverse((o) => { if (o.isMesh && o.geometry) o.geometry.dispose(); });

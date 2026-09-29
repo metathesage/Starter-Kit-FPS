@@ -4,6 +4,7 @@ import { TEAM } from './rig.js';
 import { Input } from './input.js';
 import { Sound } from './audio.js';
 import { clamp, angDiff, TAU } from './util.js';
+import { MODES } from './modes.js';
 
 export const svg = (d, cls = '') => `<svg viewBox="0 0 24 24" class="${cls}"><path d="${d}"/></svg>`;
 export const MEDAL_ICONS = {
@@ -15,6 +16,10 @@ export const MEDAL_ICONS = {
   grenade: ICONS.frag, rocket: ICONS.rocket,
   skull: 'M12 3a7 7 0 0 0-7 7c0 3 1 4 3 5v4h8v-4c2-1 3-2 3-5a7 7 0 0 0-7-7zM9 11h2M13 11h2',
   flame: 'M12 2c1 4 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-4-1-6 1-9z',
+  perfect: 'M12 2l2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 15.400 6.800 18.200l1-5.900L3.500 8.200l5.900-.8zM7 21h10',
+  flag: 'M6 21V3M6 4h11l-2.500 4L17 12H6',
+  shield: 'M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6z',
+  crown: 'M3 8l4.500 4L12 5l4.500 7L21 8l-2 11H5z',
 };
 const WEAPON_ICON = { br: ICONS.br, magnum: ICONS.magnum, smg: ICONS.smg, shotgun: ICONS.shotgun, sniper: ICONS.sniper, rocket: ICONS.rocket, sword: ICONS.sword, carbine: ICONS.carbine, plasmarifle: ICONS.plasmarifle, needler: ICONS.needler, hammer: ICONS.hammer, frag: ICONS.frag, plasma: ICONS.plasma, melee: MEDAL_ICONS.fist, explosion: ICONS.frag, fall: ICONS.skull };
 export const wIcon = (id) => svg(WEAPON_ICON[id] || MEDAL_ICONS.skull);
@@ -39,7 +44,7 @@ export class HUD {
   constructor(root) {
     this.root = root;
     root.innerHTML = `
-      <div class="h-over"></div><div class="h-warn"></div><div class="h-flash"></div><div class="h-dmg"></div><div class="h-scope"><div class="zt"></div></div>
+      <div class="h-over"></div><div class="h-warn"></div><div class="h-flash"></div><div class="h-dmg"></div><div class="h-scope"><i class="sb t"></i><i class="sb b"></i><i class="sh"></i><i class="sv"></i><i class="sv2"></i><div class="zt"></div><div class="rg"><small>RANGE</small><b>---</b></div><div class="am"><small>ROUNDS</small><b>4</b></div><div class="rc"></div></div>
       <div class="h-markers"></div>
       <div class="h-top">
         <div class="compass"><div class="cmp-track"></div><b class="cmp-hd">000</b><i class="cmp-tick"></i></div>
@@ -56,8 +61,9 @@ export class HUD {
       <div class="h-radar"><div class="rd-tilt"><canvas width="360" height="360"></canvas></div><div class="rd-place">LOCKOUT</div></div>
       <div class="h-score">
         <div class="sc-meta"><span class="sc-mode">TEAM SLAYER</span><span class="sc-clock">12:00</span></div>
-        <div class="sc-row red"><i class="sq"></i><div class="sc-bar"><i></i></div><div class="sc-n">0</div></div>
-        <div class="sc-row blue"><i class="sq"></i><div class="sc-bar"><i></i></div><div class="sc-n">0</div></div>
+        <div class="sc-row red"><i class="sq"></i><em class="sc-nm">RED</em><div class="sc-bar"><i></i></div><div class="sc-n">0</div></div>
+        <div class="sc-row blue"><i class="sq"></i><em class="sc-nm">BLUE</em><div class="sc-bar"><i></i></div><div class="sc-n">0</div></div>
+        <div class="h-obj"></div><div class="sc-lead"></div>
       </div>
       <div class="h-reticle"><svg viewBox="-40 -40 80 80"></svg></div>
       <div class="h-hit"><svg viewBox="-20 -20 40 40"><path d="M-14-14L-6-6M14-14L6-6M-14 14L-6 6M14 14L6 6"/></svg></div>
@@ -80,8 +86,8 @@ export class HUD {
       sc: { blue: q('.sc-row.blue'), red: q('.sc-row.red') }, clock: q('.sc-clock'), mode: q('.sc-mode'), feed: q('.feed'), radar: q('.h-radar canvas'),
       wIcon: q('.wp-icon'), wName: q('.wp-name'), wMag: q('.wp-mag'), wRes: q('.wp-res'), wRel: q('.wp-reload'), ret: q('.h-reticle'), retSvg: q('.h-reticle svg'),
       hit: q('.h-hit'), ann: q('.h-announce'), count: q('.h-count'), modeBig: q('.h-mode'), medals: q('.h-medals'), prompt: q('.h-prompt'), cam: q('.h-cam'),
-      death: q('.h-death'), dName: q('.dd .nm'), dRes: q('.dd .rs'), board: q('.h-board'), fps: q('.h-fps'), flash: q('.h-flash'), dmg: q('.h-dmg'), scope: q('.h-scope'), zt: q('.h-scope .zt'),
-      elim: q('.h-elim'), skull: q('.h-skull'), pu: q('.pu-row'), cmpTrack: cmp, cmpHd: q('.cmp-hd'), markers: q('.h-markers'), weaponBox: q('.h-weapon') };
+      death: q('.h-death'), dName: q('.dd .nm'), dRes: q('.dd .rs'), board: q('.h-board'), fps: q('.h-fps'), flash: q('.h-flash'), dmg: q('.h-dmg'), scope: q('.h-scope'), zt: q('.h-scope .zt'), rg: q('.h-scope .rg b'), am: q('.h-scope .am b'),
+      obj: q('.h-obj'), lead: q('.sc-lead'), elim: q('.h-elim'), skull: q('.h-skull'), pu: q('.pu-row'), cmpTrack: cmp, cmpHd: q('.cmp-hd'), markers: q('.h-markers'), weaponBox: q('.h-weapon') };
     this.el.hp.innerHTML = '<i></i>'.repeat(5);
     this.rctx = this.el.radar.getContext('2d');
     this.ghost = 1; this.retId = null; this.alarmT = 0; this.subs = [];
@@ -118,14 +124,19 @@ export class HUD {
     B('explosion', (pos, R) => { const d = Math.hypot(this.p.x - pos.x, this.p.z - pos.z); if (d < R * 2.5) Input.rumble(1, 0.7, 260); });
     this.el.feed.innerHTML = ''; this.el.medals.innerHTML = '';
     this.el.sc.blue.querySelector('.sc-n').textContent = '0'; this.el.sc.red.querySelector('.sc-n').textContent = '0';
-    this.el.sc[this.p.team].classList.add('mine'); this.el.sc[this.p.team === 'red' ? 'blue' : 'red'].classList.remove('mine');
-    this.el.mode.textContent = 'TEAM SLAYER · ' + match.limit;
+    const md = MODES[match.mode], ffa = match.ffa;
+    // two score rows: your side / the other side (team modes keep RED + BLUE, rumble shows you vs the leading rival)
+    this.rowA = ffa ? 'blue' : this.p.team; this.rowB = ffa ? 'red' : this.p.team === 'red' ? 'blue' : 'red';
+    this.el.sc.blue.classList.toggle('mine', this.rowA === 'blue'); this.el.sc.red.classList.toggle('mine', this.rowA === 'red');
+    this.el.mode.textContent = md.short + ' · ' + match.limit;
+    this.el.obj.innerHTML = ''; this.objKey = '';
     this.mk = new Map();
   }
   unbind() { this.subs.forEach((u) => u()); this.subs = []; }
 
   modeIntro() {
-    const m = this.el.modeBig; m.innerHTML = `TEAM SLAYER<br><span style="color:var(--gold)">FIRST TO ${this.match.limit}</span>`; m.classList.remove('on'); void m.offsetWidth; m.classList.add('on');
+    const md = MODES[this.match.mode], m = this.el.modeBig;
+    m.innerHTML = `${md.name}<br><span style="color:var(--gold)">FIRST TO ${this.match.limit} ${md.unit}</span>`; m.classList.remove('on'); void m.offsetWidth; m.classList.add('on');
   }
 
   announce(text, team) {
@@ -133,7 +144,7 @@ export class HUD {
   }
 
   medal(name, icon) {
-    const d = document.createElement('div'); d.className = 'medal'; d.innerHTML = svg(MEDAL_ICONS[icon] || MEDAL_ICONS.star) + `<span>${name}</span>`;
+    const d = document.createElement('div'); d.className = 'medal' + (name === 'PERFECT' ? ' perfect' : ''); d.innerHTML = svg(MEDAL_ICONS[icon] || MEDAL_ICONS.star) + `<span>${name}</span>`;
     this.el.medals.appendChild(d); Sound.play('medal', { vol: 0.8 }); setTimeout(() => d.remove(), 2950);
     while (this.el.medals.children.length > 3) this.el.medals.firstChild.remove();
   }
@@ -143,8 +154,9 @@ export class HUD {
     const mine = r.killer === this.p || r.victim === this.p;
     d.className = 'feed-item' + (mine ? ' me' : '');
     d.style.setProperty('--tc', TEAM[(r.killer || r.victim).team].css);
-    if (r.suicide) d.innerHTML = `<span class="${r.victim.team}">${r.victim.name}</span>${svg(MEDAL_ICONS.skull)}`;
-    else d.innerHTML = `<span class="${r.killer.team}">${r.killer.name}</span>${wIcon(r.kind === 'punch' ? 'melee' : r.weapon)}${r.head ? svg(ICONS.skull, 'sk') : ''}<span class="${r.victim.team}">${r.victim.name}</span>`;
+    const nm = (a) => `<span style="color:${TEAM[a.team].css}">${a.name}</span>`;
+    if (r.suicide) d.innerHTML = `${nm(r.victim)}${svg(MEDAL_ICONS.skull)}`;
+    else d.innerHTML = `${nm(r.killer)}${wIcon(r.kind === 'punch' ? 'melee' : r.weapon)}${r.perfect ? svg(MEDAL_ICONS.perfect, 'pf') : ''}${r.head ? svg(ICONS.skull, 'sk') : ''}${nm(r.victim)}`;
     this.el.feed.appendChild(d); setTimeout(() => d.remove(), 5600);
     while (this.el.feed.children.length > 5) this.el.feed.firstChild.remove();
   }
@@ -152,7 +164,7 @@ export class HUD {
   // noir elimination banner + headshot skull
   elim(r) {
     const e = this.el.elim, w = WEAPONS[r.weapon];
-    const sub = [w ? w.short : r.kind === 'punch' ? 'MELEE' : 'GRENADE', r.head ? 'HEADSHOT' : '', this.p.streak > 1 ? `STREAK ${this.p.streak}` : ''].filter(Boolean).join('  /  ');
+    const sub = [w ? w.short : r.kind === 'punch' ? 'MELEE' : 'GRENADE', r.perfect ? 'PERFECT' : '', r.head ? 'HEADSHOT' : '', this.p.streak > 1 ? `STREAK ${this.p.streak}` : ''].filter(Boolean).join('  /  ');
     e.innerHTML = `<div class="eb"><div class="eb-line"></div><div class="eb-k">ELIMINATED</div><div class="eb-n">${wIcon(r.kind === 'punch' ? 'melee' : r.weapon)}<span>${r.victim.name}</span>${r.head ? svg(ICONS.skull, 'sk') : ''}</div><div class="eb-m">${sub}</div><div class="eb-line"></div></div>`;
     e.classList.remove('on'); void e.offsetWidth; e.classList.add('on');
     if (r.head) { const k = this.el.skull; k.innerHTML = svg(ICONS.skull); k.classList.remove('on'); void k.offsetWidth; k.classList.add('on'); }
@@ -163,11 +175,15 @@ export class HUD {
     if (!on) { b.classList.remove('on'); this.boardT = 0; return; }
     if (this.boardT > performance.now() - 250) return;
     this.boardT = performance.now();
-    const m = this.match, rows = (team) => m.ranking().filter((a) => a.team === team).map((a) =>
-      `<tr class="${a.team}${a === this.p ? ' me' : ''}${a.alive ? '' : ' dead'}"><td class="nm">${a.name}</td><td>${a.kills}</td><td>${a.assists}</td><td>${a.deaths}</td><td>${a.streak}</td></tr>`).join('');
+    const m = this.match, crown = (a) => (m.leader === a ? svg(MEDAL_ICONS.crown, 'cr') : '');
+    const row = (a) => `<tr class="${a.team}${a === this.p ? ' me' : ''}${a.alive ? '' : ' dead'}" style="--tc:${TEAM[a.team].css}"><td class="nm">${crown(a)}${a.name}${a.carry ? svg(MEDAL_ICONS[a.carry === 'flag' ? 'flag' : 'star'], 'cr') : ''}</td><td>${a.kills}</td><td>${a.assists}</td><td>${a.deaths}</td><td>${a.streak}</td></tr>`;
     const head = '<tr><th>OPERATOR</th><th>KILLS</th><th>AST</th><th>DEATHS</th><th>STREAK</th></tr>';
-    const order = m.score.blue >= m.score.red ? ['blue', 'red'] : ['red', 'blue'];
-    b.innerHTML = order.map((t) => `<h4 class="${t}">${TEAM[t].name} TEAM — ${m.score[t]}</h4><table class="tbl">${head}${rows(t)}</table>`).join('');
+    if (m.ffa) { b.innerHTML = `<h4 class="ffa">${MODES.rumble.name}</h4><table class="tbl">${head}${m.ranking().map(row).join('')}</table>`; }
+    else {
+      const order = m.score.blue >= m.score.red ? ['blue', 'red'] : ['red', 'blue'];
+      const fmt = (v) => (m.mode === 'oddball' ? Math.floor(v) : v);
+      b.innerHTML = order.map((t) => `<h4 class="${t}">${TEAM[t].name} TEAM — ${fmt(m.score[t])}</h4><table class="tbl">${head}${m.ranking().filter((a) => a.team === t).map(row).join('')}</table>`).join('');
+    }
     b.classList.add('on');
   }
 
@@ -197,9 +213,23 @@ export class HUD {
     E.frag.querySelector('b').textContent = p.gren.frag; E.plasma.querySelector('b').textContent = p.gren.plasma;
     E.frag.classList.toggle('on', p.gtype === 'frag'); E.plasma.classList.toggle('on', p.gtype === 'plasma');
     // score
-    for (const t of ['red', 'blue']) {
-      const r = E.sc[t]; r.querySelector('.sc-n').textContent = m.score[t];
-      r.querySelector('i').style.width = clamp((m.score[t] / m.limit) * 100, 0, 100) + '%';
+    {
+      let va, vb, na, nb;
+      if (m.ffa) {
+        let top = null; for (const o of m.actors) if (o !== p && (!top || m.score[o.team] > m.score[top.team])) top = o;
+        va = m.score[p.team]; vb = top ? m.score[top.team] : 0; na = 'YOU'; nb = top ? top.name : '-';
+      } else { va = m.score[this.rowA]; vb = m.score[this.rowB]; na = TEAM[this.rowA].name; nb = TEAM[this.rowB].name; }
+      const fmt = (v) => (m.mode === 'oddball' ? Math.floor(v) : v);
+      for (const [key, v, n] of [[this.rowA, va, na], [this.rowB, vb, nb]]) {
+        const r = E.sc[m.ffa ? (key === this.rowA ? 'blue' : 'red') : key];
+        r.querySelector('.sc-n').textContent = fmt(v); r.querySelector('.sc-nm').textContent = n;
+        r.querySelector('.sc-bar i').style.width = clamp((v / m.limit) * 100, 0, 100) + '%';
+      }
+      if (m.ffa) { E.sc.blue.style.setProperty('--tc', TEAM[p.team].css); E.sc.red.style.setProperty('--tc', '#ff4a58'); }
+      // kill leader line + objective status
+      const ld = m.leader; const lk = ld ? ld.id + ':' + ld.kills : '';
+      if (lk !== this.lk) { this.lk = lk; E.lead.innerHTML = ld ? `${svg(MEDAL_ICONS.crown)}<span>${ld.isPlayer ? 'YOU LEAD' : ld.name}</span><b>${ld.kills}</b>` : ''; E.lead.classList.toggle('on', !!ld); }
+      if (m.obj) { const st = m.obj.status(p); if (st !== this.objKey) { this.objKey = st; E.obj.innerHTML = st; } }
     }
     const s = Math.ceil(m.clock); E.clock.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
     // weapon
@@ -225,7 +255,12 @@ export class HUD {
     E.ret.classList.toggle('enemy', !!ctx.aimEnemy);
     const tk = E.retSvg.querySelector('.tk');
     if (tk && def) { const sp = (def.spread + p.bloom + (p.lastMoveSpeed / 5.4) * def.spread * 0.6) * 22; tk.style.transform = `scale(${1 + clamp(sp, 0, 1.2)})`; }
-    E.scope.classList.toggle('on', zoomScope); if (zoomScope) E.zt.textContent = def.zoom[p.zoomLevel - 1].toFixed(1) + 'X';
+    E.scope.classList.toggle('on', zoomScope);
+    if (zoomScope) {
+      E.zt.textContent = def.zoom[p.zoomLevel - 1].toFixed(0) + 'X'; E.am.textContent = w ? w.mag : 0;
+      const t = ctx.aimEnemy; E.rg.textContent = t ? Math.hypot(t.x - p.x, t.y - p.y, t.z - p.z).toFixed(0) + ' M' : '---';
+      E.scope.classList.toggle('lock', !!t);
+    }
     // prompt
     let prompt = '';
     if (p.alive && m.state === 'live') {
@@ -264,6 +299,8 @@ export class HUD {
       el.style.display = ''; el.style.opacity = fade;
       el.style.transform = `translate(${((v.x + 1) / 2) * W}px, ${((1 - v.y) / 2) * H}px)`; live.add(key);
     };
+    if (m.obj) for (const o of m.obj.markers()) put(o.key, o.x, o.y, o.z, o.html, o.cls + (o.team ? ' t-' + o.team : ''), 1);
+    if (m.leader && m.leader !== p && m.leader.alive && !m.obj) { const l = m.leader; put('leader', l.x, l.y + l.h + 0.95, l.z, `${svg(MEDAL_ICONS.crown)}<span>LEADER</span>`, 'leadm', 1); }
     if (p.alive && !m.thirdPerson) {
       for (const o of m.actors) {
         if (o === p || !o.alive || o.team !== p.team) continue;

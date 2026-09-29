@@ -47,7 +47,7 @@ export class Brain {
     const a = this.a, m = this.m, f = forward(a.yaw, 0, { x: 0, y: 0, z: 0 });
     let best = null, bd = 1e9;
     for (const o of m.actors) {
-      if (!o.alive || o.team === a.team) continue;
+      if (!o.alive || !m.foe(a, o)) continue;
       const dx = o.x - a.x, dz = o.z - a.z, dist = Math.hypot(dx, dz);
       if (dist > 75) continue;
       if (m.time - o.lastFireT < 0.6 && dist < 38) { this.hear = { x: o.x, y: o.y, z: o.z }; this.hearAt = m.time; }
@@ -80,6 +80,9 @@ export class Brain {
 
   pickRoamGoal() {
     const a = this.a, m = this.m;
+    this.objGoal = false;
+    const og = m.obj && m.obj.goal(a);
+    if (og && (og.hard || chance(0.55))) { this.objGoal = true; return { w: 1, x: og.x, y: og.y, z: og.z }; }
     const opts = [];
     const hasPower = a.weapons.some((w) => WEAPONS[w.id].power >= 2);
     for (const p of m.pickups) {
@@ -94,7 +97,7 @@ export class Brain {
     const foe = a.team === 'red' ? 1 : -1;
     const push = nodes.filter((n) => n.x * foe > 8 && n.y >= 0);
     if (push.length) { const n = pick(push); opts.push({ w: 1.8, x: n.x, y: n.y, z: n.z }); }
-    const enemies = m.actors.filter((o) => o.alive && o.team !== a.team);
+    const enemies = m.actors.filter((o) => o.alive && m.foe(a, o));
     if (enemies.length && chance(0.5)) { const o = pick(enemies); opts.push({ w: 2.2, x: o.x, y: o.y, z: o.z }); }
     let tot = 0; opts.forEach((o) => (tot += o.w));
     let r = rand(0, tot);
@@ -121,7 +124,7 @@ export class Brain {
     // ---- goals ----
     const needPath = !this.path.length || this.pi >= this.path.length;
     if (this.state === 'roam') {
-      if (needPath || this.repathT <= 0 && !this.goal) { const g = this.pickRoamGoal(); this.setGoal(g.x, g.y, g.z); this.repathT = 8; }
+      if (needPath || this.repathT <= 0 && (!this.goal || this.objGoal)) { const g = this.pickRoamGoal(); this.setGoal(g.x, g.y, g.z); this.repathT = this.objGoal ? 1.4 : 8; }
     } else if (this.state === 'hunt') {
       if (needPath || this.repathT <= 0) { const t = this.lastSeen || this.hear; if (t) this.setGoal(t.x, t.y, t.z); this.repathT = 1.2; }
     } else if (this.state === 'retreat') {
