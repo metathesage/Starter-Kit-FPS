@@ -483,3 +483,6 @@ body.is-warlock .t-gren { display: none; }
 .ms-res em { font: 500 10px var(--f-mono); letter-spacing: .36em; font-style: normal; color: #ffd8b0; } .ms-res b { font: 700 18px var(--f-hud); font-style: italic; } .ms-res span { font: 700 11px var(--f-mono); letter-spacing: .2em; color: #9aff9a; } .ms-res.no span { color: #ff8a8a; } .ms-res i { grid-column: 1 / -1; font: 500 12px var(--f-mono); font-style: normal; color: #e8e2dc; }
 @media (max-width: 900px) { .missions .mc-list { grid-template-columns: 1fr; } .hcard { right: 3vw; width: 60vw; } .hh-loc span { font-size: 18px; } .hh-disc i { width: 110px; } }
 body.in-hub .fx-grain { opacity: .35; }
+
+.hh-hints { position: absolute; left: calc(30px + var(--safe-l)); bottom: calc(28px + var(--safe-b)); display: flex; flex-wrap: wrap; gap: 8px 22px; opacity: 0; transition: opacity 1s; }
+.hh-hints.on { opacity: .95; } .hh-hints span { display: flex; align-items: center; gap: 6px; } .hh-hints em { font: 700 10px var(--f-mono); letter-spacing: .24em; font-style: normal; color: #f0e6dc; text-shadow: 0 2px 8px rgba(0, 0, 0, .7); }

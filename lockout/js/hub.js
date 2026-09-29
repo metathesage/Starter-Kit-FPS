@@ -101,6 +101,7 @@ export class Hub {
     const dm = W.solids.find((q) => q.mat === 'vdoor');
     this.doorOpen = !dm; this.deepOpen = false; this.codexSeen = null;
     Sound.ambience('garden'); Sound.music('zen');
+    { const h = this.q('#hhHints'); const n = (Profile.d.seen.hubHintN || 0); if (n < 4) { Profile.d.seen.hubHintN = n + 1; Profile.save(); h.innerHTML = `<span>${glyph('up')}${glyph('left')}${glyph('down')}${glyph('right')}<em>MOVE</em></span><span>${glyph('jump')}<em>JUMP · HOLD TO GLIDE</em></span><span>${glyph('blink')}<em>BLINK</em></span><span>${glyph('use')}<em>INTERACT</em></span><span>${glyph('pause')}<em>MENU</em></span>`; h.classList.add('on'); clearTimeout(this._hh); this._hh = setTimeout(() => h.classList.remove('on'), 16000); } else h.classList.remove('on'); }
     if (!Profile.d.seen.hubWelcome) { Profile.d.seen.hubWelcome = 1; Profile.save(); setTimeout(() => this.toast('WELCOME TO THE SANCTUM'), 900); }
     void ctx;
   }
@@ -263,7 +264,7 @@ export class Hub {
   closeCard() { if (!this.card) return; this.card = null; this.focus = null; this.q('#hubCard').classList.remove('on'); Sound.play('menuBack', { vol: 0.5 }); }
 
   openWeapon(p, holder) {
-    const id = p.id, def = WEAPONS[id]; this.focus = { x: p.x, y: p.y + 0.85, z: p.z, d: 2.6, spin: holder }; this.skinIdx = 0;
+    const id = p.id, def = WEAPONS[id]; this.focus = { x: p.x, y: p.y + 0.85, z: p.z, d: 2.6, from: [p.x + 2.3, p.y + 1.15, p.z + 1.2], spin: holder }; this.skinIdx = 0;
     this.showCard({ swapUse: true, kicker: `${def.melee ? 'MELEE' : 'FIREARM'} · ${['SIDEARM', 'STANDARD', 'HEAVY', 'POWER', 'RELIC'][clamp(def.power, 0, 4)] || 'ISSUE'}`, title: def.name, body: C.WEAPON_INFO[id], stats: C.weaponStats(id), alt: def.melee ? 'SWING' : 'TEST FIRE', altAction: 'fire',
       onAlt: () => this.testFire(id, def, holder), skin: true, onSkin: () => this.cycleSkin(id, holder) });
   }
@@ -280,19 +281,19 @@ export class Hub {
   }
   openOperator(w, idx, need, locked) {
     const own = Profile.d.eq.operator === w.id;
-    const opos = POI.operators.find((q) => q.id === w.id); if (opos) this.focus = { x: opos.x, y: opos.y + 1.05, z: opos.z, d: 3.1 };
+    const opos = POI.operators.find((q) => q.id === w.id); if (opos) this.focus = { x: opos.x, y: opos.y + 1.05, z: opos.z, d: 3.1, from: [opos.x - 1.2, opos.y + 1.5, opos.z + 3.4] };
     this.showCard({ kicker: `OPERATOR · ${w.role}`, title: w.name, sub: locked ? `SEALED · REACH LEVEL ${need}` : own ? 'EQUIPPED' : 'AVAILABLE', body: w.blurb, stats: [['ROLE', w.role], ['UNLOCK', 'LVL ' + need], ['HAIR', '#' + w.hair.toString(16).toUpperCase()], ['EYES', '#' + w.eye.toString(16).toUpperCase()]],
       use: locked || own ? null : 'EQUIP', onUse: () => { Profile.equip('operator', w.id); this.loadout.waifu = idx; this.ctx.onEquip('operator', w.id); this.buildAvatar(); this.toast(w.name + ' EQUIPPED'); this.closeCard(); } });
   }
   openMap(id, info) {
     const md = { lockout: 'Slayer, Oddball', cryostat: 'Snipers, CTF', mesa: 'Slayer, Fiesta', overgrowth: 'Warlock Hunt, CTF', warsat: 'Warlock Hunt, Oddball', sanctum: 'Nobody fights here' }[id];
-    const mp = POI.maps.find((q) => q.id === id); if (mp) this.focus = { x: mp.x, y: mp.y + 0.5, z: mp.z, d: 3.3 };
+    const mp = POI.maps.find((q) => q.id === id); if (mp) this.focus = { x: mp.x, y: mp.y + 0.5, z: mp.z, d: 3.3, from: [mp.x, mp.y + 1.5, mp.z + 3.4] };
     this.showCard({ kicker: 'DIORAMA', title: info ? info.name : 'THE SANCTUM', body: info ? info.tag : 'The garden you are standing in. Cherry trees, a bridge, a vault. Peaceful by design.', stats: [['BEST FOR', md], ['STATUS', id === 'sanctum' ? 'HOME' : 'OPEN']], use: id === 'sanctum' ? null : 'DEPLOY', onUse: () => { this.closeCard(); this.ctx.deployMap(id); } });
   }
   openCodex(page) {
     const pages = [...C.POWER_INFO.map((p) => ['POWER-UP', p.name, p.blurb]), ...Object.values(MODES).map((m) => ['GAME MODE', m.name, m.blurb]), ...C.MEDAL_INFO.map(([n, b]) => ['MEDAL', n, b]), ...LORE.map(([t, b]) => ['LORE', t, b])];
     this.codexPage = ((page % pages.length) + pages.length) % pages.length; const [k, t, b] = pages[this.codexPage];
-    this.focus = { x: 0, y: 3.55, z: -30, d: 3.4 };
+    this.focus = { x: 0, y: 3.55, z: -30, d: 3.4, from: [0.4, 3.9, -26.8] };
     this.codexSeen = this.codexSeen || new Set(); this.codexSeen.add(this.codexPage); if (this.codexSeen.size >= 10) this.discover('codex10', 'CODEX SCHOLAR');
     this.showCard({ kicker: `${k} · ${this.codexPage + 1}/${pages.length}`, title: t, body: b, pager: true, onPrev: () => this.openCodex(this.codexPage - 1), onNext: () => this.openCodex(this.codexPage + 1) });
   }
@@ -351,11 +352,11 @@ export class Hub {
       if (this.sit && (Math.hypot(mx, mz) > 0.3 || jump)) this.sit = null;
     } else if (this.card) {
       const cd = this.card;
+      if (this.focus && this.focus.spin) { this.focus.spin.rotation.y -= Input.look.x * 1.6; }
       if (Input.pressed.back || Input.pressed.use && !cd.use) this.closeCard();
       else if (Input.pressed.use && cd.use) { const f = cd.onUse; if (f) f(); }
       else if (cd.alt && (Input.pressed.fire || Input.pressed.melee)) cd.onAlt && cd.onAlt();
       else if (cd.skin && Input.pressed.swap) cd.onSkin();
-      if (this.focus && this.focus.spin) { this.focus.spin.rotation.y -= Input.look.x * 1.6; this.focus.spin.userData.hold = 1; }
       else if (cd.pager) { if (Input.nav.left) cd.onPrev(); if (Input.nav.right) cd.onNext(); if (Input.pressed.gswitch) cd.onPrev(); if (Input.pressed.nova) cd.onNext(); }
     }
     // movement
@@ -389,7 +390,7 @@ export class Hub {
     // avatar
     const av = this.avatar;
     if (av) {
-      av.root.position.set(p.x, p.y - (sit ? 0.35 : 0), p.z); av.root.rotation.y = p.yaw; av.root.visible = true;
+      av.root.position.set(p.x, p.y - (sit ? 0.35 : 0), p.z); av.root.rotation.y = p.yaw; av.root.visible = this.focusK < 0.5;
       animateRig(av, dt, { speed: sit ? 0 : hs, lx: 0, lz: 1, grounded: p.grounded, crouch: sit ? 0.95 : 0, pitch: 0, weaponId: null });
     }
     // camera
@@ -406,7 +407,7 @@ export class Hub {
     this.focusK = damp(this.focusK, this.focus ? 1 : 0, 5, dt);
     if (this.focusK > 0.004 && (this.focus || this.lastFocus)) {
       const F = this.focus || this.lastFocus; this.lastFocus = F; const fk = this.focusK * this.focusK * (3 - 2 * this.focusK);
-      const dx = p.x - F.x, dz = p.z - F.z, l = Math.hypot(dx, dz) || 1, fp = new THREE.Vector3(F.x + (dx / l) * F.d - (dz / l) * 0.9, F.y + 0.25, F.z + (dz / l) * F.d + (dx / l) * 0.9), look = new THREE.Vector3(F.x + (dz / l) * 0.5, F.y, F.z - (dx / l) * 0.5);
+      const fp = new THREE.Vector3(...(F.from || [F.x, F.y + 0.3, F.z + F.d])), tgt = new THREE.Vector3(F.x, F.y, F.z), dirv = tgt.clone().sub(fp).normalize(), rightv = dirv.clone().cross(new THREE.Vector3(0, 1, 0)).normalize(), look = tgt.clone().add(rightv.multiplyScalar(F.d * 0.3));
       const q0 = cam.quaternion.clone(), pos0 = cam.position.clone(); cam.position.lerp(fp, fk);
       const tmp = new THREE.PerspectiveCamera(); tmp.position.copy(fp); tmp.lookAt(look); cam.quaternion.copy(q0).slerp(tmp.quaternion, fk); void pos0;
       if (!this.focus && this.focusK < 0.02) this.lastFocus = null;
