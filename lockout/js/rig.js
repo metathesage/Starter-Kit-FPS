@@ -261,7 +261,8 @@ export function buildWaifu({ team = 'blue', hair = 0xff86c2, eye = 0x5ce1ff, sca
   { const cp = new Parts().add(new THREE.TorusGeometry(0.088, 0.01, 4, 14), 'gold', 0, 0, 0, Math.PI / 2, 0, 0);
     for (let i = 0; i < 7; i++) { const a = (i / 7) * TAU; cp.add(new THREE.ConeGeometry(0.017, 0.07 + (i % 2) * 0.025, 4), 'gold', Math.cos(a) * 0.088, 0.04 + (i % 2) * 0.012, Math.sin(a) * 0.088); }
     cp.add(sph(0.014, 5, 4), 'glow', 0, 0.03, -0.088);
-    crown.add(cp.build(mats, false)); }
+    const cm = new THREE.MeshStandardMaterial({ color: 0xffd84a, emissive: 0xffa010, emissiveIntensity: 1.0, metalness: 0.6, roughness: 0.3, flatShading: true });
+    const cg = cp.build(mats, false); cg.traverse((o) => { if (o.isMesh) o.material = cm; }); crown.add(cg); crown.scale.setScalar(1.45); }
 
   // long back hair + twin tails
   const backHair = new THREE.Group(); backHair.position.set(0, 0.11, 0.09); head.add(backHair);

@@ -348,6 +348,16 @@ export class HUD {
       else c.arc(px, py, 8, 0, TAU);
       c.fill(); c.shadowBlur = 0;
     }
+    if (m.obj) {
+      for (const o of m.obj.markers()) {
+        if (o.key.startsWith('home')) continue;
+        const dx = o.x - p.x, dz = o.z - p.z;
+        let rx = dx * cs - dz * sn, ry = dx * sn + dz * cs; const d = Math.hypot(rx, ry) || 1, k = Math.min(1, (range * 0.96) / d);
+        const px = (rx * k / range) * R, py = (ry * k / range) * R, col = o.team ? TEAM[o.team].css : '#ffd84a';
+        c.fillStyle = col; c.shadowColor = col; c.shadowBlur = 14; c.strokeStyle = '#fff'; c.lineWidth = 2;
+        c.beginPath(); c.moveTo(px, py - 12); c.lineTo(px + 10, py); c.lineTo(px, py + 12); c.lineTo(px - 10, py); c.closePath(); c.fill(); c.stroke(); c.shadowBlur = 0;
+      }
+    }
     c.fillStyle = 'rgba(120,225,255,.14)'; c.beginPath(); c.moveTo(0, 0); c.arc(0, 0, R, -Math.PI / 2 - 0.62, -Math.PI / 2 + 0.62); c.closePath(); c.fill();
     c.fillStyle = '#ffd84a'; c.shadowColor = '#ffd84a'; c.shadowBlur = 12; c.beginPath(); c.arc(0, 0, 9, 0, TAU); c.fill(); c.shadowBlur = 0;
     c.restore();

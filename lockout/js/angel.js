@@ -50,7 +50,15 @@ export const angelReady = () => !!cache;
 
 export async function loadAngel(url = 'models/operator/angel.glb') {
   if (cache) return cache;
-  const g = await new GLTFLoader().loadAsync(url);
+  const loader = new GLTFLoader();
+  let g;
+  try { g = await loader.loadAsync(url); }
+  catch (e) {
+    // hosts that only serve text/media types (e.g. the artifact preview): fall back to a base64 copy
+    const r = await fetch(url.replace(/\.glb$/, '.b64.txt')); if (!r.ok) throw e;
+    const bin = atob((await r.text()).trim()), buf = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+    g = await new Promise((res, rej) => loader.parse(buf.buffer, '', res, rej));
+  }
   let mesh = null; g.scene.traverse((o) => { if (o.isMesh && !mesh) mesh = o; });
   const src = mesh.geometry, P = src.attributes.position, n = P.count;
   const geo = new THREE.BufferGeometry();
