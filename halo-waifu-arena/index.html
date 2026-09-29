@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WAIFU ARENA // Halo Haven PvP</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "./vendor/three/build/three.module.js",
+      "three/examples/jsm/": "./vendor/three/examples/jsm/",
+      "three/addons/": "./vendor/three/examples/jsm/"
+    }
+  }
+  </script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body, html { width: 100%; height: 100%; overflow: hidden; background: #060919; font-family: 'Rajdhani', -apple-system, sans-serif; color: #f8fafc; }
+    #canvas-container { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
+
+    /* Damage & Shield Edge Flashes */
+    #damage-flash { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 6; box-shadow: inset 0 0 90px rgba(239, 68, 68, 0); transition: box-shadow 0.12s ease-out; }
+    #shield-flash { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 6; box-shadow: inset 0 0 70px rgba(56, 189, 248, 0); transition: box-shadow 0.12s ease-out; }
+
+    /* HUD Layer */
+    #hud { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
+
+    /* Destiny 2 Style Reticle */
+    #reticle-wrap { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; pointer-events: none; }
+    #reticle-dot { width: 4px; height: 4px; background: #ffffff; border-radius: 50%; box-shadow: 0 0 8px rgba(255,255,255,0.9); }
+    #reticle-ring { position: absolute; width: 22px; height: 22px; border: 1.5px solid rgba(255,255,255,0.65); border-radius: 50%; transition: width 0.05s linear, height 0.05s linear, transform 0.08s ease; }
+    #hitmarker { position: absolute; font-size: 26px; font-weight: 800; opacity: 0; color: #ffffff; transition: opacity 0.08s ease, transform 0.08s ease; text-shadow: 0 0 10px rgba(0, 243, 255, 0.9); }
+
+    /* Top Status Bar */
+    #top-nav { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 12px; pointer-events: auto; }
+    .top-pill {
+      background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(12px);
+      padding: 6px 16px; border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.15);
+      font-size: 12px; font-weight: 700; letter-spacing: 0.8px; color: #e2e8f0;
+      display: flex; align-items: center; gap: 8px; cursor: pointer; transition: all 0.15s ease;
+      font-family: 'Share Tech Mono', monospace;
+    }
+    .top-pill:hover { background: rgba(30, 41, 59, 0.85); border-color: rgba(56, 189, 248, 0.5); }
+    .dot-indicator { width: 7px; height: 7px; border-radius: 50%; }
+
+    /* Operator Selector Dock */
+    #op-dock { display: flex; gap: 4px; background: rgba(8, 14, 28, 0.45); backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.12); border-radius: 2px; padding: 3px; }
+    .op-tab {
+      padding: 5px 12px; font-family: 'Share Tech Mono', monospace; font-size: 11px; font-weight: 700; letter-spacing: 1px;
+      color: #94a3b8; background: transparent; border: none; cursor: pointer; transition: all 0.15s ease; border-radius: 1px;
+    }
+    .op-tab:hover { color: #f1f5f9; background: rgba(255,255,255,0.05); }
+    .op-tab.active { color: #00f3ff; background: rgba(0, 243, 255, 0.12); box-shadow: inset 0 -2px 0 #00f3ff; }
+
+    /* Bottom-Left: Halo Vitals */
+    #vitals-panel { position: absolute; bottom: 24px; left: 28px; display: flex; flex-direction: column; gap: 6px; width: 280px; }
+    .vitals-header { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; font-weight: 700; letter-spacing: 1px; color: #cbd5e1; }
+    .vitals-op-name { color: #ffffff; font-weight: 800; }
+    
+    .shield-bar-bg { width: 100%; height: 8px; background: rgba(30, 41, 59, 0.6); border-radius: 2px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
+    #shield-bar { width: 100%; height: 100%; background: #38bdf8; transition: width 0.08s ease-out; box-shadow: 0 0 8px rgba(56, 189, 248, 0.7); }
+    .health-bar-bg { width: 100%; height: 5px; background: rgba(30, 41, 59, 0.6); border-radius: 2px; overflow: hidden; margin-top: 1px; }
+    #health-bar { width: 100%; height: 100%; background: #ffffff; transition: width 0.08s ease-out; }
+    .vitals-desc { display: flex; justify-content: space-between; font-size: 11px; font-weight: 600; color: #94a3b8; font-family: 'Share Tech Mono', monospace; margin-top: 2px; }
+
+    /* Bottom-Right: Destiny 2 Weapon & Ammo Card */
+    #weapon-panel { position: absolute; bottom: 24px; right: 28px; text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+    #ammo-row { display: flex; align-items: baseline; gap: 6px; }
+    #ammo-mag { font-size: 46px; font-weight: 800; color: #ffffff; line-height: 1; letter-spacing: -1px; text-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+    #ammo-res { font-size: 20px; font-weight: 600; color: #94a3b8; font-family: 'Share Tech Mono', monospace; }
+    #weapon-title { font-size: 14px; font-weight: 800; color: #e2e8f0; letter-spacing: 1.2px; }
+    #weapon-type { font-size: 11px; color: #38bdf8; letter-spacing: 0.8px; font-family: 'Share Tech Mono', monospace; }
+
+    /* 9-Slot Arsenal Selector */
+    #weapon-bar { display: flex; gap: 4px; margin-top: 8px; pointer-events: auto; }
+    .w-pip {
+      width: 24px; height: 5px; background: rgba(255,255,255,0.2); border-radius: 1px;
+      cursor: pointer; transition: all 0.15s ease;
+    }
+    .w-pip:hover { background: rgba(56, 189, 248, 0.6); }
+    .w-pip.active { background: #38bdf8; height: 6px; box-shadow: 0 0 10px #38bdf8; }
+
+    /* Damage Numbers Container */
+    #dmg-numbers { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; }
+    .dmg-num {
+      position: absolute; font-family: 'Rajdhani', -apple-system, sans-serif; font-weight: 900; font-size: 28px;
+      pointer-events: none; transform: translate(-50%, -50%) scale(1);
+      transition: transform 0.5s cubic-bezier(0.18, 0.89, 0.32, 1.28), opacity 0.5s ease-out;
+      z-index: 50; -webkit-text-stroke: 1.5px #050914; text-shadow: 0 4px 0 #050914, 0 0 14px rgba(0, 243, 255, 0.9);
+      color: #00f3ff; letter-spacing: 0.8px;
+    }
+    .dmg-num.crit {
+      font-size: 36px; color: #fbbf24; -webkit-text-stroke: 1.8px #050914;
+      text-shadow: 0 4px 0 #050914, 0 0 22px rgba(251, 191, 36, 0.95);
+    }
+
+    /* Killfeed */
+    #killfeed { position: absolute; top: 70px; right: 28px; display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
+    .kf-item {
+      background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(8px);
+      padding: 4px 12px; border-radius: 2px; border-left: 3px solid #38bdf8;
+      font-family: 'Share Tech Mono', monospace; font-size: 11.5px; font-weight: 700;
+      color: #cbd5e1; transition: opacity 0.4s ease;
+    }
+    .kf-killer { color: #38bdf8; }
+    .kf-victim { color: #f43f5e; }
+    .kf-crit { color: #fbbf24; }
+
+    /* Start / Deploy Screen */
+    #start-prompt {
+      position: absolute; bottom: 45px; left: 50%; transform: translateX(-50%);
+      background: rgba(8, 14, 28, 0.65); backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.15); border-top: 3px solid #00f3ff;
+      padding: 20px 48px; border-radius: 3px; text-align: center; cursor: pointer;
+      z-index: 100; transition: opacity 0.3s ease, transform 0.3s ease;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+    }
+    #start-prompt:hover {
+      background: rgba(14, 24, 46, 0.85); border-color: #00f3ff;
+      box-shadow: 0 0 30px rgba(0, 243, 255, 0.35);
+    }
+    .sp-tag { font-family: 'Share Tech Mono', monospace; font-size: 11px; letter-spacing: 2px; color: #00f3ff; text-transform: uppercase; margin-bottom: 4px; }
+    .sp-title { font-size: 26px; font-weight: 800; letter-spacing: 2px; color: #ffffff; text-transform: uppercase; margin-bottom: 6px; }
+    .sp-cta { font-family: 'Share Tech Mono', monospace; font-size: 12px; color: #94a3b8; letter-spacing: 1.5px; }
+  </style>
+</head>
+<body>
+  <div id="damage-flash"></div>
+  <div id="shield-flash"></div>
+  <div id="canvas-container"></div>
+  <div id="dmg-numbers"></div>
+
+  <!-- HUD Interface -->
+  <div id="hud">
+    <!-- Reticle -->
+    <div id="reticle-wrap">
+      <div id="reticle-dot"></div>
+      <div id="reticle-ring"></div>
+      <div id="hitmarker">✕</div>
+    </div>
+
+    <!-- Top Status Bar -->
+    <div id="top-nav">
+      <button class="top-pill" onclick="window.game && window.game.toggleMap()" style="border-color: rgba(251, 191, 36, 0.4); background: rgba(30, 27, 75, 0.75);">
+        <span class="dot-indicator" style="background:#fbbf24; box-shadow:0 0 8px #fbbf24;"></span>
+        <span id="map-txt" style="color:#fbbf24; font-weight:800;">MAP // CS BLACKHAWK</span>
+      </button>
+
+      <div class="top-pill" id="koth-status">
+        <span class="dot-indicator" style="background:#00f3ff; box-shadow:0 0 8px #00f3ff;"></span>
+        <span>LOADING MATCH...</span>
+      </div>
+
+      <button class="top-pill" onclick="window.game && window.game.togglePerspective()">
+        <span id="view-txt">CAM // FPS</span>
+      </button>
+
+      <div id="op-dock">
+        <button class="op-tab active" onclick="window.game && window.game._loadHeroine('mai')">[ 01 // MAI ]</button>
+        <button class="op-tab" onclick="window.game && window.game._loadHeroine('miyazawa')">[ 02 // MIYAZAWA ]</button>
+        <button class="op-tab" onclick="window.game && window.game._loadHeroine('lucy')">[ 03 // LUCY ]</button>
+      </div>
+    </div>
+
+    <!-- Killfeed -->
+    <div id="killfeed"></div>
+
+    <!-- Bottom-Left: Halo Vitals -->
+    <div id="vitals-panel">
+      <div class="vitals-header">
+        <span class="vitals-op-name" id="vitals-team-name">CT OPERATOR</span>
+        <span style="font-size:11px; opacity:0.8; font-family:'Share Tech Mono', monospace;" id="vitals-sub-status">KEVLAR // NOMINAL</span>
+      </div>
+      <div class="shield-bar-bg"><div id="shield-bar"></div></div>
+      <div class="health-bar-bg"><div id="health-bar"></div></div>
+      <div class="vitals-desc">
+        <span>WASD + SHIFT // STRAFE</span>
+        <span>SPACE // JUMP [C // SLIDE]</span>
+      </div>
+    </div>
+
+    <!-- Bottom-Right: Destiny 2 Weapon & Ammo Card -->
+    <div id="weapon-panel">
+      <div id="ammo-row">
+        <span id="ammo-mag">30</span>
+        <span id="ammo-res">/ 90</span>
+      </div>
+      <div id="weapon-title">AK-47 KALASHNIKOV</div>
+      <div id="weapon-type">7.62mm ASSAULT RIFLE</div>
+
+      <!-- 11-Slot Arsenal Quick Select -->
+      <div id="weapon-bar">
+        <div class="w-pip" title="[1] Ace of Spades"></div>
+        <div class="w-pip" title="[2] Outbreak Perfected"></div>
+        <div class="w-pip" title="[3] The Chaperone"></div>
+        <div class="w-pip active" title="[4] AK-47 Kalashnikov"></div>
+        <div class="w-pip" title="[5] M4A1 / ACR Carbine"></div>
+        <div class="w-pip" title="[6] Energy Sword"></div>
+        <div class="w-pip" title="[7] The Lament"></div>
+        <div class="w-pip" title="[8] Hawkmoon"></div>
+        <div class="w-pip" title="[9] Hanami SMG"></div>
+        <div class="w-pip" title="[0] Sakura Shotgun"></div>
+        <div class="w-pip" title="[-] Lotus Launcher"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Deploy Start Screen -->
+  <div id="start-prompt">
+    <div class="sp-tag">// TACTICAL PROTOCOL • COUNTER-STRIKE 5v5</div>
+    <div class="sp-title">WAIFU ARENA // CS BLACK HAWK DOWN</div>
+    <div class="sp-cta" style="margin-bottom:8px;">[ CLICK ANYWHERE TO LOCK MOUSE & ENGAGE MATCH ]</div>
+    <div style="font-family:'Share Tech Mono', monospace; font-size:11px; color:#38bdf8; letter-spacing:1px; opacity:0.9;">
+      [M] SWITCH MAP (CS / HALO) • [1-9] ARSENAL • [V] 1ST/3RD PERSON CAM • [H] CYCLE HEROINE
+    </div>
+  </div>
+
+  <!-- Local Server Protocol Warning (Shown when opened via file://) -->
+  <div id="file-protocol-warning" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(6,9,25,0.97); z-index:999999; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:30px; font-family:'Rajdhani', sans-serif;">
+    <div style="max-width:560px; background:rgba(15,23,42,0.95); border:1px solid rgba(0,243,255,0.3); border-top:3px solid #00f3ff; border-radius:4px; padding:36px; box-shadow:0 10px 50px rgba(0,0,0,0.8), 0 0 30px rgba(0,243,255,0.15);">
+      <div style="font-family:'Share Tech Mono', monospace; color:#00f3ff; font-size:12px; letter-spacing:2px; margin-bottom:10px;">// SYSTEM SECURITY PROTOCOL</div>
+      <h2 style="font-size:30px; font-weight:800; color:#ffffff; margin-bottom:14px; letter-spacing:1px; text-transform:uppercase;">Local Server Required</h2>
+      <p style="font-size:15px; color:#94a3b8; line-height:1.6; margin-bottom:24px;">
+        Web browsers automatically block 3D maps and ES modules when opening files directly with <code style="color:#f43f5e; background:rgba(0,0,0,0.4); padding:2px 6px; border-radius:3px;">file:///</code> protocol.
+      </p>
+      
+      <div style="background:rgba(8,14,28,0.8); border:1px solid rgba(255,255,255,0.1); border-radius:4px; padding:18px; margin-bottom:24px; text-align:left;">
+        <div style="font-family:'Share Tech Mono', monospace; font-size:11px; color:#64748b; letter-spacing:1px; margin-bottom:6px;">DIRECT LOCALHOST ACCESS:</div>
+        <a id="direct-server-link" href="http://localhost:8080" style="display:inline-block; font-family:'Share Tech Mono', monospace; font-size:20px; color:#00f3ff; text-decoration:none; font-weight:700;">👉 http://localhost:8080</a>
+        <div id="server-ping-status" style="font-family:'Share Tech Mono', monospace; font-size:12px; color:#38bdf8; margin-top:8px;">Pinging local server...</div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <a href="http://localhost:8080" style="background:#00f3ff; color:#050914; padding:14px 28px; border-radius:2px; font-weight:800; font-size:15px; text-decoration:none; text-transform:uppercase; letter-spacing:1.5px; box-shadow:0 0 25px rgba(0,243,255,0.4);">
+          OPEN GAME (LOCALHOST:8080)
+        </a>
+        <span style="font-size:12px; color:#64748b; font-family:'Share Tech Mono', monospace;">Or run <strong>PLAY_GAME.bat</strong> in this folder</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    if (window.location.protocol === 'file:') {
+      const banner = document.getElementById('file-protocol-warning');
+      if (banner) banner.style.display = 'flex';
+      const statusEl = document.getElementById('server-ping-status');
+      
+      // Check if server is running on 8080 - if so, redirect immediately
+      fetch('http://localhost:8080/assets/map/map.json')
+        .then(() => {
+          if (statusEl) statusEl.innerText = '⚡ Server found! Launching arena...';
+          window.location.href = 'http://localhost:8080';
+        })
+        .catch(() => {
+          if (statusEl) statusEl.innerText = 'Server not detected. Double-click PLAY_GAME.bat to launch!';
+        });
+    }
+  </script>
+
+  <!-- Game Bootstrap -->
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

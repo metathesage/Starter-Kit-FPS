@@ -1,0 +1,1565 @@
+import os
+
+code = """<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WAIFU DESTINY: Aurelia Firing Range</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body, html { width: 100%; height: 100%; overflow: hidden; background: #0b0d14; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #fff; }
+    #canvas-container { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
+    
+    /* HUD Overlay */
+    #hud { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
+    
+    /* Crosshair */
+    #crosshair-container { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; }
+    #crosshair-dot { width: 4px; height: 4px; background: rgba(255,255,255,0.95); border-radius: 50%; box-shadow: 0 0 6px rgba(56, 189, 248, 0.8); }
+    #crosshair-ring { position: absolute; width: 26px; height: 26px; border: 1.5px solid rgba(255,255,255,0.35); border-radius: 50%; transition: transform 0.08s ease, border-color 0.15s ease; }
+    #hitmarker { position: absolute; font-size: 28px; font-weight: 900; opacity: 0; transition: opacity 0.1s ease; color: #fff; text-shadow: 0 0 12px rgba(255,255,255,0.95); }
+    
+    /* Top Banner */
+    #top-bar { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); display: flex; gap: 12px; align-items: center; max-width: 95%; }
+    #controls-hint { background: rgba(14, 18, 28, 0.85); backdrop-filter: blur(10px); padding: 8px 20px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.15); font-size: 12.5px; color: #a4b3d6; letter-spacing: 0.4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #controls-hint b { color: #fff; }
+    #gamepad-badge { display: none; background: rgba(34, 197, 94, 0.25); border: 1px solid rgba(34, 197, 94, 0.6); color: #86efac; padding: 6px 14px; border-radius: 16px; font-size: 12px; font-weight: 700; align-items: center; gap: 6px; }
+    #invert-btn { pointer-events: auto; background: rgba(14, 18, 28, 0.85); border: 1px solid rgba(255,255,255,0.2); color: #e2e8f0; padding: 7px 14px; border-radius: 16px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+    #invert-btn:hover { background: rgba(56, 189, 248, 0.25); border-color: #38bdf8; color: #38bdf8; }
+
+    /* Bottom Left: Health, Waifu Badge & Abilities */
+    #bottom-left { position: absolute; bottom: 32px; left: 36px; display: flex; flex-direction: column; gap: 8px; width: 380px; }
+    #waifu-badge { display: flex; align-items: center; gap: 12px; background: rgba(16, 21, 34, 0.88); backdrop-filter: blur(12px); padding: 10px 16px; border-radius: 8px; border: 1px solid rgba(120, 180, 255, 0.3); box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
+    #waifu-avatar { width: 40px; height: 40px; border-radius: 6px; background: linear-gradient(135deg, #7b4ef5, #38c8ff); display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 17px; color: #fff; box-shadow: 0 0 12px rgba(56, 200, 255, 0.5); }
+    #waifu-info { display: flex; flex-direction: column; }
+    #waifu-name { font-size: 14px; font-weight: 800; color: #d8e5ff; letter-spacing: 0.5px; }
+    #waifu-perk { font-size: 11.5px; color: #4ee0ff; margin-top: 2px; }
+    
+    .bar-container { background: rgba(10, 14, 22, 0.85); height: 10px; border-radius: 3px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
+    #shield-bar { width: 100%; height: 100%; background: linear-gradient(90deg, #25aae1, #3fe3ff); transition: width 0.15s ease; box-shadow: 0 0 10px rgba(63, 227, 255, 0.6); }
+    #health-bar { width: 100%; height: 6px; background: #e0e5f0; transition: width 0.15s ease; }
+    
+    #abilities-row { display: flex; justify-content: space-between; align-items: center; padding: 2px 4px; }
+    #dash-pips { font-size: 12px; color: #a5f3fc; font-weight: 700; letter-spacing: 1.5px; }
+    #grapple-hud { font-size: 12px; color: #38bdf8; font-weight: 700; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px; }
+    #grapple-dot { width: 8px; height: 8px; border-radius: 50%; background: #38bdf8; box-shadow: 0 0 8px #38bdf8; }
+    
+    /* Bottom Right: Ammo & Weapon */
+    #bottom-right { position: absolute; bottom: 32px; right: 40px; text-align: right; }
+    #ammo-counter { font-size: 48px; font-weight: 900; color: #f5f8ff; line-height: 1; letter-spacing: -1px; text-shadow: 0 0 20px rgba(255,255,255,0.4); }
+    #ammo-reserve { font-size: 20px; color: #8292b5; font-weight: 600; }
+    #weapon-name { font-size: 13.5px; color: #ffd15c; letter-spacing: 1.2px; margin-top: 4px; font-weight: 800; text-shadow: 0 0 12px rgba(255, 209, 92, 0.5); }
+    #paracausal-stacks { font-size: 12px; color: #e2e8f0; font-weight: 700; margin-top: 3px; letter-spacing: 0.8px; }
+
+    /* Floating Combat Damage Numbers */
+    .dmg-number { position: absolute; font-weight: 900; pointer-events: none; transform: translate(-50%, -50%); transition: transform 0.6s ease-out, opacity 0.6s ease-out; z-index: 15; text-shadow: 0 0 8px rgba(0,0,0,0.8); }
+
+    /* Loading Indicator */
+    #loading-indicator { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); font-size: 12px; color: #7dd3fc; background: rgba(15, 23, 42, 0.85); padding: 5px 16px; border-radius: 12px; border: 1px solid rgba(56, 189, 248, 0.3); display: none; }
+    
+    /* Gacha Modal Overlay */
+    #gacha-modal { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(8, 10, 18, 0.92); backdrop-filter: blur(14px); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 100; pointer-events: auto; }
+    #gacha-title { font-size: 28px; font-weight: 800; letter-spacing: 3px; color: #ffd15c; margin-bottom: 24px; text-shadow: 0 0 20px rgba(255, 209, 92, 0.6); }
+    #gacha-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; max-width: 950px; }
+    .gacha-card { width: 160px; height: 210px; background: rgba(22, 28, 44, 0.9); border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 12px; text-align: center; position: relative; overflow: hidden; animation: cardPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+    .gacha-card.five-star { border: 2px solid #ffcc33; background: linear-gradient(180deg, rgba(255, 204, 51, 0.25), rgba(30, 24, 10, 0.95)); box-shadow: 0 0 25px rgba(255, 204, 51, 0.45); }
+    .gacha-card.four-star { border: 1.5px solid #a855f7; background: linear-gradient(180deg, rgba(168, 85, 247, 0.2), rgba(24, 16, 36, 0.95)); box-shadow: 0 0 18px rgba(168, 85, 247, 0.35); }
+    .card-stars { font-size: 13px; color: #ffcc33; margin-top: 6px; }
+    .card-name { font-size: 14px; font-weight: 700; margin-top: 8px; }
+    .card-type { font-size: 11px; color: #94a3b8; margin-top: 4px; }
+    #gacha-close-btn { margin-top: 30px; padding: 10px 36px; border-radius: 24px; border: none; background: #ffcc33; color: #111; font-weight: 700; font-size: 14px; cursor: pointer; letter-spacing: 1px; transition: transform 0.15s, background 0.15s; }
+    #gacha-close-btn:hover { background: #ffe066; transform: scale(1.05); }
+    
+    /* Click to Play Screen */
+    #blocker { position: absolute; width: 100%; height: 100%; background: rgba(6, 8, 14, 0.88); backdrop-filter: blur(8px); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 50; cursor: pointer; }
+    #blocker h1 { font-size: 44px; font-weight: 900; letter-spacing: 4px; margin-bottom: 12px; background: linear-gradient(90deg, #fff, #ffd15c, #38c8ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    #blocker p { color: #9bb0db; font-size: 16px; margin-bottom: 24px; text-align: center; max-width: 600px; line-height: 1.5; }
+    #blocker .start-btn { padding: 14px 40px; background: linear-gradient(90deg, #3b82f6, #8b5cf6); border-radius: 30px; font-weight: 800; font-size: 16px; box-shadow: 0 0 25px rgba(139, 92, 246, 0.6); letter-spacing: 1px; transition: transform 0.15s; }
+    #blocker .start-btn:hover { transform: scale(1.04); }
+    
+    @keyframes cardPop {
+      0% { transform: scale(0.6) translateY(20px); opacity: 0; }
+      100% { transform: scale(1) translateY(0); opacity: 1; }
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+</head>
+<body>
+  <div id="canvas-container"></div>
+  
+  <div id="hud">
+    <div id="top-bar">
+      <div id="controls-hint">
+        <b>WASD / L-Stick</b> Move | <b>Shift / L3</b> Sprint | <b>Q / B</b> Jet-Dash | <b>F / LB</b> Grapple Hook | <b>Right-Click / LT</b> ADS | <b>Left-Click / RT</b> Fire | <b>R / X</b> Reload | <b>E / RB</b> Altar/Lucy | <b>Tab / Y</b> Switch Waifu
+      </div>
+      <div id="gamepad-badge">🎮 XBOX CONTROLLER ACTIVE</div>
+      <button id="invert-btn" onclick="toggleInvertLook()">Invert Look: OFF</button>
+    </div>
+    
+    <div id="crosshair-container">
+      <div id="crosshair-ring"></div>
+      <div id="crosshair-dot"></div>
+      <div id="hitmarker">✕</div>
+    </div>
+    
+    <div id="bottom-left">
+      <div id="waifu-badge">
+        <div id="waifu-avatar">L</div>
+        <div id="waifu-info">
+          <span id="waifu-name">LUCY (WUWA) ★★★★★</span>
+          <span id="waifu-perk">+20% Hawkmoon Precision, +12% Evasive Dash</span>
+        </div>
+      </div>
+      <div class="bar-container"><div id="shield-bar"></div></div>
+      <div class="bar-container" style="height: 6px;"><div id="health-bar"></div></div>
+      <div id="abilities-row">
+        <div id="dash-pips">JET-DASH: ◆ ◆</div>
+        <div id="grapple-hud"><div id="grapple-dot"></div> MONOWIRE: READY [F / LB]</div>
+      </div>
+    </div>
+    
+    <div id="bottom-right">
+      <div id="ammo-counter">8 <span id="ammo-reserve">/ 120</span></div>
+      <div id="weapon-name">HAWKMOON • EXOTIC HAND CANNON</div>
+      <div id="paracausal-stacks">PARACAUSAL CHARGE: 0 / 7</div>
+    </div>
+
+    <div id="loading-indicator">Calibrating Hawkmoon & Lucy Models...</div>
+  </div>
+  
+  <div id="blocker">
+    <h1>WAIFU DESTINY</h1>
+    <p>Featuring Lucy with Monowire Grappling Hook, Hawkmoon Exotic Hand Cannon with Full Procedural Audio, and Aurelia Testing Range</p>
+    <div class="start-btn">CLICK OR PRESS A TO ENTER FIRING RANGE</div>
+  </div>
+  
+  <div id="gacha-modal">
+    <div id="gacha-title">✦ RELIC VAULT SUMMON RESULTS ✦</div>
+    <div id="gacha-grid"></div>
+    <button id="gacha-close-btn" onclick="closeGachaModal()">CONFIRM REWARD (A / SPACE)</button>
+  </div>
+
+  <script>
+    let invertLookY = false;
+    function toggleInvertLook() {
+      invertLookY = !invertLookY;
+      document.getElementById('invert-btn').innerText = 'Invert Look: ' + (invertLookY ? 'ON' : 'OFF');
+    }
+
+    // --- PROCEDURAL WEB AUDIO SYNTHESIS ENGINE ---
+    let audioCtx = null;
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    // 1. Hawkmoon Gunshot Synthesizer (Sub-Bass + Transient Crack + Cylinder Snap + Paracausal Hawk Chime)
+    function playHawkmoonShotSound(stacks, isFinalRound) {
+      if (!audioCtx) return;
+      const t = audioCtx.currentTime;
+
+      // Layer A: Punchy Low-End Sub Kick (Sine wave rapidly dropping 110Hz -> 32Hz)
+      const subOsc = audioCtx.createOscillator();
+      const subGain = audioCtx.createGain();
+      subOsc.type = 'sine';
+      subOsc.frequency.setValueAtTime(110, t);
+      subOsc.frequency.exponentialRampToValueAtTime(32, t + 0.18);
+      subGain.gain.setValueAtTime(isFinalRound && stacks > 0 ? 1.0 : 0.85, t);
+      subGain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+      subOsc.connect(subGain);
+      subGain.connect(audioCtx.destination);
+      subOsc.start(t);
+      subOsc.stop(t + 0.23);
+
+      // Layer B: Snappy Mechanical Transient Crack (Distorted Triangle 950Hz -> 80Hz)
+      const crackOsc = audioCtx.createOscillator();
+      const crackGain = audioCtx.createGain();
+      crackOsc.type = 'triangle';
+      crackOsc.frequency.setValueAtTime(950, t);
+      crackOsc.frequency.exponentialRampToValueAtTime(80, t + 0.04);
+      crackGain.gain.setValueAtTime(0.7, t);
+      crackGain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+      crackOsc.connect(crackGain);
+      crackGain.connect(audioCtx.destination);
+      crackOsc.start(t);
+      crackOsc.stop(t + 0.09);
+
+      // Layer C: Metallic Noise Blast & Barrel Resonance (White Noise through Highpass + Bandpass)
+      const bufferSize = audioCtx.sampleRate * 0.15;
+      const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const data = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+      const noiseSource = audioCtx.createBufferSource();
+      noiseSource.buffer = noiseBuffer;
+      const bandpass = audioCtx.createBiquadFilter();
+      bandpass.type = 'bandpass';
+      bandpass.frequency.setValueAtTime(2600, t);
+      bandpass.Q.setValueAtTime(3.0, t);
+
+      const noiseGain = audioCtx.createGain();
+      noiseGain.gain.setValueAtTime(0.55, t);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+
+      noiseSource.connect(bandpass);
+      bandpass.connect(noiseGain);
+      noiseGain.connect(audioCtx.destination);
+      noiseSource.start(t);
+
+      // Layer D: Exotic Paracausal Hawk Chime / Celestial Shimmer (Harmonic chords that intensify with stacks)
+      if (stacks > 0 || isFinalRound) {
+        const chord = isFinalRound && stacks >= 5 ? [587, 880, 1175, 1760, 2349] : [880, 1320, 1760];
+        chord.forEach((freq, idx) => {
+          const chimeOsc = audioCtx.createOscillator();
+          const chimeGain = audioCtx.createGain();
+          chimeOsc.type = 'sine';
+          chimeOsc.frequency.setValueAtTime(freq, t + 0.02);
+          chimeOsc.frequency.exponentialRampToValueAtTime(freq * 0.98, t + 0.6);
+
+          const intensity = Math.min(1.0, 0.12 * (stacks + 1));
+          chimeGain.gain.setValueAtTime(0, t);
+          chimeGain.gain.linearRampToValueAtTime(intensity, t + 0.04);
+          chimeGain.gain.exponentialRampToValueAtTime(0.0001, t + (isFinalRound ? 0.8 : 0.45));
+
+          chimeOsc.connect(chimeGain);
+          chimeGain.connect(audioCtx.destination);
+          chimeOsc.start(t + 0.02);
+          chimeOsc.stop(t + (isFinalRound ? 0.85 : 0.5));
+        });
+      }
+    }
+
+    // 2. Realistic Hawkmoon Multi-Stage Reload Sounds
+    function playHawkmoonReloadSounds() {
+      if (!audioCtx) return;
+      const t = audioCtx.currentTime;
+
+      function click(time, freq, dur, vol = 0.3) {
+        const osc = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, time);
+        osc.frequency.exponentialRampToValueAtTime(freq * 0.4, time + dur);
+        g.gain.setValueAtTime(vol, time);
+        g.gain.exponentialRampToValueAtTime(0.001, time + dur);
+        osc.connect(g);
+        g.connect(audioCtx.destination);
+        osc.start(time);
+        osc.stop(time + dur + 0.01);
+      }
+
+      click(t + 0.02, 1400, 0.04, 0.35); // Latch click
+      click(t + 0.32, 650, 0.08, 0.25);  // Cylinder swing open
+      click(t + 0.70, 920, 0.05, 0.3);   // Spent casings eject
+      click(t + 0.78, 1150, 0.04, 0.2);  // Brass casing rattle
+      click(t + 1.15, 520, 0.09, 0.45);  // Cylinder slam shut
+      click(t + 1.42, 1850, 0.03, 0.35); // Hammer cock back
+    }
+
+    // 3. Monowire Grappling Hook Sounds (Pneumatic Launch & Jump Slingshot)
+    function playGrappleLaunchSound() {
+      if (!audioCtx) return;
+      const t = audioCtx.currentTime;
+      // High pressure whip/launch
+      const osc = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(1400, t);
+      osc.frequency.exponentialRampToValueAtTime(320, t + 0.14);
+      g.gain.setValueAtTime(0.4, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
+      osc.connect(g);
+      g.connect(audioCtx.destination);
+      osc.start(t);
+      osc.stop(t + 0.17);
+    }
+
+    function playGrappleBoostSound() {
+      if (!audioCtx) return;
+      const t = audioCtx.currentTime;
+      // High-speed air rush and cable release
+      const osc = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(260, t);
+      osc.frequency.exponentialRampToValueAtTime(680, t + 0.18);
+      g.gain.setValueAtTime(0.5, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+      osc.connect(g);
+      g.connect(audioCtx.destination);
+      osc.start(t);
+      osc.stop(t + 0.26);
+    }
+
+    // 4. Hitmarker Feedback Click
+    function playHitmarkerSound(isCrit, isParacausal) {
+      if (!audioCtx) return;
+      const t = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(isCrit ? 2200 : (isParacausal ? 2900 : 1600), t);
+      g.gain.setValueAtTime(0.3, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+      osc.connect(g);
+      g.connect(audioCtx.destination);
+      osc.start(t);
+      osc.stop(t + 0.06);
+    }
+
+    // 5. Jet-Dash Thruster Burst
+    function playDashSound() {
+      if (!audioCtx) return;
+      const t = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(380, t);
+      osc.frequency.exponentialRampToValueAtTime(110, t + 0.18);
+      g.gain.setValueAtTime(0.5, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+      osc.connect(g);
+      g.connect(audioCtx.destination);
+      osc.start(t);
+      osc.stop(t + 0.23);
+    }
+
+    // --- THREE.JS SETUP ---
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0e121d);
+    scene.fog = new THREE.FogExp2(0x0e121d, 0.009);
+    
+    // Player Hierarchy: playerGroup (Yaw) -> pitchGroup (Pitch) -> camera
+    const playerGroup = new THREE.Group();
+    playerGroup.position.set(0, 1.7, 14);
+    scene.add(playerGroup);
+
+    const pitchGroup = new THREE.Group();
+    playerGroup.add(pitchGroup);
+
+    // Camera near plane set to 0.01 to guarantee no viewmodel or hands clipping!
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 1000);
+    pitchGroup.add(camera);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    container.appendChild(renderer.domElement);
+
+    // --- LIGHTING ---
+    const ambientLight = new THREE.AmbientLight(0x7585b5, 1.1);
+    scene.add(ambientLight);
+    
+    const sunLight = new THREE.DirectionalLight(0xe8e4ff, 1.6);
+    sunLight.position.set(25, 45, 20);
+    sunLight.castShadow = true;
+    sunLight.shadow.mapSize.width = 2048;
+    sunLight.shadow.mapSize.height = 2048;
+    scene.add(sunLight);
+
+    // --- ARENA ENVIRONMENT & FIRING RANGE ---
+    const floorGeo = new THREE.BoxGeometry(120, 2, 160);
+    const floorMat = new THREE.MeshStandardMaterial({ color: 0x161a26, roughness: 0.65, metalness: 0.35 });
+    const floor = new THREE.Mesh(floorGeo, floorMat);
+    floor.position.set(0, -1, -20);
+    floor.receiveShadow = true;
+    scene.add(floor);
+
+    // Boundary walls and pillars
+    const monolithMat = new THREE.MeshStandardMaterial({ color: 0x222a3d, roughness: 0.35, metalness: 0.75 });
+    const pillarGeo = new THREE.BoxGeometry(3.5, 22, 3.5);
+    const pillars = [];
+    [[-25, -25], [25, -25], [-25, 25], [25, 25], [-25, -75], [25, -75]].forEach(([x, z]) => {
+      const p = new THREE.Mesh(pillarGeo, monolithMat);
+      p.position.set(x, 11, z);
+      p.castShadow = true;
+      p.receiveShadow = true;
+      scene.add(p);
+      pillars.push(p);
+      
+      const ringGeo = new THREE.TorusGeometry(2.5, 0.15, 8, 32);
+      const ringMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.position.set(x, 21, z);
+      ring.rotation.x = Math.PI / 2;
+      scene.add(ring);
+    });
+
+    // Central Elevated Firing Deck Ramp
+    const rampMat = new THREE.MeshStandardMaterial({ color: 0x2b3347, roughness: 0.4, metalness: 0.6 });
+    const rampGeo = new THREE.BoxGeometry(10, 1.2, 16);
+    const ramp = new THREE.Mesh(rampGeo, rampMat);
+    ramp.position.set(0, 1.5, -8);
+    ramp.rotation.x = 0.18;
+    ramp.receiveShadow = true;
+    scene.add(ramp);
+
+    // --- FIRING RANGE DISTANCE LANES & MARKERS (10m, 25m, 50m, 100m) ---
+    function createDistanceMarker(zPos, label) {
+      // Glowing lane floor strip
+      const lineGeo = new THREE.BoxGeometry(40, 0.04, 0.35);
+      const lineMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
+      const line = new THREE.Mesh(lineGeo, lineMat);
+      line.position.set(0, 0.02, zPos);
+      scene.add(line);
+
+      // Left & Right Lane Pylons
+      [-20, 20].forEach(x => {
+        const pylon = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.18, 3.2, 16), monolithMat);
+        pylon.position.set(x, 1.6, zPos);
+        scene.add(pylon);
+
+        const cap = new THREE.Mesh(new THREE.SphereGeometry(0.2, 16, 16), new THREE.MeshBasicMaterial({ color: 0x38bdf8 }));
+        cap.position.set(x, 3.2, zPos);
+        scene.add(cap);
+
+        // Distance Tag Sprite
+        const canvas = document.createElement('canvas');
+        canvas.width = 160; canvas.height = 64;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = 'bold 28px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(label, 80, 42);
+        const tex = new THREE.CanvasTexture(canvas);
+        const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true }));
+        sp.position.set(x, 3.8, zPos);
+        sp.scale.set(2.0, 0.8, 1);
+        scene.add(sp);
+      });
+    }
+
+    createDistanceMarker(4, '10 METERS');
+    createDistanceMarker(-11, '25 METERS');
+    createDistanceMarker(-36, '50 METERS');
+    createDistanceMarker(-86, '100 METERS');
+
+    // Firing Range Diagnostic Display Holoterminal (Matching Concept Mockup)
+    const terminalGroup = new THREE.Group();
+    terminalGroup.position.set(2.8, 0, 12);
+    terminalGroup.rotation.y = -0.45;
+    const termBase = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.2, 0.5), monolithMat);
+    termBase.position.y = 0.6;
+    terminalGroup.add(termBase);
+
+    const termScreenGeo = new THREE.PlaneGeometry(1.2, 0.8);
+    const termCanvas = document.createElement('canvas');
+    termCanvas.width = 512; termCanvas.height = 340;
+    const tCtx = termCanvas.getContext('2d');
+    tCtx.fillStyle = '#0f172a';
+    tCtx.fillRect(0, 0, 512, 340);
+    tCtx.strokeStyle = '#38bdf8';
+    tCtx.lineWidth = 4;
+    tCtx.strokeRect(6, 6, 500, 328);
+    tCtx.fillStyle = '#ffd15c';
+    tCtx.font = 'bold 26px sans-serif';
+    tCtx.fillText('PARACAUSAL RANGE CALIBRATION', 24, 45);
+    tCtx.fillStyle = '#38bdf8';
+    tCtx.font = '20px monospace';
+    tCtx.fillText('WEAPON: HAWKMOON (EXOTIC)', 24, 95);
+    tCtx.fillText('OPERATIVE: LUCY // ACTIVE', 24, 135);
+    tCtx.fillText('MONOWIRE GRAPPLE: ONLINE', 24, 175);
+    tCtx.fillStyle = '#86efac';
+    tCtx.fillText('STATUS: SYSTEMS NOMINAL', 24, 220);
+    tCtx.fillStyle = '#64748b';
+    tCtx.font = '16px monospace';
+    tCtx.fillText('AURELIA COMBAT DIVISION 2026', 24, 295);
+
+    const termTex = new THREE.CanvasTexture(termCanvas);
+    const termScreen = new THREE.Mesh(termScreenGeo, new THREE.MeshBasicMaterial({ map: termTex, side: THREE.DoubleSide }));
+    termScreen.position.set(0, 1.45, 0.15);
+    termScreen.rotation.x = -0.3;
+    terminalGroup.add(termScreen);
+    scene.add(terminalGroup);
+
+    // --- WEAPON & HANDS CONTAINER RIG (FIRST PERSON VIEWMODEL) ---
+    const weaponContainer = new THREE.Group();
+    pitchGroup.add(weaponContainer);
+
+    // Natural Viewmodel Offsets
+    const hipPos = new THREE.Vector3(0.18, -0.16, -0.28);
+    const adsPos = new THREE.Vector3(0.00, -0.096, -0.22);
+    weaponContainer.position.copy(hipPos);
+
+    let recoilPitch = 0.0;
+    let recoilZ = 0.0;
+
+    // --- STYLIZED FIRST-PERSON HANDS & ARMS RIG (Holding Hawkmoon) ---
+    const armsGroup = new THREE.Group();
+    const armorMat = new THREE.MeshStandardMaterial({ color: 0x1b202e, roughness: 0.45, metalness: 0.7 });
+    const gloveMat = new THREE.MeshStandardMaterial({ color: 0x111622, roughness: 0.6, metalness: 0.3 });
+    const cyanGlowMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
+
+    // Right Forearm & Hand (Gun Grip Arm)
+    const rightArm = new THREE.Group();
+    const rightForearm = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.048, 0.28, 12), armorMat);
+    rightForearm.rotation.x = -1.15;
+    rightForearm.rotation.z = -0.22;
+    rightForearm.position.set(0.09, -0.16, 0.14);
+    rightArm.add(rightForearm);
+
+    // Right Wrist Neon Circuit Line
+    const rightCuff = new THREE.Mesh(new THREE.TorusGeometry(0.042, 0.004, 8, 24), cyanGlowMat);
+    rightCuff.rotation.x = -1.15;
+    rightCuff.rotation.z = -0.22;
+    rightCuff.position.set(0.07, -0.10, 0.06);
+    rightArm.add(rightCuff);
+
+    // Right Hand & Fingers gripping the handle
+    const rightHandPalm = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.075, 0.045), gloveMat);
+    rightHandPalm.position.set(0.04, -0.06, -0.01);
+    rightHandPalm.rotation.set(-0.2, -0.15, -0.1);
+    rightArm.add(rightHandPalm);
+
+    // Armored Fingers Wrapped around Grip
+    for (let f = 0; f < 3; f++) {
+      const finger = new THREE.Mesh(new THREE.BoxGeometry(0.016, 0.016, 0.06), armorMat);
+      finger.position.set(0.005, -0.05 - (f * 0.02), -0.025);
+      finger.rotation.y = 0.7;
+      rightArm.add(finger);
+    }
+    // Index Trigger Finger
+    const triggerFinger = new THREE.Mesh(new THREE.BoxGeometry(0.014, 0.014, 0.055), armorMat);
+    triggerFinger.position.set(0.01, -0.015, -0.045);
+    triggerFinger.rotation.set(-0.15, 0.15, 0);
+    rightArm.add(triggerFinger);
+    armsGroup.add(rightArm);
+
+    // Left Forearm & Hand (Support Grip + Monowire Grappling Projector)
+    const leftArm = new THREE.Group();
+    const leftForearm = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.048, 0.32, 12), armorMat);
+    leftForearm.rotation.x = -0.95;
+    leftForearm.rotation.z = 0.45;
+    leftForearm.position.set(-0.16, -0.20, 0.15);
+    leftArm.add(leftForearm);
+
+    // Lucy's Monowire Grapple Projector Gauntlet on left wrist
+    const grappleProjector = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.035, 0.07), monolithMat);
+    grappleProjector.position.set(-0.11, -0.12, 0.05);
+    grappleProjector.rotation.set(-0.95, 0, 0.45);
+    leftArm.add(grappleProjector);
+
+    const grappleEmitter = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.015, 12), cyanGlowMat);
+    grappleEmitter.rotation.x = Math.PI / 2;
+    grappleEmitter.position.set(-0.11, -0.11, 0.01);
+    leftArm.add(grappleEmitter);
+
+    // Left Supportive Hand cupping base of grip
+    const leftPalm = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.065, 0.04), gloveMat);
+    leftPalm.position.set(-0.02, -0.11, -0.01);
+    leftPalm.rotation.set(-0.1, 0.3, 0.2);
+    leftArm.add(leftPalm);
+    armsGroup.add(leftArm);
+
+    weaponContainer.add(armsGroup);
+
+    // Default procedural fallback until Hawkmoon GLB completes load
+    let hawkmoonModel = null;
+    const fallbackGun = new THREE.Group();
+    const fbBody = new THREE.Mesh(
+      new THREE.BoxGeometry(0.065, 0.13, 0.38),
+      new THREE.MeshStandardMaterial({ color: 0xf1f5f9, metalness: 0.9, roughness: 0.2 })
+    );
+    fbBody.position.set(0, 0, -0.12);
+    fallbackGun.add(fbBody);
+    const fbGrip = new THREE.Mesh(
+      new THREE.BoxGeometry(0.055, 0.14, 0.08),
+      new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.5 })
+    );
+    fbGrip.position.set(0, -0.08, 0.01);
+    fbGrip.rotation.x = -0.3;
+    fallbackGun.add(fbGrip);
+    weaponContainer.add(fallbackGun);
+
+    // --- GLTF LOADER ---
+    const gltfLoader = new THREE.GLTFLoader();
+    const loadingEl = document.getElementById('loading-indicator');
+    loadingEl.style.display = 'block';
+
+    // 1. Load Hawkmoon Exotic Hand Cannon into First-Person Weapon Hand
+    gltfLoader.load(
+      './assets/models/hawkmoon_hand_cannon.glb',
+      (gltf) => {
+        weaponContainer.remove(fallbackGun);
+        hawkmoonModel = gltf.scene;
+        // Native model already points along -Z; scale 0.72; rotation 0 keeps sights straight ahead
+        hawkmoonModel.scale.set(0.72, 0.72, 0.72);
+        hawkmoonModel.rotation.set(0, 0, 0);
+        hawkmoonModel.position.set(0, -0.04, -0.02);
+
+        // Enhance metallic luster and reflections
+        hawkmoonModel.traverse((child) => {
+          if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+            if (child.material) {
+              child.material.envMapIntensity = 1.6;
+              child.material.roughness = Math.min(child.material.roughness, 0.3);
+              child.material.metalness = Math.max(child.material.metalness, 0.88);
+            }
+          }
+        });
+
+        weaponContainer.add(hawkmoonModel);
+        console.log('Hawkmoon Hand Cannon loaded successfully in First-Person Rig!');
+        loadingEl.style.display = 'none';
+      },
+      undefined,
+      (err) => {
+        console.warn('Could not load Hawkmoon GLB, keeping stylized fallback:', err);
+        loadingEl.style.display = 'none';
+      }
+    );
+
+    // 2. Load Lucy (Wuthering Waves) Model into the Firing Range Environment
+    let lucyModel = null;
+    let lucyMixer = null;
+
+    gltfLoader.load(
+      './assets/models/lucy_wuthering_waves.glb',
+      (gltf) => {
+        lucyModel = gltf.scene;
+        lucyModel.scale.set(0.0108, 0.0108, 0.0108);
+        lucyModel.position.set(-6.5, 0, 3.5);
+        lucyModel.rotation.y = 0.55;
+
+        lucyModel.traverse((child) => {
+          if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+          }
+        });
+
+        const lucySpot = new THREE.SpotLight(0xa5f3fc, 2.5, 12, Math.PI / 4, 0.5);
+        lucySpot.position.set(-6.5, 4.0, 5.5);
+        lucySpot.target = lucyModel;
+        scene.add(lucySpot);
+
+        const lucyHalo = new THREE.Mesh(
+          new THREE.TorusGeometry(0.35, 0.025, 16, 32),
+          new THREE.MeshBasicMaterial({ color: 0x38bdf8 })
+        );
+        lucyHalo.position.set(-6.5, 1.95, 3.5);
+        lucyHalo.rotation.x = Math.PI / 2;
+        scene.add(lucyHalo);
+
+        const lucyLabelCanvas = document.createElement('canvas');
+        lucyLabelCanvas.width = 256; lucyLabelCanvas.height = 64;
+        const ctx = lucyLabelCanvas.getContext('2d');
+        ctx.fillStyle = '#38bdf8'; ctx.font = 'bold 24px sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText('LUCY (WUWA)', 128, 40);
+        const lTex = new THREE.CanvasTexture(lucyLabelCanvas);
+        const lSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: lTex, transparent: true }));
+        lSprite.position.set(-6.5, 2.15, 3.5);
+        lSprite.scale.set(1.5, 0.38, 1);
+        scene.add(lSprite);
+
+        if (gltf.animations && gltf.animations.length > 0) {
+          lucyMixer = new THREE.AnimationMixer(lucyModel);
+          const action = lucyMixer.clipAction(gltf.animations[0]);
+          action.play();
+        }
+
+        scene.add(lucyModel);
+      },
+      undefined,
+      (err) => console.warn('Could not load Lucy GLB:', err)
+    );
+
+    // 3. Load Lucy (Cyberpunk: Edgerunner) Model
+    let lucyEdgerunnerModel = null;
+    gltfLoader.load(
+      './assets/models/lucy_edgerunner.glb',
+      (gltf) => {
+        lucyEdgerunnerModel = gltf.scene;
+        lucyEdgerunnerModel.scale.set(0.0102, 0.0102, 0.0102);
+        lucyEdgerunnerModel.position.set(6.5, 0, 3.5);
+        lucyEdgerunnerModel.rotation.y = -0.55;
+
+        lucyEdgerunnerModel.traverse((child) => {
+          if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+          }
+        });
+
+        const edgeSpot = new THREE.SpotLight(0xd946ef, 3.0, 12, Math.PI / 4, 0.5);
+        edgeSpot.position.set(6.5, 4.0, 5.5);
+        edgeSpot.target = lucyEdgerunnerModel;
+        scene.add(edgeSpot);
+
+        const edgeCanvas = document.createElement('canvas');
+        edgeCanvas.width = 300; edgeCanvas.height = 64;
+        const ectx = edgeCanvas.getContext('2d');
+        ectx.fillStyle = '#d946ef'; ectx.font = 'bold 22px sans-serif'; ectx.textAlign = 'center';
+        ectx.fillText('LUCY (EDGERUNNER)', 150, 40);
+        const eTex = new THREE.CanvasTexture(edgeCanvas);
+        const eSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: eTex, transparent: true }));
+        eSprite.position.set(6.5, 2.15, 3.5);
+        eSprite.scale.set(1.6, 0.38, 1);
+        scene.add(eSprite);
+
+        scene.add(lucyEdgerunnerModel);
+      },
+      undefined,
+      (err) => console.warn('Could not load Lucy Edgerunner GLB:', err)
+    );
+
+    // 4. Load Legendary Supply Chest
+    let lootChestModel = null;
+    gltfLoader.load(
+      './assets/models/loot_chest_legendary.glb',
+      (gltf) => {
+        lootChestModel = gltf.scene;
+        lootChestModel.scale.set(1.4, 1.4, 1.4);
+        lootChestModel.position.set(0, 2.8, -1.0);
+        lootChestModel.rotation.y = Math.PI;
+
+        const chestLight = new THREE.PointLight(0xffcc33, 3.5, 6);
+        chestLight.position.set(0, 3.8, -1.0);
+        scene.add(chestLight);
+
+        scene.add(lootChestModel);
+      },
+      undefined,
+      (err) => console.warn('Could not load Legendary Chest GLB:', err)
+    );
+
+    // 5. Load Overshield Power Core
+    let overshieldCore = null;
+    gltfLoader.load(
+      './assets/models/overshield_power_core.glb',
+      (gltf) => {
+        overshieldCore = gltf.scene;
+        overshieldCore.scale.set(0.65, 0.65, 0.65);
+        overshieldCore.position.set(0, 1.5, 7.0);
+        scene.add(overshieldCore);
+      },
+      undefined,
+      (err) => console.warn('Could not load Overshield Core GLB:', err)
+    );
+
+    // --- WAIFU SYSTEM ---
+    const waifus = [
+      { id: 'waifu_lucy_wuwa', name: 'LUCY (WUWA)', rarity: 5, avatar: 'L', perkName: '+20% Hawkmoon Precision, Monowire Grapple', critBonus: 0.20, reloadBonus: 0.15, shieldBonus: 0.10, speedBonus: 0.12 },
+      { id: 'waifu_lucy_edge', name: 'LUCY (EDGERUNNER)', rarity: 5, avatar: 'E', perkName: '+25% Jet-Dash Impulse, Monowire Slingshot', critBonus: 0.10, reloadBonus: 0.20, shieldBonus: 0.05, speedBonus: 0.18 },
+      { id: 'waifu_001_nova', name: 'NOVA', rarity: 5, avatar: 'N', perkName: '+15% Weakpoint Crit, +10% Reload', critBonus: 0.15, reloadBonus: 0.10, shieldBonus: 0, speedBonus: 0 },
+      { id: 'waifu_002_lux', name: 'LUX', rarity: 5, avatar: 'X', perkName: '+20% Max Shields, -15% Regen Delay', critBonus: 0, reloadBonus: 0, shieldBonus: 0.20, speedBonus: 0 },
+      { id: 'waifu_003_ria', name: 'RIA', rarity: 5, avatar: 'R', perkName: '+8% Movement Speed, +15% Dash Dist', critBonus: 0, reloadBonus: 0, shieldBonus: 0, speedBonus: 0.08 }
+    ];
+    let currentWaifuIdx = 0;
+
+    function applyWaifu() {
+      const w = waifus[currentWaifuIdx];
+      document.getElementById('waifu-avatar').innerText = w.avatar;
+      document.getElementById('waifu-name').innerText = w.name + ' ★★★★★';
+      document.getElementById('waifu-perk').innerText = w.perkName;
+    }
+
+    // --- GACHA ALTAR ---
+    const altarGroup = new THREE.Group();
+    altarGroup.position.set(-10, 0, 4);
+    const altarBase = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.6, 1.4, 24), monolithMat);
+    altarBase.position.y = 0.7;
+    altarGroup.add(altarBase);
+    
+    const haloAltar = new THREE.Mesh(new THREE.TorusGeometry(0.7, 0.06, 16, 32), new THREE.MeshBasicMaterial({ color: 0x38bdf8 }));
+    haloAltar.position.y = 1.9;
+    altarGroup.add(haloAltar);
+    
+    const altarLight = new THREE.PointLight(0x38bdf8, 2.5, 8);
+    altarLight.position.y = 2.0;
+    altarGroup.add(altarLight);
+    scene.add(altarGroup);
+
+    let pity5 = 0;
+    let pity4 = 0;
+
+    function pullGacha10() {
+      const results = [];
+      let hasFive = false;
+      let hasFour = false;
+
+      for (let i = 0; i < 10; i++) {
+        pity5++;
+        pity4++;
+        let rate5 = 0.006;
+        if (pity5 >= 74) rate5 += (pity5 - 74) * 0.06;
+
+        let roll = Math.random();
+        let item = {};
+        if (roll < rate5 || pity5 >= 90) {
+          pity5 = 0;
+          hasFive = true;
+          const pullPool = ['LUCY (WUWA)', 'NOVA', 'LUX', 'RIA'];
+          const chosen = pullPool[Math.floor(Math.random() * pullPool.length)];
+          item = { name: chosen, rarity: 5, type: 'SSR Operative' };
+        } else if (roll < (rate5 + 0.051) || pity4 >= 10) {
+          pity4 = 0;
+          hasFour = true;
+          const pull4 = ['Nyx (4★)', 'Honey (4★)', 'Hawkmoon Ornament', 'Hardlight Glaive'];
+          item = { name: pull4[Math.floor(Math.random() * pull4.length)], rarity: 4, type: 'SR Item' };
+        } else {
+          const pull3 = ['Aurelia Teal Shader', 'Relic Shard', 'Kinetic Scout', 'Scrap Nanites'];
+          item = { name: pull3[Math.floor(Math.random() * pull3.length)], rarity: 3, type: 'Standard Relic' };
+        }
+        results.push(item);
+      }
+
+      const grid = document.getElementById('gacha-grid');
+      grid.innerHTML = '';
+      results.forEach(res => {
+        const card = document.createElement('div');
+        card.className = 'gacha-card ' + (res.rarity === 5 ? 'five-star' : (res.rarity === 4 ? 'four-star' : ''));
+        card.innerHTML = `
+          <div style="font-size: 28px;">${res.rarity === 5 ? '👑' : (res.rarity === 4 ? '⚡' : '🔹')}</div>
+          <div class="card-stars">${'★'.repeat(res.rarity)}</div>
+          <div class="card-name">${res.name}</div>
+          <div class="card-type">${res.type}</div>
+        `;
+        grid.appendChild(card);
+      });
+
+      isLocked = false;
+      document.exitPointerLock?.();
+      document.getElementById('gacha-modal').style.display = 'flex';
+      
+      altarLight.color.setHex(hasFive ? 0xffcc33 : (hasFour ? 0xa855f7 : 0x38bdf8));
+      altarLight.intensity = 8.0;
+      setTimeout(() => { altarLight.intensity = 2.5; }, 1200);
+    }
+
+    function closeGachaModal() {
+      document.getElementById('gacha-modal').style.display = 'none';
+      requestPointerLock();
+    }
+
+    // --- SHOOTING TARGETS ROSTER (FIRING RANGE) ---
+    const targetDummies = [];
+    const dummyMat = new THREE.MeshStandardMaterial({ color: 0x333d52, metalness: 0.8, roughness: 0.3 });
+    const coreMat = new THREE.MeshBasicMaterial({ color: 0x38e3ff });
+
+    // 1. Floating Lumina Sentinel Dummies
+    function createDummy(x, y, z, isMover = false) {
+      const g = new THREE.Group();
+      g.position.set(x, y, z);
+      
+      const bodyMesh = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.1, 1.1), dummyMat.clone());
+      bodyMesh.rotation.set(0.7, 0.7, 0);
+      bodyMesh.castShadow = true;
+      g.add(bodyMesh);
+
+      const coreMesh = new THREE.Mesh(new THREE.SphereGeometry(0.35, 16, 16), coreMat.clone());
+      g.add(coreMesh);
+
+      scene.add(g);
+      const dummy = {
+        group: g,
+        bodyMesh,
+        coreMesh,
+        initialPos: new THREE.Vector3(x, y, z),
+        health: 260,
+        maxHealth: 260,
+        isDead: false,
+        respawnTimer: 0,
+        isMover: isMover,
+        moveSpeed: isMover ? 3.5 : 0
+      };
+      targetDummies.push(dummy);
+      return dummy;
+    }
+
+    // 2. Reactive Steel Plate Bullseye Targets
+    function createSteelTarget(x, y, z) {
+      const g = new THREE.Group();
+      g.position.set(x, y, z);
+
+      const stand = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 1.6, 12), monolithMat);
+      stand.position.y = 0.8;
+      g.add(stand);
+
+      const plateGeo = new THREE.CylinderGeometry(0.38, 0.38, 0.06, 24);
+      const plateMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.4, metalness: 0.8 });
+      const plate = new THREE.Mesh(plateGeo, plateMat);
+      plate.rotation.x = Math.PI / 2;
+      plate.position.y = 1.8;
+      plate.castShadow = true;
+      g.add(plate);
+
+      const bullseye = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.14, 0.14, 0.07, 16),
+        new THREE.MeshBasicMaterial({ color: 0xffe680 })
+      );
+      bullseye.rotation.x = Math.PI / 2;
+      bullseye.position.set(0, 1.8, 0.01);
+      g.add(bullseye);
+
+      scene.add(g);
+      const dummy = {
+        group: g,
+        bodyMesh: plate,
+        coreMesh: bullseye,
+        initialPos: new THREE.Vector3(x, y, z),
+        health: 180,
+        maxHealth: 180,
+        isDead: false,
+        respawnTimer: 0,
+        isSteelPlate: true
+      };
+      targetDummies.push(dummy);
+      return dummy;
+    }
+
+    // Spawn Range Targets along distance lanes
+    createSteelTarget(-4, 0, 4);    // 10m lane
+    createSteelTarget(4, 0, 4);     // 10m lane
+    createDummy(0, 2.5, -11);       // 25m mid-lane
+    createDummy(-12, 3.2, -18, true); // 32m moving strafer
+    createDummy(12, 3.2, -18, true);  // 32m moving strafer
+    createDummy(18, 3.5, -36);      // 50m lane
+    createSteelTarget(-18, 0, -36); // 50m lane
+    createDummy(0, 7.5, -86);       // 100m long-range sniper sentinel!
+
+    // --- FLOATING COMBAT DAMAGE NUMBERS ---
+    function spawnDamageNumber(dmg, pos, isCrit, isParacausal) {
+      const screenPos = pos.clone().project(camera);
+      if (screenPos.z > 1) return;
+      const x = (screenPos.x * 0.5 + 0.5) * window.innerWidth;
+      const y = (-(screenPos.y * 0.5) + 0.5) * window.innerHeight;
+
+      const el = document.createElement('div');
+      el.className = 'dmg-number';
+      el.style.left = `${x}px`;
+      el.style.top = `${y}px`;
+      el.style.fontSize = isParacausal ? '28px' : (isCrit ? '22px' : '17px');
+      el.style.color = isParacausal ? '#38bdf8' : (isCrit ? '#ffd15c' : '#ffffff');
+      el.innerText = (isParacausal ? '★ ' : '') + dmg + (isCrit ? '!' : '');
+      document.body.appendChild(el);
+
+      requestAnimationFrame(() => {
+        el.style.transform = 'translate(-50%, -120%) scale(1.3)';
+        el.style.opacity = '0';
+      });
+      setTimeout(() => el.remove(), 600);
+    }
+
+    // --- EXOTIC GOLDEN LOOT BEAM SYSTEM ---
+    function spawnExoticLootBeam(pos) {
+      const beamGroup = new THREE.Group();
+      beamGroup.position.copy(pos);
+
+      const colGeo = new THREE.CylinderGeometry(0.2, 0.35, 70, 16);
+      const colMat = new THREE.MeshBasicMaterial({ color: 0xffd15c, transparent: true, opacity: 0.85 });
+      const column = new THREE.Mesh(colGeo, colMat);
+      column.position.y = 35;
+      beamGroup.add(column);
+
+      const ringGeo = new THREE.TorusGeometry(0.7, 0.08, 16, 32);
+      const ringMat = new THREE.MeshBasicMaterial({ color: 0xffe680 });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.position.y = 1.2;
+      beamGroup.add(ring);
+
+      const beamLight = new THREE.PointLight(0xffd15c, 5.0, 14);
+      beamLight.position.y = 1.2;
+      beamGroup.add(beamLight);
+
+      scene.add(beamGroup);
+
+      let bElapsed = 0;
+      const bInterval = setInterval(() => {
+        bElapsed += 0.02;
+        ring.rotation.y += 0.04;
+        ring.position.y = 1.2 + Math.sin(bElapsed * 4) * 0.15;
+      }, 20);
+
+      setTimeout(() => {
+        clearInterval(bInterval);
+        scene.remove(beamGroup);
+      }, 7000);
+    }
+
+    // --- HAWKMOON GUNPLAY & PARACAUSAL SHOT MECHANICS ---
+    const raycaster = new THREE.Raycaster();
+    let ammo = 8;
+    const maxAmmo = 8;
+    let isReloading = false;
+    let isADS = false;
+    let paracausalStacks = 0;
+
+    function fireWeapon() {
+      initAudio();
+      if (isReloading || ammo <= 0) {
+        if (ammo <= 0) reloadWeapon();
+        return;
+      }
+
+      ammo--;
+      const isFinalRound = (ammo === 0);
+
+      // Play Hawkmoon Sound
+      playHawkmoonShotSound(paracausalStacks, isFinalRound);
+
+      // Recoil: Hawkmoon crisp hand cannon kick!
+      recoilZ = isADS ? 0.06 : 0.11;
+      recoilPitch = isADS ? 0.08 : 0.15;
+
+      // Hitscan from screen center
+      raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+      
+      let hitAny = false;
+      for (const d of targetDummies) {
+        if (d.isDead) continue;
+        const hits = raycaster.intersectObjects([d.coreMesh, d.bodyMesh]);
+        if (hits.length > 0) {
+          hitAny = true;
+          const hit = hits[0];
+          const isCrit = (hit.object === d.coreMesh);
+          
+          let damage = 52;
+          
+          // Paracausal Shot stacking mechanic
+          if (isCrit) {
+            paracausalStacks = Math.min(7, paracausalStacks + 1);
+            damage = Math.round(damage * (2.1 + waifus[currentWaifuIdx].critBonus));
+          }
+
+          // Final Round Paracausal blast
+          const isParacausalExplosion = isFinalRound && (paracausalStacks > 0);
+          if (isParacausalExplosion) {
+            damage = Math.round(damage * (1.0 + paracausalStacks * 0.95));
+          }
+
+          d.health -= damage;
+          showHitmarker(isCrit, isParacausalExplosion);
+          playHitmarkerSound(isCrit, isParacausalExplosion);
+          spawnDamageNumber(damage, hit.point, isCrit, isParacausalExplosion);
+          
+          d.coreMesh.material.color.setHex(isCrit ? 0xffcc00 : 0xff3333);
+          setTimeout(() => d.coreMesh.material.color.setHex(0x38e3ff), 120);
+
+          if (d.health <= 0) {
+            d.isDead = true;
+            d.group.visible = false;
+            d.respawnTimer = 4.0;
+            spawnExoticLootBeam(d.group.position);
+          }
+          break;
+        }
+      }
+
+      if (isFinalRound) paracausalStacks = 0;
+      updateAmmoUI();
+    }
+
+    function reloadWeapon() {
+      if (isReloading || ammo === maxAmmo) return;
+      initAudio();
+      isReloading = true;
+      playHawkmoonReloadSounds();
+      document.getElementById('weapon-name').innerText = 'RELOADING HAWKMOON...';
+      const duration = 1600 / (1.0 + waifus[currentWaifuIdx].reloadBonus);
+      setTimeout(() => {
+        ammo = maxAmmo;
+        paracausalStacks = 0;
+        isReloading = false;
+        updateAmmoUI();
+        document.getElementById('weapon-name').innerText = 'HAWKMOON • EXOTIC HAND CANNON';
+      }, duration);
+    }
+
+    function updateAmmoUI() {
+      document.getElementById('ammo-counter').innerHTML = `${ammo} <span id="ammo-reserve">/ 120</span>`;
+      document.getElementById('paracausal-stacks').innerText = `PARACAUSAL CHARGE: ${paracausalStacks} / 7 ${paracausalStacks === 7 ? '★ MAX POWER!' : ''}`;
+    }
+
+    function showHitmarker(isCrit, isParacausal = false) {
+      const hm = document.getElementById('hitmarker');
+      hm.style.opacity = '1';
+      if (isParacausal) {
+        hm.style.color = '#38bdf8';
+        hm.innerText = '⚡';
+      } else {
+        hm.style.color = isCrit ? '#ffd15c' : '#ffffff';
+        hm.innerText = isCrit ? '╳' : '✕';
+      }
+      setTimeout(() => { hm.style.opacity = '0'; }, 150);
+    }
+
+    // --- LUCY'S MONOWIRE GRAPPLING HOOK ABILITY ---
+    let isGrappling = false;
+    let grappleAnchor = new THREE.Vector3();
+    let grappleCooldownTimer = 0;
+    const grappleCooldownDuration = 2.5;
+    let playerVelocity = new THREE.Vector3();
+
+    // Grapple Laser Visual Line
+    const grappleMat = new THREE.LineBasicMaterial({ color: 0x00f3ff, linewidth: 3 });
+    const grappleGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
+    const grappleLine = new THREE.Line(grappleGeo, grappleMat);
+    grappleLine.visible = false;
+    scene.add(grappleLine);
+
+    function toggleGrapple() {
+      initAudio();
+      if (isGrappling) {
+        detachGrapple(true);
+        return;
+      }
+      if (grappleCooldownTimer > 0) return;
+
+      // Raycast for valid anchor point (Pillars, Ramp, Floor, Targets, Terminal)
+      raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+      const validObjects = [floor, ramp, termBase, ...pillars, ...targetDummies.map(d => d.bodyMesh)];
+      const hits = raycaster.intersectObjects(validObjects, true);
+
+      if (hits.length > 0 && hits[0].distance <= 65) {
+        isGrappling = true;
+        grappleAnchor.copy(hits[0].point);
+        grappleLine.visible = true;
+        playGrappleLaunchSound();
+        document.getElementById('grapple-hud').innerHTML = '<div id="grapple-dot" style="background:#ffd15c; box-shadow:0 0 8px #ffd15c;"></div> MONOWIRE: ENGAGED [F/LB]';
+      }
+    }
+
+    function detachGrapple(withBoost = false) {
+      if (!isGrappling) return;
+      isGrappling = false;
+      grappleLine.visible = false;
+      grappleCooldownTimer = grappleCooldownDuration;
+
+      if (withBoost) {
+        // Catapult Slingshot Momentum
+        playGrappleBoostSound();
+        const lookDir = new THREE.Vector3();
+        camera.getWorldDirection(lookDir);
+        playerVelocity.addScaledVector(lookDir, 16);
+        playerVelocity.y = Math.max(playerVelocity.y, 6.0);
+      }
+    }
+
+    // --- CAMERA LOOK ENGINE ---
+    let isLocked = false;
+    let playerYaw = 0;
+    let cameraPitch = 0;
+    const mouseSensitivity = 0.0022;
+
+    function requestPointerLock() {
+      initAudio();
+      document.body.requestPointerLock?.();
+    }
+
+    document.addEventListener('pointerlockchange', () => {
+      isLocked = (document.pointerLockElement === document.body);
+      const blocker = document.getElementById('blocker');
+      if (isLocked) {
+        blocker.style.display = 'none';
+      } else if (document.getElementById('gacha-modal').style.display !== 'flex') {
+        blocker.style.display = 'flex';
+      }
+    });
+
+    document.getElementById('blocker').addEventListener('click', requestPointerLock);
+
+    document.addEventListener('mousemove', (e) => {
+      if (!isLocked) return;
+
+      playerYaw -= e.movementX * mouseSensitivity;
+      playerGroup.rotation.y = playerYaw;
+
+      const ySign = invertLookY ? -1 : 1;
+      cameraPitch -= e.movementY * mouseSensitivity * ySign;
+      cameraPitch = Math.max(-1.48, Math.min(1.48, cameraPitch));
+      pitchGroup.rotation.x = cameraPitch;
+    });
+
+    // --- KEYBOARD CONTROLS ---
+    const keys = {};
+    document.addEventListener('keydown', (e) => {
+      keys[e.code] = true;
+      if (e.code === 'KeyR') reloadWeapon();
+      if (e.code === 'KeyQ') executeJetDash();
+      if (e.code === 'KeyF' || e.code === 'KeyG') toggleGrapple();
+      if (e.code === 'Space' && isGrappling) {
+        detachGrapple(true); // Jump slingshot release!
+      }
+      if (e.code === 'KeyE') checkInteractions();
+      if (e.code === 'KeyI') toggleInvertLook();
+      if (e.code === 'Tab') {
+        e.preventDefault();
+        currentWaifuIdx = (currentWaifuIdx + 1) % waifus.length;
+        applyWaifu();
+      }
+      if (e.code === 'Space' && document.getElementById('gacha-modal').style.display === 'flex') {
+        closeGachaModal();
+      }
+    });
+    document.addEventListener('keyup', (e) => { keys[e.code] = false; });
+    document.addEventListener('mousedown', (e) => {
+      if (!controls_active()) return;
+      if (e.button === 0) fireWeapon();
+      if (e.button === 2) isADS = true;
+    });
+    document.addEventListener('mouseup', (e) => {
+      if (e.button === 2) isADS = false;
+    });
+
+    function controls_active() {
+      return isLocked || gamepadConnected;
+    }
+
+    // --- XBOX / GAMEPAD CONTROLLER ENGINE ---
+    let gamepadConnected = false;
+    let prevGamepadButtons = {};
+
+    window.addEventListener('gamepadconnected', (e) => {
+      gamepadConnected = true;
+      initAudio();
+      document.getElementById('gamepad-badge').style.display = 'flex';
+      document.getElementById('blocker').style.display = 'none';
+    });
+
+    window.addEventListener('gamepaddisconnected', () => {
+      gamepadConnected = false;
+      document.getElementById('gamepad-badge').style.display = 'none';
+    });
+
+    function applyDeadzone(value, threshold = 0.15) {
+      if (Math.abs(value) < threshold) return 0;
+      return (value - Math.sign(value) * threshold) / (1 - threshold);
+    }
+
+    function processGamepad(delta) {
+      const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+      let gp = null;
+      for (let i = 0; i < gamepads.length; i++) {
+        if (gamepads[i]) { gp = gamepads[i]; break; }
+      }
+      if (!gp) return;
+
+      if (!gamepadConnected) {
+        gamepadConnected = true;
+        initAudio();
+        document.getElementById('gamepad-badge').style.display = 'flex';
+        document.getElementById('blocker').style.display = 'none';
+      }
+
+      // Stick Look
+      const lookX = applyDeadzone(gp.axes[2]);
+      const lookY = applyDeadzone(gp.axes[3]);
+      const stickSens = 2.8;
+
+      if (Math.abs(lookX) > 0) {
+        playerYaw -= lookX * stickSens * delta;
+        playerGroup.rotation.y = playerYaw;
+      }
+      if (Math.abs(lookY) > 0) {
+        const ySign = invertLookY ? -1 : 1;
+        cameraPitch -= lookY * stickSens * delta * ySign;
+        cameraPitch = Math.max(-1.48, Math.min(1.48, cameraPitch));
+        pitchGroup.rotation.x = cameraPitch;
+      }
+
+      // Stick Movement
+      const moveX = applyDeadzone(gp.axes[0]);
+      const moveZ = applyDeadzone(gp.axes[1]);
+      
+      const isSprinting = gp.buttons[10]?.pressed;
+      const speed = (isSprinting ? 12 : 7) * (1 + waifus[currentWaifuIdx].speedBonus);
+
+      if (Math.abs(moveX) > 0 || Math.abs(moveZ) > 0) {
+        const inputVec = new THREE.Vector3(moveX, 0, moveZ);
+        inputVec.applyAxisAngle(new THREE.Vector3(0, 1, 0), playerYaw);
+        playerGroup.position.addScaledVector(inputVec, speed * delta);
+      }
+
+      // Triggers
+      const ltValue = gp.buttons[6]?.value ?? 0;
+      isADS = (ltValue > 0.3);
+
+      const rtValue = gp.buttons[7]?.value ?? 0;
+      const rtPressed = (rtValue > 0.4);
+      if (rtPressed && !prevGamepadButtons['RT']) {
+        fireWeapon();
+      }
+      prevGamepadButtons['RT'] = rtPressed;
+
+      // LB (Left Bumper index 4) -> Grappling Hook!
+      const btnLB = gp.buttons[4]?.pressed;
+      if (btnLB && !prevGamepadButtons['LB']) {
+        toggleGrapple();
+      }
+      prevGamepadButtons['LB'] = btnLB;
+
+      // Buttons
+      const btnA = gp.buttons[0]?.pressed;
+      if (btnA && !prevGamepadButtons['A']) {
+        if (isGrappling) {
+          detachGrapple(true); // Jump slingshot!
+        } else if (document.getElementById('gacha-modal').style.display === 'flex') {
+          closeGachaModal();
+        }
+      }
+      prevGamepadButtons['A'] = btnA;
+
+      const btnB = gp.buttons[1]?.pressed;
+      if (btnB && !prevGamepadButtons['B']) {
+        executeJetDash();
+      }
+      prevGamepadButtons['B'] = btnB;
+
+      const btnX = gp.buttons[2]?.pressed;
+      if (btnX && !prevGamepadButtons['X']) {
+        reloadWeapon();
+      }
+      prevGamepadButtons['X'] = btnX;
+
+      const btnY = gp.buttons[3]?.pressed;
+      if (btnY && !prevGamepadButtons['Y']) {
+        currentWaifuIdx = (currentWaifuIdx + 1) % waifus.length;
+        applyWaifu();
+      }
+      prevGamepadButtons['Y'] = btnY;
+
+      const btnRB = gp.buttons[5]?.pressed;
+      if (btnRB && !prevGamepadButtons['RB']) {
+        checkInteractions();
+      }
+      prevGamepadButtons['RB'] = btnRB;
+    }
+
+    // --- JET DASH ---
+    let dashCharges = 2;
+    let isDashing = false;
+    let dashDir = new THREE.Vector3();
+    let dashTimer = 0;
+
+    function executeJetDash() {
+      if (dashCharges <= 0 || isDashing) return;
+      initAudio();
+      dashCharges--;
+      isDashing = true;
+      dashTimer = 0.22;
+      playDashSound();
+      
+      const moveZ = (keys['KeyS'] ? 1 : 0) - (keys['KeyW'] ? 1 : 0);
+      const moveX = (keys['KeyD'] ? 1 : 0) - (keys['KeyA'] ? 1 : 0);
+      const v = new THREE.Vector3(moveX, 0, moveZ).normalize();
+      
+      if (v.lengthSq() > 0) {
+        v.applyAxisAngle(new THREE.Vector3(0, 1, 0), playerYaw);
+        dashDir.copy(v);
+      } else {
+        dashDir.set(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), playerYaw);
+      }
+
+      updateDashUI();
+      setTimeout(() => {
+        if (dashCharges < 2) {
+          dashCharges++;
+          updateDashUI();
+        }
+      }, 2500);
+    }
+
+    function updateDashUI() {
+      let str = 'JET-DASH: ';
+      for (let i = 0; i < 2; i++) str += (i < dashCharges ? '◆ ' : '◇ ');
+      document.getElementById('dash-pips').innerText = str;
+    }
+
+    function checkInteractions() {
+      const distAltar = playerGroup.position.distanceTo(altarGroup.position);
+      if (distAltar < 4.5) {
+        pullGacha10();
+        return;
+      }
+      if (lootChestModel && playerGroup.position.distanceTo(lootChestModel.position) < 4.5) {
+        pullGacha10();
+        ammo = maxAmmo;
+        updateAmmoUI();
+        showHitmarker(true, true);
+        return;
+      }
+      if (lucyEdgerunnerModel && playerGroup.position.distanceTo(lucyEdgerunnerModel.position) < 4.5) {
+        currentWaifuIdx = 1;
+        applyWaifu();
+        showHitmarker(true, true);
+        return;
+      }
+      if (lucyModel && playerGroup.position.distanceTo(lucyModel.position) < 4.5) {
+        currentWaifuIdx = 0;
+        applyWaifu();
+        showHitmarker(true, true);
+      }
+    }
+
+    // --- GAME LOOP ---
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const delta = Math.min(clock.getDelta(), 0.1);
+      const time = clock.getElapsedTime();
+
+      // Process Gamepad
+      processGamepad(delta);
+
+      // Update Lucy animation mixer
+      if (lucyMixer) lucyMixer.update(delta);
+
+      // Grapple Cooldown Management
+      if (grappleCooldownTimer > 0) {
+        grappleCooldownTimer = Math.max(0, grappleCooldownTimer - delta);
+        if (grappleCooldownTimer > 0) {
+          document.getElementById('grapple-hud').innerHTML = `<div id="grapple-dot" style="background:#64748b; box-shadow:none;"></div> MONOWIRE: ${grappleCooldownTimer.toFixed(1)}s`;
+        } else {
+          document.getElementById('grapple-hud').innerHTML = '<div id="grapple-dot"></div> MONOWIRE: READY [F / LB]';
+        }
+      }
+
+      // Grapple Pull Physics
+      if (isGrappling) {
+        const toAnchor = grappleAnchor.clone().sub(playerGroup.position);
+        const dist = toAnchor.length();
+
+        if (dist < 2.5) {
+          // Reached anchor
+          detachGrapple(true);
+        } else {
+          const pullDir = toAnchor.normalize();
+          playerVelocity.addScaledVector(pullDir, 42.0 * delta);
+          // Apply velocity with air resistance damping
+          playerGroup.position.addScaledVector(playerVelocity, delta);
+          playerVelocity.multiplyScalar(0.96);
+
+          // Update Laser Cable endpoints
+          const emitterWorldPos = new THREE.Vector3();
+          grappleEmitter.getWorldPosition(emitterWorldPos);
+          const pts = [emitterWorldPos, grappleAnchor];
+          grappleGeo.setFromPoints(pts);
+        }
+      } else {
+        // Natural velocity damping when detached
+        if (playerVelocity.lengthSq() > 0.01) {
+          playerGroup.position.addScaledVector(playerVelocity, delta);
+          playerVelocity.multiplyScalar(0.92);
+        }
+      }
+
+      // Keyboard movement
+      if (isLocked) {
+        if (isDashing) {
+          dashTimer -= delta;
+          const speed = 25 * (1 + waifus[currentWaifuIdx].speedBonus);
+          playerGroup.position.addScaledVector(dashDir, speed * delta);
+          camera.fov = THREE.MathUtils.lerp(camera.fov, 86, 0.25);
+          if (dashTimer <= 0) isDashing = false;
+        } else if (!isGrappling) {
+          const moveSpeed = (keys['ShiftLeft'] ? 12 : 7) * (1 + waifus[currentWaifuIdx].speedBonus);
+          const moveVec = new THREE.Vector3(0, 0, 0);
+          if (keys['KeyW']) moveVec.z -= 1;
+          if (keys['KeyS']) moveVec.z += 1;
+          if (keys['KeyA']) moveVec.x -= 1;
+          if (keys['KeyD']) moveVec.x += 1;
+          
+          if (moveVec.lengthSq() > 0) {
+            moveVec.normalize();
+            moveVec.applyAxisAngle(new THREE.Vector3(0, 1, 0), playerYaw);
+            playerGroup.position.addScaledVector(moveVec, moveSpeed * delta);
+          }
+          camera.fov = THREE.MathUtils.lerp(camera.fov, isADS ? 50 : 75, 0.18);
+        }
+        camera.updateProjectionMatrix();
+      }
+
+      // Smooth Recoil Recovery
+      recoilPitch = THREE.MathUtils.lerp(recoilPitch, 0, 14 * delta);
+      recoilZ = THREE.MathUtils.lerp(recoilZ, 0, 16 * delta);
+
+      // Weapon & Hands Positioning (ADS vs Hipfire)
+      const targetPos = isADS ? adsPos : hipPos;
+      weaponContainer.position.x = THREE.MathUtils.lerp(weaponContainer.position.x, targetPos.x, 14 * delta);
+      weaponContainer.position.y = THREE.MathUtils.lerp(weaponContainer.position.y, targetPos.y, 14 * delta);
+      weaponContainer.position.z = THREE.MathUtils.lerp(weaponContainer.position.z, targetPos.z + recoilZ, 14 * delta);
+      weaponContainer.rotation.x = -recoilPitch;
+
+      // Subtle Idle Breathing Sway
+      armsGroup.position.y = Math.sin(time * 2.2) * 0.003;
+      armsGroup.position.x = Math.cos(time * 1.5) * 0.002;
+
+      // Interaction Proximity Checks
+      const distAltar = playerGroup.position.distanceTo(altarGroup.position);
+      haloAltar.rotation.y += delta * 1.5;
+      
+      let hintText = '<b>WASD / L-Stick</b> Move | <b>Shift / L3</b> Sprint | <b>Q / B</b> Jet-Dash | <b>F / LB</b> Grapple Hook | <b>Right-Click / LT</b> ADS | <b>Left-Click / RT</b> Fire | <b>R / X</b> Reload | <b>Tab / Y</b> Switch Waifu';
+      if (lootChestModel && playerGroup.position.distanceTo(lootChestModel.position) < 4.5) {
+        hintText = 'Press <b>[E / RB]</b> to Open Legendary Supply Chest (Free Gacha + Ammo)';
+      } else if (distAltar < 4.5) {
+        hintText = 'Press <b>[E / RB]</b> to Activate Relic Vault (10-Pull Gacha)';
+      } else if (lucyEdgerunnerModel && playerGroup.position.distanceTo(lucyEdgerunnerModel.position) < 4.5) {
+        hintText = 'Press <b>[E / RB]</b> to Select Lucy (Edgerunner) as Active Operative';
+      } else if (lucyModel && playerGroup.position.distanceTo(lucyModel.position) < 4.5) {
+        hintText = 'Press <b>[E / RB]</b> to Select Lucy (Wuthering Waves) as Active Operative';
+      }
+      document.getElementById('controls-hint').innerHTML = hintText;
+
+      // Overshield Core Rotation
+      if (overshieldCore) {
+        overshieldCore.rotation.y += delta * 1.8;
+        overshieldCore.position.y = 1.5 + Math.sin(time * 3.0) * 0.15;
+        if (playerGroup.position.distanceTo(overshieldCore.position) < 2.0) {
+          document.getElementById('shield-bar').style.width = '100%';
+          showHitmarker(true, true);
+        }
+      }
+
+      // Target Dummies & Strafers Animation
+      targetDummies.forEach(d => {
+        if (d.isDead) {
+          d.respawnTimer -= delta;
+          if (d.respawnTimer <= 0) {
+            d.isDead = false;
+            d.health = d.maxHealth;
+            d.group.visible = true;
+          }
+        } else {
+          if (d.isMover) {
+            d.group.position.x = d.initialPos.x + Math.sin(time * 1.8) * 8.0;
+          }
+          if (!d.isSteelPlate) {
+            d.group.position.y = d.initialPos.y + Math.sin(time * 2.2 + d.initialPos.x) * 0.18;
+            d.bodyMesh.rotation.y += delta * 0.8;
+            d.coreMesh.rotation.y -= delta * 1.4;
+          }
+        }
+      });
+
+      renderer.render(scene, camera);
+    }
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    applyWaifu();
+    animate();
+  </script>
+</body>
+</html>
+"""
+
+with open("index.html", "w", encoding="utf-8") as f:
+    f.write(code)
+print("Successfully generated updated index.html! Length:", len(code))

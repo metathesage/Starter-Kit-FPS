@@ -1,0 +1,59 @@
+# Unity generated
+Library/
+Temp/
+Obj/
+Build/
+Builds/
+Logs/
+UserSettings/
+MemoryCaptures/
+Recordings/
+sysinfo.txt
+*.utmp
+*.csproj
+*.sln
+*.user
+.vs/
+.idea/
+
+# OS / editor noise
+Thumbs.db
+Desktop.ini
+
+# Loose source dumps & sibling projects (kept on disk, too big to version)
+/Characters/
+/VFX/
+/Weapons/
+/GDD/
+/halo-waifu-unity/
+/spooky-waifu-laststand/
+/bikini-royal-waifus/
+/d3/
+/skyboxes/
+/halo-maps/
+/cyberpunk-office-interior/
+/kenney/
+/skyFree/
+/skyCity/
+/External/imgtest/
+/External/zipmodels/
+/External/glb2fbx/
+/External/mesh2motion/
+/assets_extracted/
+AnimThread/
+*.zip
+*.rar
+*.7z
+
+# Root loose model/image dumps (everything at root except curated dirs)
+/*.glb
+/*.fbx
+/*.png
+/*.jpg
+/*.jpeg
+/*.webp
+/*.mp4
+/*.blend
+
+# Track curated asset dirs but not giant raw caches
+Assets/AssetStoreVendorCache/

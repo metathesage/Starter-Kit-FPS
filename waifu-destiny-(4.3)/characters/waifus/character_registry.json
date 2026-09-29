@@ -1,0 +1,145 @@
+[
+  {
+    "id": "waifu_lucy_wuwa",
+    "name": "Lucy",
+    "title": "Wuthering Resonance",
+    "rarity": 5,
+    "element": "Aero / Kinetic",
+    "role": "Precision Gunslinger",
+    "model_path": "res://assets/models/lucy_wuthering_waves.glb",
+    "perk": {
+      "name": "Paracausal Resonance",
+      "description": "+20% Hawkmoon Precision Damage, +12% Evasive Dash Distance",
+      "stat_modifiers": {
+        "crit_damage": 0.20,
+        "dash_distance": 0.12,
+        "reload_speed": 0.15
+      }
+    },
+    "ultimate": {
+      "name": "Aero Tempest Judgment",
+      "cosmetic_fx": "Swirling turquoise wind feathers, holographic halo burst, cinematic camera flourish"
+    },
+    "cosmetics": [
+      "default_wuthering_waves"
+    ]
+  },
+  {
+    "id": "waifu_001_nova",
+    "name": "Nova",
+    "title": "Silent Star",
+    "rarity": 5,
+    "element": "Cryo/Kinetic",
+    "role": "Marksman / Sniper Specialist",
+    "perk": {
+      "name": "Ocular Target Lock",
+      "description": "+15% Weakpoint Crit Damage, +10% Reload Speed on precision hits",
+      "stat_modifiers": {
+        "crit_damage": 0.15,
+        "reload_speed": 0.10
+      }
+    },
+    "ultimate": {
+      "name": "Apex Orbital Ion Beam",
+      "cosmetic_fx": "Piercing blue plasma beam, lingering electric scorch trail, anime screen slash flourish"
+    },
+    "cosmetics": [
+      "default_spartan_mark_v",
+      "silent_star_optic_cloak"
+    ]
+  },
+  {
+    "id": "waifu_002_lux",
+    "name": "Lux",
+    "title": "Platinum Halo Guardian",
+    "rarity": 5,
+    "element": "Hardlight / Solar",
+    "role": "Vanguard / Paladin",
+    "perk": {
+      "name": "Radiant Bastion",
+      "description": "+20% Maximum Shield Capacity, +15% Damage Block Absorption",
+      "stat_modifiers": {
+        "max_shield": 0.20,
+        "shield_regen_delay": -0.15
+      }
+    },
+    "ultimate": {
+      "name": "Halo Resonance: Divine Judgment",
+      "cosmetic_fx": "Ascending hardlight angelic wings, golden shockwave ring, team radiance aura"
+    },
+    "cosmetics": [
+      "default_celestial_aegis",
+      "platinum_valkyrie_regalia"
+    ]
+  },
+  {
+    "id": "waifu_003_ria",
+    "name": "Ria",
+    "title": "Crimson Halo Infiltrator",
+    "rarity": 5,
+    "element": "Void / Thermal",
+    "role": "Infiltrator / Saboteur",
+    "perk": {
+      "name": "Thermal Singularity",
+      "description": "+8% Base Movement Speed, +15% Evasive Dash Distance, +10% Melee Speed",
+      "stat_modifiers": {
+        "movement_speed": 0.08,
+        "dash_distance": 0.15
+      }
+    },
+    "ultimate": {
+      "name": "Charm Protocol: Singularity Nova",
+      "cosmetic_fx": "Colossal rotating crimson halo ring, gravitational vortex collapse, void shockwave"
+    },
+    "cosmetics": [
+      "default_carbon_halo_rig",
+      "obsidian_phantom_stealth"
+    ]
+  },
+  {
+    "id": "waifu_004_nyx",
+    "name": "Nyx",
+    "title": "Night Sentinel",
+    "rarity": 4,
+    "element": "Void",
+    "role": "Infiltrator",
+    "perk": {
+      "name": "Shadow Step",
+      "description": "+6% Sprint Speed, Enemy detection radius reduced by 20%",
+      "stat_modifiers": {
+        "movement_speed": 0.06,
+        "stealth_rating": 0.20
+      }
+    },
+    "ultimate": {
+      "name": "Phantom Butterfly Swarm",
+      "cosmetic_fx": "Phosphorescent blue butterflies erupting during dash"
+    },
+    "cosmetics": [
+      "default_midnight_nanoweave"
+    ]
+  },
+  {
+    "id": "waifu_005_honey",
+    "name": "Honey",
+    "title": "Flare Guardian",
+    "rarity": 4,
+    "element": "Solar",
+    "role": "Assault / Support",
+    "perk": {
+      "name": "Solar Morale",
+      "description": "+5% Fire Rate and +8% Weapon Handling for all active weapons",
+      "stat_modifiers": {
+        "fire_rate": 0.05,
+        "handling": 0.08
+      }
+    },
+    "ultimate": {
+      "name": "Sunburst Beacon",
+      "cosmetic_fx": "Golden flare burst with radiant sparkle trails"
+    },
+    "cosmetics": [
+      "default_golden_armor"
+    ]
+  }
+]

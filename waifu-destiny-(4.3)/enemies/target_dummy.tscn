@@ -1,0 +1,51 @@
+[gd_scene load_steps=7 format=3 uid="uid://d7m5k9p2x3v1q"]
+
+[ext_resource type="Script" path="res://enemies/target_dummy.gd" id="1_dummy"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_hitbox"]
+radius = 0.55
+height = 2.0
+
+[sub_resource type="BoxMesh" id="BoxMesh_armor"]
+size = Vector3(0.9, 0.9, 0.9)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_metal"]
+albedo_color = Color(0.25, 0.28, 0.35, 1)
+metallic = 0.85
+roughness = 0.3
+
+[sub_resource type="SphereMesh" id="SphereMesh_core"]
+radius = 0.35
+height = 0.7
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_core"]
+shading_mode = 0
+albedo_color = Color(0.2, 0.75, 1, 1)
+
+[node name="TargetDummy" type="CharacterBody3D"]
+collision_layer = 4
+collision_mask = 7
+script = ExtResource("1_dummy")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+shape = SubResource("CapsuleShape3D_hitbox")
+
+[node name="ArmorPlating" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.707107, -0.5, 0.5, 0, 0.707107, 0.707107, -0.707107, -0.5, 0.5, 0, 1.1, 0)
+mesh = SubResource("BoxMesh_armor")
+surface_material_override/0 = SubResource("StandardMaterial3D_metal")
+
+[node name="CoreWeakpoint" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, 0)
+mesh = SubResource("SphereMesh_core")
+surface_material_override/0 = SubResource("StandardMaterial3D_core")
+
+[node name="HealthLabel" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.3, 0)
+billboard = 1
+no_depth_test = true
+text = "AURELIAN CONSTRUCT
+HP: 280 / 280"
+font_size = 28
+outline_size = 8

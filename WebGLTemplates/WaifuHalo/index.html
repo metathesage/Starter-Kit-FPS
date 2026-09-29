@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <title>WAIFU ARENA</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="shortcut icon" href="TemplateData/favicon.ico">
+    <link rel="stylesheet" href="TemplateData/style.css">
+#if SHOW_DIAGNOSTICS
+    <link rel="stylesheet" href="<<<TemplateData/diagnostics.css>>>">
+    <script src="<<<TemplateData/diagnostics.js>>>"></script>
+#endif
+#if DEVELOPMENT_PLAYER
+  <script src="<<<TemplateData/profiler.js>>>"></script>
+#endif
+  </head>
+  <body>
+    <div class="grain" aria-hidden="true"></div>
+    <header class="chrome-top">
+      <p class="mark">KIRA-7</p>
+      <p class="title">WAIFU ARENA</p>
+      <p class="clock" id="clock">00:00:00Z</p>
+    </header>
+
+    <div id="unity-container" class="unity-desktop">
+      <div id="unity-fullscreen-container">
+        <canvas id="unity-canvas" width="{{{ WIDTH }}}" height="{{{ HEIGHT }}}" tabindex="-1"></canvas>
+        <div id="unity-loading-container">
+          <div class="boot">
+            <p class="boot-kicker">199X  ·  LINK</p>
+            <h1>WAIFU ARENA</h1>
+            <p class="boot-copy">Xbox pad or keyboard. LS-click dashes. First to 100 holds the hill.</p>
+            <div id="unity-loading-bar">
+              <div id="unity-progress-bar-empty">
+                <div id="unity-progress-bar-full"></div>
+              </div>
+            </div>
+            <p class="boot-status" id="boot-status">allocating wasm…</p>
+          </div>
+        </div>
+      </div>
+      <div id="unity-warning"> </div>
+    </div>
+
+    <footer class="chrome-bottom">
+      <p><span>LS</span> move <span>RS</span> look <span>RT</span> fire <span>LS click</span> dash <span>A</span> jump <span>X</span> reload</p>
+      <button id="unity-fullscreen-button" type="button">fullscreen</button>
+    </footer>
+
+    <script>
+      let canvas = document.querySelector("#unity-canvas");
+      let fullscreenContainer = document.querySelector("#unity-fullscreen-container");
+      const clock = document.getElementById("clock");
+      setInterval(() => {
+        const d = new Date();
+        clock.textContent = d.toISOString().slice(11, 19) + "Z";
+      }, 1000);
+
+      function unityShowBanner(msg, type) {
+        var warningBanner = document.querySelector("#unity-warning");
+        function updateBannerVisibility() {
+          warningBanner.style.display = warningBanner.children.length ? 'block' : 'none';
+        }
+        var div = document.createElement('div');
+        div.innerHTML = msg;
+        warningBanner.appendChild(div);
+        if (type == 'error') div.style = 'background: #ff2d6a; color:#fff; padding: 10px;';
+        else {
+          if (type == 'warning') div.style = 'background: #f0c14a; padding: 10px;';
+          setTimeout(function() {
+            warningBanner.removeChild(div);
+            updateBannerVisibility();
+          }, 5000);
+        }
+        updateBannerVisibility();
+      }
+
+      var buildUrl = "Build";
+      var loaderUrl = buildUrl + "/{{{ LOADER_FILENAME }}}";
+      var config = {
+        arguments: [],
+#if PROGRESSIVE_ASSET_LOADING
+        primaryDataUrls: {{{ JSON.stringify(PRIMARY_DATA_FILES) }}},
+        secondaryDataUrls: {{{ JSON.stringify(SECONDARY_DATA_FILES) }}},
+#else
+        dataUrl: buildUrl + "/{{{ DATA_FILENAME }}}",
+#endif
+        frameworkUrl: buildUrl + "/{{{ FRAMEWORK_FILENAME }}}",
+#if USE_WASM
+        codeUrl: buildUrl + "/{{{ CODE_FILENAME }}}",
+#endif
+#if SYMBOLS_FILENAME
+        symbolsUrl: buildUrl + "/{{{ SYMBOLS_FILENAME }}}",
+#endif
+        streamingAssetsUrl: "StreamingAssets",
+        fullscreenElementID: "unity-fullscreen-container",
+        companyName: {{{ JSON.stringify(COMPANY_NAME) }}},
+        productName: {{{ JSON.stringify(PRODUCT_NAME) }}},
+        productVersion: {{{ JSON.stringify(PRODUCT_VERSION) }}},
+        showBanner: unityShowBanner,
+      };
+
+      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+        var meta = document.createElement('meta');
+        meta.name = 'viewport';
+        meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
+        document.getElementsByTagName('head')[0].appendChild(meta);
+        document.querySelector("#unity-container").className = "unity-mobile";
+        canvas.className = "unity-mobile";
+#if SHOW_DIAGNOSTICS
+        let diagnostics_icon = document.getElementById("diagnostics-icon");
+        if (diagnostics_icon) {
+          diagnostics_icon.style.position = "fixed";
+          diagnostics_icon.style.bottom = "10px";
+          diagnostics_icon.style.right = "0px";
+          canvas.after(diagnostics_icon);
+        }
+#endif
+      } else {
+        fullscreenContainer.style.width = "min(92vw, 1440px)";
+        fullscreenContainer.style.height = "min(78vh, 810px)";
+      }
+
+#if BACKGROUND_FILENAME
+      canvas.style.background = "url('" + buildUrl + "/{{{ BACKGROUND_FILENAME.replace(/'/g, '%27') }}}') center / cover";
+#endif
+
+      var script = document.createElement("script");
+      script.src = loaderUrl;
+      script.onload = () => {
+        const loadingContainer = document.querySelector("#unity-loading-container");
+        const progressBarFull = document.querySelector("#unity-progress-bar-full");
+        const status = document.getElementById("boot-status");
+
+        createUnityInstance(canvas, config, (progress) => {
+          if (progress < 1) {
+            loadingContainer.style.display = "flex";
+            progressBarFull.style.width = 100 * progress + "%";
+            status.textContent = "syncing visor  " + Math.round(progress * 100) + "%";
+          } else {
+            loadingContainer.style.display = "none";
+          }
+        }).then((unityInstance) => {
+#if SHOW_DIAGNOSTICS
+                if (document.getElementById("diagnostics-icon")) {
+                  document.getElementById("diagnostics-icon").onclick = () => {
+                    unityDiagnostics.openDiagnosticsDiv(unityInstance.GetMetricsInfo);
+                  };
+                }
+#endif
+                document.querySelector("#unity-fullscreen-button").onclick = () => {
+                  unityInstance.SetFullscreen(1);
+                };
+                canvas.focus();
+              }).catch((message) => {
+                alert(message);
+              });
+            };
+
+      document.body.appendChild(script);
+    </script>
+  </body>
+</html>

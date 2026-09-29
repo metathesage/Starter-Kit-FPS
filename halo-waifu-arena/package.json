@@ -1,0 +1,16 @@
+{
+  "name": "waifu-arena-haven",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "imports": {
+    "three": "./vendor/three/build/three.module.js"
+  },
+  "description": "Halo-flavoured arena shooter: waifu Spartans on the Haven map. Runs in the browser on vendored Three.js.",
+  "scripts": {
+    "start": "node server.js",
+    "bake": "node tools/build-map.mjs",
+    "test": "node tools/test-collision.mjs",
+    "test:nav": "node tools/test-nav.mjs"
+  }
+}
