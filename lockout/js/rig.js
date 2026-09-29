@@ -172,6 +172,14 @@ export function makeMats(team, hair, eye) {
 
 const rnd01 = (() => { let sd = 3; return () => ((sd = (sd * 16807) % 2147483647) / 2147483647); })();
 
+let _glowSoft = null;
+function glowSoft() {
+  if (_glowSoft) return _glowSoft;
+  const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d'), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  gr.addColorStop(0, 'rgba(255,255,255,.9)'); gr.addColorStop(0.35, 'rgba(255,255,255,.28)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+  _glowSoft = new THREE.CanvasTexture(c); _glowSoft.colorSpace = THREE.SRGBColorSpace; return _glowSoft;
+}
+
 export function buildWaifu({ skin = null, team = 'blue', hair = 0xff86c2, eye = 0x5ce1ff, scale = 1.04, helmet = false, angel = true, haloColor = null } = {}) {
   const mats = makeMats(team, hair, eye);
   if (haloColor != null) mats.halo.color.setHex(haloColor);
@@ -256,6 +264,10 @@ export function buildWaifu({ skin = null, team = 'blue', hair = 0xff86c2, eye = 
   const halo = new THREE.Group(); halo.position.set(0, 0.44, 0.02); halo.rotation.x = 0.16; head.add(halo);
   halo.add(new Parts().add(new THREE.TorusGeometry(0.17, 0.007, 6, 32), 'halo', 0, 0, 0, Math.PI / 2, 0, 0).add(new THREE.TorusGeometry(0.205, 0.0035, 4, 32), 'halo', 0, 0.012, 0, Math.PI / 2, 0, 0).build(mats, false));
 
+  // soft bloom-style glow behind the halo
+  const haloGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowSoft(), color: mats.halo.color, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.5, fog: false }));
+  haloGlow.scale.setScalar(0.62); halo.add(haloGlow);
+
   // kill-leader crown (shown by the match on whoever leads)
   const crown = new THREE.Group(); crown.position.set(0, 0.24, 0); crown.visible = false; head.add(crown);
   { const cp = new Parts().add(new THREE.TorusGeometry(0.088, 0.01, 4, 14), 'gold', 0, 0, 0, Math.PI / 2, 0, 0);
@@ -304,6 +316,7 @@ export function buildWaifu({ skin = null, team = 'blue', hair = 0xff86c2, eye = 
   rig.setCamo = (k) => {
     if (rig._camo === k) return; rig._camo = k;
     if (rig.sam) angelCamo(rig, k);
+    haloGlow.visible = k === 0;
     for (const key of ['body', 'skirt', 'visor', 'face', 'wing', 'halo']) { const m = mats[key]; if (!m) continue; m.transparent = k > 0 || key === 'face' || key === 'wing' || key === 'halo'; m.opacity = key === 'wing' ? (k > 0 ? 0.03 : 0.6) : key === 'halo' ? (k > 0 ? 0.04 : 0.95) : k > 0 ? (k >= 1 ? 0.07 : 0.4) : 1; m.depthWrite = k === 0 && key !== 'wing' && key !== 'halo'; m.needsUpdate = true; }
   };
   rig.setVisible = (v) => { root.visible = v; };
