@@ -581,6 +581,11 @@ function pauseGame() {
 }
 function pauseMenu() {
   const menu = $('#pauseMenu'); menu.innerHTML = '';
+  if (match) {
+    const p = match.player, md = MODES[match.mode], mp = World.MAP_LIST.find((x) => x.id === loadout.map);
+    const sc = match.ffa ? `YOU ${match.score[p.team]}` : `BLUE ${Math.floor(match.score.blue)} · RED ${Math.floor(match.score.red)}`;
+    $('#pauseSub').textContent = `${md.name} · ${mp ? mp.name : ''} · ${sc} · K ${p.kills} D ${p.deaths}`;
+  }
   const resume = () => { UI.hide('pause'); state = 'playing'; document.body.classList.add('playing'); Input.lock(); };
   const rows = [
     UI.item(menu, 'Resume', 'I', resume),
