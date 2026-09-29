@@ -621,6 +621,7 @@ function look(p, dt, aimEnemy) {
   p.yaw -= lx; p.pitch = clamp(p.pitch - ly, -1.45, 1.45);
 }
 
+const introTmp = new THREE.PerspectiveCamera(), introQ = new THREE.Quaternion(), introP = new THREE.Vector3();
 function updateCamera(dt) {
   const p = match.player, m = match;
   trauma = Math.max(0, trauma - dt * 1.4); camKick = damp(camKick, 0, 12, dt);
@@ -655,6 +656,14 @@ function updateCamera(dt) {
     const lx = k ? k.x : cx, ly = k ? k.chest : cy, lz = k ? k.z : cz;
     camera.up.set(0, 1, 0); camera.lookAt(lx * 0.28 + cx * 0.72, ly * 0.28 + cy * 0.72, lz * 0.28 + cz * 0.72);
   }
+  if (m.state === 'countdown' && p.alive && !m.thirdPerson) {   // match intro: orbit from the front of your operator into first person
+    const t = clamp(1 - (m.count - 0.2) / 3.5, 0, 1), e = t * t * (3 - 2 * t), a = Math.PI * e, r = 3.1 * (1 - e);
+    const fx0 = -Math.sin(p.yaw), fz0 = -Math.cos(p.yaw), ca = Math.cos(a), sa = Math.sin(a);
+    introTmp.position.set(p.x + (fx0 * ca - fz0 * sa) * r, p.y + 1.55 + 0.3 * (1 - e), p.z + (fx0 * sa + fz0 * ca) * r);
+    introTmp.lookAt(p.x, p.y + 1.5, p.z); introQ.copy(camera.quaternion); introP.copy(camera.position);
+    const w = e * e;
+    camera.position.lerpVectors(introTmp.position, introP, w); camera.quaternion.copy(introTmp.quaternion).slerp(introQ, Math.min(1, e * 1.4));
+  }
   m.listener.x = camera.position.x; m.listener.y = camera.position.y; m.listener.z = camera.position.z; m.listener.yaw = camera.rotation.y;
 }
 
@@ -675,11 +684,11 @@ function play(dt) {
   for (let i = 0; i < n; i++) m.update(sdt);
   netTick(dt);
   fx.update(dt); world.snow.update(dt, camera.position, m.time);
-  p.rig.root.visible = m.thirdPerson || !p.alive;
+  p.rig.root.visible = m.thirdPerson || !p.alive || (m.state === 'countdown' && m.count > 0.6);
   updateCamera(dt);
   // viewmodel
   const scope = p.alive && p.def && p.def.id === 'sniper' && p.zoomLevel > 0;
-  const showVM = p.alive && !m.thirdPerson && !scope;
+  const showVM = p.alive && !m.thirdPerson && !scope && !(m.state === 'countdown' && m.count > 0.7);
   viewmodel.update(dt, p, Input.look, p.lastMoveSpeed, WEAPONS);
   fx.setScale(H * renderer.getPixelRatio(), camera.fov);
   hud.update(dt, { match: m, player: p, aimEnemy, camYaw: camera.rotation.y, camera });
