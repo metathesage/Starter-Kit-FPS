@@ -50,8 +50,9 @@ export class Post {
     this.mDown = M(DOWN, { tIn: { value: null }, texel: { value: new THREE.Vector2() } });
     this.mBlur = M(BLUR, { tIn: { value: null }, dir: { value: new THREE.Vector2() } });
     this.mComp = M(COMP, { tScene: { value: null }, tB0: { value: null }, tB1: { value: null }, tB2: { value: null }, tB3: { value: null }, bloom: { value: 0.5 }, tint: { value: this.grade.tint }, sat: { value: 1 }, con: { value: 1 }, vig: { value: 0.2 }, ca: { value: 0.0007 }, res: { value: new THREE.Vector2(1, 1) } }, true);
-    this.ok = true;
+    this.ok = true; this.k = 0; this.kt = performance.now();
   }
+  kick(a) { this.k = Math.min(1.6, this.k + a); }
   setGrade(g) { Object.assign(this.grade, g); if (g.tint) this.grade.tint = new THREE.Vector3(...g.tint); }
   _rt(w, h, depth = false, samples = 0) {
     const hf = this.r.extensions.has('EXT_color_buffer_float') || this.r.extensions.has('EXT_color_buffer_half_float');
@@ -75,7 +76,7 @@ export class Post {
   render(scene, camera) {
     const r = this.r;
     if (!this.on || !this.ok || !this.rt) { r.setRenderTarget(null); r.render(scene, camera); return; }
-    const g = this.grade;
+    const g = this.grade, now = performance.now(); this.k = Math.max(0, this.k - (now - this.kt) / 1000 * 1.8); this.kt = now; const k = this.k * this.k;
     r.setRenderTarget(this.rt); r.clear(); r.render(scene, camera);
     this.pass(this.mBright, { tScene: this.rt.texture, thr: g.thr }, this.lv[0]);
     for (let i = 1; i < 4; i++) this.pass(this.mDown, { tIn: this.lv[i - 1].texture, texel: this.mDown.uniforms.texel.value.set(0.5 / this.lv[i - 1].width, 0.5 / this.lv[i - 1].height) }, this.lv[i]);
@@ -87,7 +88,7 @@ export class Post {
     r.setRenderTarget(null);
     const u = this.mComp.uniforms;
     u.tScene.value = this.rt.texture; u.tB0.value = this.lv[0].texture; u.tB1.value = this.lv[1].texture; u.tB2.value = this.lv[2].texture; u.tB3.value = this.lv[3].texture;
-    u.res.value.set(this.w, this.h); u.bloom.value = g.bloom; u.tint.value = g.tint; u.sat.value = g.sat; u.con.value = g.con; u.vig.value = g.vig; u.ca.value = g.ca;
+    u.res.value.set(this.w, this.h); u.bloom.value = g.bloom + k * 0.55; u.tint.value = g.tint; u.sat.value = g.sat; u.con.value = g.con; u.vig.value = g.vig; u.ca.value = g.ca + k * 0.007;
     this.quad.material = this.mComp; r.render(this.qs, this.qc);
   }
 }

@@ -10,6 +10,7 @@ import { loadAngel } from './angel.js';
 import { Profile, rollCallsign } from './profile.js';
 import { Hub } from './hub.js';
 import { Post } from './post.js';
+import { Wow } from './wow.js';
 import * as MS from './missions.js';
 import { MODES } from './modes.js';
 import { showArmory, showRecord, emblemHtml, titleText } from './armory.js';
@@ -70,7 +71,7 @@ const TIPS = [
 const canvas = $('#game');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
 renderer.autoClear = false;
-const post = new Post(renderer);
+const post = new Post(renderer); Wow.init(post);
 const GRADE = {
   lockout: { tint: [0.97, 1, 1.06], sat: 1.08, con: 1.06, bloom: 0.6, vig: 0.24, thr: 1.1 },
   cryostat: { tint: [0.94, 1.02, 1.1], sat: 1.1, con: 1.08, bloom: 0.7, vig: 0.26, thr: 1.0 },
@@ -614,7 +615,7 @@ function award(m, p, won, tie) {
     + `<div class="xp-bar"><i style="width:${Profile.progress() * 100}%"></i></div>`
     + (res.levels.length ? `<div class="rx-up">LEVEL UP  ${fromLevel} > ${Profile.level}</div>` : '')
     + (news.length || badges.length || chDone.length ? `<div class="rx-new">${chDone.map((c) => `<span class="rm">CHALLENGE: ${c.text}</span>`).join('')}${news.map((n) => `<span class="rm">${n.cat}: ${n.name}</span>`).join('')}${badges.map((b) => `<span class="rm">BADGE: ${b.name}</span>`).join('')}</div>` : '');
-  if (res.levels.length) Sound.play('win', { vol: 0.6 });
+  if (res.levels.length) Wow.levelUp(Profile.level);
 }
 
 // ---- sanctum hub --------------------------------------------------------------------------------
@@ -640,6 +641,7 @@ async function enterHub() {
   $$('.screen').forEach((s) => s.classList.remove('active')); UI.cur = null; UI.rows = [];
   if (showcase) showcase.root.visible = false; hud.root.classList.add('hidden');
   state = 'hub'; document.body.classList.add('playing'); Input.lock();
+  Wow.intro('WELCOME TO', 'THE SANCTUM', 'A QUIET PLACE BETWEEN FIGHTS');
 }
 function hubScreen(fn) { state = 'hubmenu'; hub.busy = true; hub.closeCard(); hub.show(false); document.body.classList.remove('playing'); Input.unlock(); fn(); }
 function resumeHub() { UI.hide(UI.cur); hub.show(true); hub.busy = false; state = 'hub'; document.body.classList.add('playing'); hub.q('#hhPrompt').dataset.k = ''; Input.lock(); }

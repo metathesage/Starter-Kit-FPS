@@ -7,6 +7,7 @@ import { clamp, angDiff, TAU } from './util.js';
 import { MODES } from './modes.js';
 import { MAP, MAP_LIST } from './world.js';
 import { Profile } from './profile.js';
+import { Wow } from './wow.js';
 
 export const svg = (d, cls = '') => `<svg viewBox="0 0 24 24" class="${cls}"><path d="${d}"/></svg>`;
 export const MEDAL_ICONS = {
@@ -122,10 +123,11 @@ export class HUD {
       }
       Input.rumble(0.6, 0.8, 140);
     });
-    B('kill', (r) => { this.feed(r); if (r.killer === this.p && !r.suicide) this.elim(r); });
-    B('medal', (a, name, icon) => { if (a === this.p) this.medal(name, icon); });
+    B('kill', (r) => { this.feed(r); if (r.killer === this.p && !r.suicide) { this.elim(r); Wow.kick(r.head ? 0.55 : 0.32); } });
+    B('luck', (a) => { if (a === this.p) Wow.kick(0.4); });
+    B('medal', (a, name, icon) => { if (a === this.p) { this.medal(name, icon); Wow.kick(0.4); } });
     B('announce', (t, team) => this.announce(t, team));
-    B('count', (n) => { const c = this.el.count; c.textContent = n > 0 ? n : 'GO'; c.classList.remove('on'); void c.offsetWidth; c.classList.add('on'); if (n === 3) this.modeIntro(); });
+    B('count', (n) => { const c = this.el.count; c.textContent = n > 0 ? n : 'GO'; c.classList.remove('on'); void c.offsetWidth; c.classList.add('on'); if (n === 3) { this.modeIntro(); Wow.intro(MODES[this.match.mode].name, ((MAP_LIST.find((m) => MAP && m.id === MAP.id) || {}).name || (MAP && MAP.name) || 'LOCKOUT').toUpperCase(), `FIRST TO ${this.match.limit} ${MODES[this.match.mode].unit}`); } });
     B('shot', (a) => { if (a === this.p) Input.rumble(0.25, 0.5, 60); });
     B('explosion', (pos, R) => { const d = Math.hypot(this.p.x - pos.x, this.p.z - pos.z); if (d < R * 2.5) Input.rumble(1, 0.7, 260); });
     this.el.feed.innerHTML = ''; this.el.medals.innerHTML = '';
@@ -157,7 +159,8 @@ export class HUD {
 
   announce(text, team) {
     if (text) Sound.say(text);
-    const a = this.el.ann; a.style.color = team ? TEAM[team].css : '#fff'; a.innerHTML = text; a.classList.remove('on'); void a.offsetWidth; a.classList.add('on');
+    const a = this.el.ann; a.style.color = team ? TEAM[team].css : '#fff'; a.innerHTML = text; a.classList.remove('on', 'xo'); void a.offsetWidth; a.classList.add('on');
+    if (/^EXOTIC ACQUIRED/.test(text)) { a.classList.add('xo'); a.style.color = ''; Wow.exotic(); }
   }
 
   medal(name, icon) {
