@@ -178,6 +178,18 @@ export const Sound = {
     amb = buildAmbience(kind);
     ambTimer = setInterval(() => { if (ctx.state !== 'running' || Math.random() > 0.5) return; if (kind === 'wind') tone(sfxBus, { type: 'sine', f0: 240 + Math.random() * 200, f1: 180, dur: 2.4, gain: 0.02, atk: 1 }); else { tone(sfxBus, { type: 'triangle', f0: 90 + Math.random() * 40, f1: 60, dur: 1.4, gain: 0.05, atk: 0.4 }); noise(sfxBus, { dur: 0.5, f0: 900, f1: 200, gain: 0.05, type: 'bandpass', q: 5, at: 0.3 }); } }, 7000);
   },
+  announcer: false, _sayT: 0,
+  // optional announcer: the browser's own speech synth, pitched low and clipped. Off by default.
+  say(text) {
+    if (!this.announcer || typeof speechSynthesis === 'undefined' || !text) return;
+    const now = performance.now(); if (now - this._sayT < 500) return; this._sayT = now;
+    try {
+      const u = new SpeechSynthesisUtterance(String(text).replace(/<[^>]*>/g, ' ').toLowerCase());
+      const vs = speechSynthesis.getVoices(), v = vs.find((x) => /^en/i.test(x.lang) && /male|daniel|alex|david|fred|google uk english male/i.test(x.name)) || vs.find((x) => /^en/i.test(x.lang));
+      if (v) u.voice = v; u.pitch = 0.5; u.rate = 1.12; u.volume = Math.min(1, vol.master * 1.1);
+      speechSynthesis.cancel(); speechSynthesis.speak(u);
+    } catch { /* no speech support */ }
+  },
   music(mode) {
     musicMode = mode;
     if (musicTimer) { clearInterval(musicTimer); musicTimer = null; }

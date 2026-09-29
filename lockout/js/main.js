@@ -21,7 +21,7 @@ import { Net, friendlyError } from './net.js';
 import { initTouch } from './touch.js';
 
 const Q = new URLSearchParams(location.search);
-const settings = Object.assign({ sens: 1, padSens: 1, invertY: false, fov: 66, master: 0.8, sfx: 1, music: 0.5, shadows: true }, store('settings', {}));
+const settings = Object.assign({ sens: 1, padSens: 1, invertY: false, fov: 66, master: 0.8, sfx: 1, music: 0.5, shadows: true, quality: 'auto', reticle: '#ffffff', hudScale: 1, announcer: false }, store('settings', {}));
 const loadout = Object.assign({ waifu: 0, team: 'blue', diff: 'normal', limit: 25, helmet: false, map: 'lockout', mode: 'slayer', limits: {} }, store('loadout', {}));
 if (!MODES[loadout.mode]) loadout.mode = 'slayer';
 if (Q.get('mode') && MODES[Q.get('mode')]) loadout.mode = Q.get('mode');
@@ -69,7 +69,7 @@ function resize() {
   renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2) * resScale);
   renderer.setSize(W, H, false);
   camera.aspect = W / H; camera.updateProjectionMatrix();
-  document.documentElement.style.setProperty('--ui', clamp(Math.min(W / 1600, H / 900), 0.7, 1.4));
+  document.documentElement.style.setProperty('--ui', clamp(Math.min(W / 1600, H / 900) * (settings.hudScale || 1), 0.6, 1.7));
 }
 addEventListener('resize', resize);
 
@@ -84,6 +84,9 @@ function applySettings() {
   Input.sens = settings.sens; Input.padSens = settings.padSens; Input.invertY = settings.invertY;
   Sound.setVolume(muted ? 0 : settings.master, settings.sfx, settings.music);
   renderer.shadowMap.enabled = settings.shadows;
+  document.documentElement.style.setProperty('--ret', settings.reticle);
+  Sound.announcer = !!settings.announcer;
+  const q = { high: 1, medium: 0.8, low: 0.6 }[settings.quality]; if (q && resScale !== q) { resScale = q; resize(); } else if (!q) resize();
   if (world) world.dir.castShadow = settings.shadows;
 }
 
@@ -236,6 +239,10 @@ function showSettings(backFn) {
   rows.push(UI.slider(box, 'Master volume', 0, 1, 0.05, settings.master, (v) => Math.round(v * 100) + '%', (v) => { settings.master = v; applySettings(); persist(); }));
   rows.push(UI.slider(box, 'Effects', 0, 1, 0.05, settings.sfx, (v) => Math.round(v * 100) + '%', (v) => { settings.sfx = v; applySettings(); persist(); }));
   rows.push(UI.slider(box, 'Music', 0, 1, 0.05, settings.music, (v) => Math.round(v * 100) + '%', (v) => { settings.music = v; applySettings(); persist(); }));
+  rows.push(UI.choice(box, 'Render quality', [{ label: 'AUTO', value: 'auto' }, { label: 'HIGH', value: 'high' }, { label: 'MEDIUM', value: 'medium' }, { label: 'LOW', value: 'low' }], ['auto', 'high', 'medium', 'low'].indexOf(settings.quality), (v) => { settings.quality = v; applySettings(); persist(); }));
+  rows.push(UI.slider(box, 'HUD size', 0.7, 1.4, 0.1, settings.hudScale, (v) => Math.round(v * 100) + '%', (v) => { settings.hudScale = v; resize(); persist(); }));
+  rows.push(UI.choice(box, 'Reticle colour', [{ label: 'WHITE', value: '#ffffff' }, { label: 'CYAN', value: '#7fe6ff' }, { label: 'GREEN', value: '#7dff9b' }, { label: 'GOLD', value: '#ffd84a' }], ['#ffffff', '#7fe6ff', '#7dff9b', '#ffd84a'].indexOf(settings.reticle), (v) => { settings.reticle = v; applySettings(); persist(); }));
+  rows.push(UI.choice(box, 'Announcer voice', [{ label: 'OFF', value: false }, { label: 'ON', value: true }], settings.announcer ? 1 : 0, (v) => { settings.announcer = v; applySettings(); persist(); if (v) Sound.say('Announcer online'); }));
   rows.push(UI.choice(box, 'Shadows', [{ label: 'ON', value: true }, { label: 'OFF', value: false }], settings.shadows ? 0 : 1, (v) => { settings.shadows = v; applySettings(); persist(); }));
   const b = $('#btnSetBack'); UI.button(b, backFn); rows.push(b);
   UI.show('settings', { rows, onBack: backFn });
@@ -703,7 +710,7 @@ function menuFrame(dt) {
 let cool = 0, ftAvg = 16, lastNow = performance.now();
 function adaptRes(realDt) {
   ftAvg = ftAvg * 0.95 + Math.min(200, realDt * 1000) * 0.05; cool -= realDt;
-  if (cool > 0) return;
+  if (cool > 0 || settings.quality !== 'auto') return;
   if (ftAvg > 24 && resScale > 0.55) { resScale = Math.max(0.55, resScale - 0.1); resize(); cool = 3; }
   else if (ftAvg < 12.5 && resScale < 1) { resScale = Math.min(1, resScale + 0.05); resize(); cool = 6; }
 }

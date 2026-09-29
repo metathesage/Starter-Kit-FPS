@@ -5,6 +5,7 @@ import { Input } from './input.js';
 import { Sound } from './audio.js';
 import { clamp, angDiff, TAU } from './util.js';
 import { MODES } from './modes.js';
+import { Profile } from './profile.js';
 
 export const svg = (d, cls = '') => `<svg viewBox="0 0 24 24" class="${cls}"><path d="${d}"/></svg>`;
 export const MEDAL_ICONS = {
@@ -68,7 +69,7 @@ export class HUD {
       <div class="h-reticle"><svg viewBox="-40 -40 80 80"></svg></div>
       <div class="h-hit"><svg viewBox="-20 -20 40 40"><path d="M-14-14L-6-6M14-14L6-6M-14 14L-6 6M14 14L6 6"/></svg></div>
       <div class="h-announce"></div><div class="h-count"></div><div class="h-mode"></div>
-      <div class="h-elim"></div><div class="h-skull"></div>
+      <div class="h-elim"></div><div class="h-skull"></div><div class="h-tut"></div>
       <div class="h-medals"></div><div class="h-prompt"></div>
       <div class="h-cam"></div>
       <div class="h-death"><div class="dd"><div class="k">ELIMINATED BY</div><div class="nm"></div><div class="rs"></div></div></div>
@@ -87,7 +88,7 @@ export class HUD {
       wIcon: q('.wp-icon'), wName: q('.wp-name'), wMag: q('.wp-mag'), wRes: q('.wp-res'), wRel: q('.wp-reload'), ret: q('.h-reticle'), retSvg: q('.h-reticle svg'),
       hit: q('.h-hit'), ann: q('.h-announce'), count: q('.h-count'), modeBig: q('.h-mode'), medals: q('.h-medals'), prompt: q('.h-prompt'), cam: q('.h-cam'),
       death: q('.h-death'), dName: q('.dd .nm'), dRes: q('.dd .rs'), board: q('.h-board'), fps: q('.h-fps'), flash: q('.h-flash'), dmg: q('.h-dmg'), scope: q('.h-scope'), zt: q('.h-scope .zt'), rg: q('.h-scope .rg b'), am: q('.h-scope .am b'),
-      obj: q('.h-obj'), lead: q('.sc-lead'), elim: q('.h-elim'), skull: q('.h-skull'), pu: q('.pu-row'), cmpTrack: cmp, cmpHd: q('.cmp-hd'), markers: q('.h-markers'), weaponBox: q('.h-weapon') };
+      tut: q('.h-tut'), obj: q('.h-obj'), lead: q('.sc-lead'), elim: q('.h-elim'), skull: q('.h-skull'), pu: q('.pu-row'), cmpTrack: cmp, cmpHd: q('.cmp-hd'), markers: q('.h-markers'), weaponBox: q('.h-weapon') };
     this.el.hp.innerHTML = '<i></i>'.repeat(5);
     this.rctx = this.el.radar.getContext('2d');
     this.ghost = 1; this.retId = null; this.alarmT = 0; this.subs = [];
@@ -130,6 +131,12 @@ export class HUD {
     this.el.sc.blue.classList.toggle('mine', this.rowA === 'blue'); this.el.sc.red.classList.toggle('mine', this.rowA === 'red');
     this.el.mode.textContent = md.short + ' · ' + match.limit;
     this.el.obj.innerHTML = ''; this.objKey = '';
+    this.tut = !Profile.d.seen.tutorial;
+    if (this.tut) {
+      const rows = [['fire', 'FIRE'], ['zoom', 'ZOOM'], ['jump', 'JUMP'], ['grenade', 'GRENADE'], ['melee', 'MELEE'], ['reload', 'RELOAD'], ['swap', 'SWAP WEAPON'], ['score', 'SCOREBOARD']];
+      this.el.tut.innerHTML = `<div class="tt-h">FIELD MANUAL</div>${rows.map(([a, t]) => `<div class="tt-r">${glyph(a)}<span>${t}</span></div>`).join('')}<div class="tt-f">Kill to score. Break line of sight to recharge shields.</div>`;
+      this.el.tut.classList.add('on');
+    } else this.el.tut.classList.remove('on');
     this.mk = new Map();
   }
   unbind() { this.subs.forEach((u) => u()); this.subs = []; }
@@ -140,12 +147,13 @@ export class HUD {
   }
 
   announce(text, team) {
+    if (text) Sound.say(text);
     const a = this.el.ann; a.style.color = team ? TEAM[team].css : '#fff'; a.innerHTML = text; a.classList.remove('on'); void a.offsetWidth; a.classList.add('on');
   }
 
   medal(name, icon) {
     const d = document.createElement('div'); d.className = 'medal' + (name === 'PERFECT' ? ' perfect' : ''); d.innerHTML = svg(MEDAL_ICONS[icon] || MEDAL_ICONS.star) + `<span>${name}</span>`;
-    this.el.medals.appendChild(d); Sound.play('medal', { vol: 0.8 }); setTimeout(() => d.remove(), 2950);
+    this.el.medals.appendChild(d); Sound.play('medal', { vol: 0.8 }); Sound.say(name); setTimeout(() => d.remove(), 2950);
     while (this.el.medals.children.length > 3) this.el.medals.firstChild.remove();
   }
 
@@ -189,6 +197,7 @@ export class HUD {
 
   update(dt, ctx) {
     const { match: m, player: p } = ctx; this.camYaw = ctx.camYaw;
+    if (this.tut && m.time > 18) { this.tut = false; this.el.tut.classList.remove('on'); Profile.d.seen.tutorial = 1; Profile.save(); }
     const E = this.el;
     // shield + health
     const tot = 100, sh = clamp(p.shield / tot, 0, 1), ov = clamp((p.shield - tot) / 200, 0, 1);

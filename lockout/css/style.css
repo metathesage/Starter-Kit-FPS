@@ -392,3 +392,9 @@ body.touch-on.playing #touch, body.touch-on.online-play #touch { display: block;
 .ch-t { display: flex; align-items: baseline; gap: 10px; font: 500 11px var(--f-mono); letter-spacing: .1em; } .ch-t em { font-style: normal; font-size: 8px; letter-spacing: .3em; color: var(--dim); } .ch-t span { flex: 1; color: #fff; } .ch-t b { color: #ffd84a; font-weight: 700; }
 .ch-p { font: 400 9px var(--f-mono); letter-spacing: .22em; color: var(--dim); } .ch .xp-bar { height: 4px; } .rc-h span { color: #ffd84a; margin-left: 12px; letter-spacing: .3em; }
 @media (max-width: 900px) { .ch-list { grid-template-columns: 1fr; } }
+.h-reticle:not(.enemy) { color: var(--ret, #fff); }
+.h-tut { display: none; left: calc(30px + var(--safe-l)); top: 34%; width: 220px; padding: 14px 16px; background: var(--hd, rgba(0, 0, 0, .55)); border-left: 2px solid #fff; backdrop-filter: blur(8px); }
+.h-tut.on { display: block; animation: scrIn .7s var(--ease) both; }
+.tt-h { font: 700 11px var(--f-disp); letter-spacing: .34em; margin-bottom: 10px; } .tt-r { display: flex; align-items: center; gap: 12px; padding: 3px 0; font: 500 10px var(--f-mono); letter-spacing: .22em; color: #cfcfca; }
+.tt-f { margin-top: 10px; font: 400 11px/1.4 var(--f-hud); color: var(--dim); }
+@media (max-height: 520px), (pointer: coarse) { .h-tut { display: none !important; } }
