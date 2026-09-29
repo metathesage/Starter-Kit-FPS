@@ -52,7 +52,7 @@ export class HUD {
         <div class="gr-row"><div class="gr frag on">${svg(ICONS.frag)}<b>2</b></div><div class="gr plasma">${svg(ICONS.plasma)}<b>2</b></div></div>
       </div>
       <div class="feed"></div>
-      <div class="h-radar"><div class="rd-tilt"><canvas width="360" height="360"></canvas></div><div class="rd-place">THE YARD</div></div>
+      <div class="h-radar"><div class="rd-tilt"><canvas width="360" height="360"></canvas></div><div class="rd-place">LOCKOUT</div></div>
       <div class="h-score">
         <div class="sc-meta"><span class="sc-mode">TEAM SLAYER</span><span class="sc-clock">12:00</span></div>
         <div class="sc-row red"><i class="sq"></i><div class="sc-bar"><i></i></div><div class="sc-n">0</div></div>

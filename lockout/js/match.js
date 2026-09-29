@@ -169,7 +169,8 @@ export class Actor {
       }
       this.y = ny;
     }
-    if (this.y < -8) { this.y = 5; }
+    if (this.y < W.KILL_Y && this.alive && !dead) { this.health = 0; this.m.kill(this, null, { weapon: 'fall', kind: 'fall' }); }
+    if (this.y < -60) { this.y = -60; this.vy = 0; }
   }
 
   separate() {
@@ -409,7 +410,11 @@ export class Match {
       }
       p.obj.rotation.y += dt * 1.6;
       p.obj.position.y = 0.95 + Math.sin(this.time * 2 + p.x) * 0.08;
-      if (p.dropped) p.mesh.position.y = W.groundAt(p.mesh.position.x, p.mesh.position.z, p.y + 1);
+      if (p.dropped) {
+        const g = W.groundAt(p.mesh.position.x, p.mesh.position.z, p.mesh.position.y + 1);
+        if (Number.isFinite(g)) p.mesh.position.y = g;
+        else { p.mesh.position.y -= dt * 14; if (p.mesh.position.y < -15) { this.pgroup.remove(p.mesh); this.pickups.splice(i, 1); } }
+      }
     }
   }
 
@@ -556,6 +561,7 @@ export class Match {
       const p = this.projs[i];
       if (!p.alive) { this.pgroup.remove(p.mesh); this.projs.splice(i, 1); continue; }
       p.life -= dt;
+      if (p.y < -30) { p.alive = false; continue; }
       if (p.type === 'rocket') {
         const steps = Math.ceil((Math.hypot(p.vx, p.vy, p.vz) * dt) / 0.4);
         const sdt = dt / steps;

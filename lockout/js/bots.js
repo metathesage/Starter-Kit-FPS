@@ -214,13 +214,14 @@ export class Brain {
       const [tx, tz] = dirTo(t);
       const closeWeapon = wid === 'shotgun' || wid === 'sword';
       this.strafeT -= dt;
-      if (this.strafeT <= 0) { this.strafeT = rand(0.5, 1.5) / d.strafe; this.strafeDir = chance(0.5) ? 1 : -1; if (chance(0.25 * d.strafe) && a.grounded && dist < 22) c.jump = true; }
+      if (this.strafeT <= 0) { this.strafeT = rand(0.5, 1.5) / d.strafe; this.strafeDir = chance(0.5) ? 1 : -1; if (chance(0.25 * d.strafe) && a.grounded && dist < 22) this.hopNext = true; }
       let fwd = 0;
       if (closeWeapon) fwd = dist > 2.5 ? 1 : 0;
       else if (wid === 'sniper') fwd = dist < 25 ? -1 : 0;
       else fwd = dist < 7 ? -0.8 : dist > 26 ? 0.8 : 0;
       const sx = -tz * this.strafeDir, sz = tx * this.strafeDir;
       mx = tx * fwd + sx * 0.9 * d.strafe * (wid === 'sniper' ? 0.2 : 1); mz = tz * fwd + sz * 0.9 * d.strafe * (wid === 'sniper' ? 0.2 : 1);
+      if (this.hopNext) { this.hopNext = false; if (this.safeHop(mx, mz)) c.jump = true; }
       // don't step off ledges or into walls
       const l = Math.hypot(mx, mz) || 1;
       const px = a.x + (mx / l) * 1.3, pz = a.z + (mz / l) * 1.3;
@@ -241,11 +242,18 @@ export class Brain {
       const moved = Math.hypot(a.x - this.chk.x, a.z - this.chk.z);
       if (moved < 0.5 && (Math.abs(mx) + Math.abs(mz)) > 0.3) {
         this.stuckT++;
-        if (a.grounded) c.jump = true;
+        if (a.grounded && this.safeHop(mx, mz)) c.jump = true;
         if (this.stuckT >= 2) { this.path = []; this.goal = null; this.stuckT = 0; this.strafeDir *= -1; }
       } else this.stuckT = 0;
       this.chk.x = a.x; this.chk.z = a.z; this.chk.t = 0;
     }
+  }
+
+  // is there floor under the spot we would land on if we hop this way?
+  safeHop(mx, mz) {
+    const a = this.a, l = Math.hypot(mx, mz) || 1;
+    for (const d of [1.5, 3]) { const g = W.groundAt(a.x + (mx / l) * d, a.z + (mz / l) * d, a.y + 0.6); if (!Number.isFinite(g) || g < a.y - 1.2) return false; }
+    return true;
   }
 
   nextPathPoint() {

@@ -101,7 +101,7 @@ async function boot() {
   hud = new HUD($('#hud'));
   rebuildShowcase();
   await setProg(0.86, 'Compiling shaders');
-  camera.position.set(-30.6, 6.4, 4.6); camera.lookAt(-24.6, 6.15, 0.8);
+  camera.position.set(-28.2, 5.55, 5.0); camera.lookAt(-20.6, 5.3, -1.6);
   try { await renderer.compileAsync(scene, camera); } catch { renderer.compile(scene, camera); }
   renderer.render(scene, camera);
   await setProg(1, 'Ready');
@@ -135,7 +135,7 @@ function rebuildShowcase() {
   if (showcase) { scene.remove(showcase.root); disposeRig(showcase); }
   const w = WAIFUS[loadout.waifu];
   showcase = buildWaifu({ team: loadout.team, hair: w.hair, eye: w.eye, helmet: loadout.helmet });
-  showcase.root.position.set(-26.6, 5, 3.4); showcase.root.rotation.y = 1.75; scene.add(showcase.root);
+  showcase.root.position.set(-24.6, 4, 2.6); showcase.root.rotation.y = 1.75; scene.add(showcase.root);
 }
 
 function setHero() {
@@ -367,7 +367,7 @@ function play(dt) {
   // fixed-ish substeps
   const n = Math.max(1, Math.ceil(dt * 60)), sdt = dt / n;
   for (let i = 0; i < n; i++) m.update(sdt);
-  fx.update(dt);
+  fx.update(dt); world.snow.update(dt, camera.position, m.time);
   p.rig.root.visible = m.thirdPerson || !p.alive;
   updateCamera(dt);
   // viewmodel
@@ -391,13 +391,13 @@ function menuFrame(dt) {
   menuT += dt;
   const px = Input.last === 'kbm' ? 0 : 0;
   camera.fov = 44; camera.updateProjectionMatrix();
-  camera.position.set(-30.4 + Math.sin(menuT * 0.23) * 0.3 + px, 6.5 + Math.sin(menuT * 0.31) * 0.08, 4.5 + Math.cos(menuT * 0.19) * 0.2);
-  camera.up.set(0, 1, 0); camera.lookAt(-22.6, 6.25, -1.9);
+  camera.position.set(-28.2 + Math.sin(menuT * 0.23) * 0.3 + px, 5.55 + Math.sin(menuT * 0.31) * 0.08, 5.0 + Math.cos(menuT * 0.19) * 0.2);
+  camera.up.set(0, 1, 0); camera.lookAt(-20.6, 5.3, -1.6);
   if (showcase) {
     showcase.root.rotation.y = 2.05 + Math.sin(menuT * 0.4) * 0.12;
     animateRig(showcase, dt, { speed: 0, lx: 0, lz: 1, weaponId: 'br', grounded: true, pitch: Math.sin(menuT * 0.5) * 0.05 });
   }
-  fx && fx.update(dt);
+  fx && fx.update(dt); world && world.snow.update(dt, camera.position, menuT);
   fx && fx.setScale(H * renderer.getPixelRatio(), 44);
   render(false);
 }
