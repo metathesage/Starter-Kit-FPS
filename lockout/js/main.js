@@ -47,6 +47,10 @@ const TIPS = [
   'The overshield sits behind the catwalk. Bots know where it is. So should you.',
   'An energy sword lunge can cross the room. Do not lunge into a shotgun.',
   'Melee from behind ends the argument.',
+  'Perfect: land every shot, finish on the head, take no damage. It pays 40 XP.',
+  'Carrying the flag slows you down. Escort it, or die with it.',
+  'The Oddball carrier cannot shoot. Stand near them, not in front of them.',
+  'In Rumble Pit the kill leader is marked for everyone. Wear the crown carefully.',
 ];
 
 // ---- renderer -----------------------------------------------------------------------
@@ -615,11 +619,11 @@ function updateCamera(dt) {
     const l = Math.hypot(ax, az) || 1; ax /= l; az /= l;
     const ang = Math.min(p.deadT, 3) * 0.12;
     const bx = -ax * Math.cos(ang) + -az * Math.sin(ang), bz = -az * Math.cos(ang) + ax * Math.sin(ang);
-    let d = 3.4; const t = World.rayWorld(cx, cy, cz, bx, 0.3, bz, d + 0.4); if (t < Infinity) d = Math.max(1, t - 0.4);
-    const tx = cx + bx * d, ty = cy + 1.0 + d * 0.15, tz = cz + bz * d;
+    let d = 4.8; const t = World.rayWorld(cx, cy, cz, bx, 0.35, bz, d + 0.4); if (t < Infinity) d = Math.max(1.2, t - 0.4);
+    const tx = cx + bx * d, ty = cy + 1.5 + d * 0.2, tz = cz + bz * d;
     camera.position.x = damp(camera.position.x, tx, 6, dt); camera.position.y = damp(camera.position.y, ty, 6, dt); camera.position.z = damp(camera.position.z, tz, 6, dt);
     const lx = k ? k.x : cx, ly = k ? k.chest : cy, lz = k ? k.z : cz;
-    camera.up.set(0, 1, 0); camera.lookAt(lx * 0.6 + cx * 0.4, ly * 0.6 + cy * 0.4, lz * 0.6 + cz * 0.4);
+    camera.up.set(0, 1, 0); camera.lookAt(lx * 0.28 + cx * 0.72, ly * 0.28 + cy * 0.72, lz * 0.28 + cz * 0.72);
   }
   m.listener.x = camera.position.x; m.listener.y = camera.position.y; m.listener.z = camera.position.z; m.listener.yaw = camera.rotation.y;
 }

@@ -55,14 +55,31 @@ Landscape works best. The menu asks for fullscreen on tap.
 It runs on pushes to `main` and can be run by hand (Actions -> Deploy LOCKOUT -> Run workflow).
 Live URL: `https://<owner>.github.io/<repo>/`.
 
+## Modes
+
+| Mode | Players | Win condition |
+| --- | --- | --- |
+| Team Slayer | 4 v 4 | Kills score for the team. First to 15 / 25 / 50. |
+| Rumble Pit | 8 free-for-all | Most kills. First to 15 / 25 / 40. The kill leader wears a crown and is marked for everyone. |
+| Capture the Flag | 4 v 4 | Steal the enemy flag, bring it to your base while yours is home. 3 / 5 / 8 captures. Dropped flags auto-return after 20 s. |
+| Oddball | 4 v 4 | Hold the ball to score one point per second. The carrier is unarmed. 60 / 100 / 150 seconds. |
+
+Pick the mode in Deployment (or the online lobby). Bots play the objectives: CTF bots split into attackers and defenders, Oddball bots escort or hunt the carrier.
+
 ## Rules
 
-- Team Slayer, 4v4, first to 15 / 25 / 50 kills or 12 minutes.
 - Shield 100 + health 45. Shields recharge after ~4.6s out of fire. Headshots pay extra.
-- Weapons: BR, magnum, SMG, shotgun, sniper, rocket launcher, carbine, plasma rifle, needler (supercombine), energy sword (lunge), gravity hammer. Frag + plasma grenades.
+- Weapons: BR, magnum, SMG, shotgun, sniper (two-stage widescreen scope), rocket launcher, carbine, plasma rifle, needler (supercombine), energy sword (lunge), gravity hammer. Frag + plasma grenades.
 - Power-ups: overshield (+200), active camo (cloaks you, hides you from radar), damage boost (x2). Killed players drop weapons.
-- Medals: multi-kills, sprees, headshot, assassination, sword, grenade, revenge. Headshot kills show a skull; every kill shows an elimination banner.
+- Medals: multi-kills, sprees, headshot, assassination, sword, grenade, revenge, flag capture, carrier kill, and **PERFECT** (headshot finish, every shot of the fight landed, no damage taken).
 - Four bot difficulties (Easy, Normal, Heroic, Legendary): reaction time, aim error, turn rate, strafing.
+
+## Progression
+
+Your callsign is your in-game name everywhere (kill feed, scoreboard, lobby). Roll one or type your own in Deployment or Service Record.
+Matches award XP and credits. Levels 1-50 unlock operators, halo colours, emblems and titles. Credits buy the premium halos and emblems early in the **Armory**,
+which is also a codex for every weapon, power-up, map and mode. **Service Record** shows rank, stats, service badges and medals.
+Everything is stored in your browser (localStorage).
 
 ## Maps
 
@@ -90,13 +107,18 @@ js/audio.js    synthesized SFX + ambient music
 js/merge.js    merges static meshes per material (draw-call budget)
 js/net.js      PeerJS lobby + transport
 js/touch.js    on-screen controls for phones
+js/modes.js    game modes + CTF / Oddball objective layer
+js/profile.js  callsign, XP, credits, unlocks (localStorage)
+js/catalog.js  operators, halos, emblems, titles, badges, codex data
+js/armory.js   Armory (locker/shop/codex) + Service Record screens
+js/angel.js    SAM-generated angel operator: skinned at load, driven by the procedural rig
 js/main.js     boot, loading, menus, online flow, camera, loop
 ```
 
-Operators are armored angels: halo, wing blades, twin tails, white skirt plate, gold trim, big anime eyes.
-Setup lets you toggle a helm on. Real weapon models: see `models/README.md`.
+Operators are armored angels (a 7k-triangle SAM 3D model, skinned in code so the procedural rig's idle/run/aim/hit/death animation drives it), with per-operator hair colour and a team tint.
+Setup lets you switch to the classic Spartan-helm body. Real weapon models: see `models/README.md`.
 
 Debug: `?fast` skips splash delays, `?touch` forces touch controls, `?peerhost=localhost&peerport=9000&peerpath=/` uses a local PeerJS server, `?fps` shows an FPS counter (or F3), `?quick` skips splash and drops straight into a match,
-`?quick&bot` lets the AI play for you.
+`?quick&bot` lets the AI play for you, `?mode=slayer|rumble|ctf|oddball` and `?map=lockout|cryostat` preselect.
 
 A fan tribute. Not affiliated with or endorsed by any publisher.

@@ -125,7 +125,7 @@ export function attachAngel(rig, { hair = 0xff86c2, tint = 0x4aa0ff } = {}) {
   }
   const mat = new THREE.MeshStandardMaterial({ map: hairTexture(hair), roughness: 0.78, metalness: 0.05, side: THREE.DoubleSide, emissiveMap: null, emissive: new THREE.Color(0x000000) });
   mat.emissiveMap = mat.map; mat.emissive.setScalar(0.42);
-  mat.color.set(0xffffff).lerp(new THREE.Color(tint), 0.2);
+  mat.color.set(0xffffff).lerp(new THREE.Color(tint), 0.3);
   const mesh = new THREE.SkinnedMesh(cache.geo, mat);
   mesh.castShadow = true; mesh.receiveShadow = false; mesh.frustumCulled = false;
   mesh.add(bones.hips); mesh.updateMatrixWorld(true);
@@ -140,7 +140,7 @@ export function attachAngel(rig, { hair = 0xff86c2, tint = 0x4aa0ff } = {}) {
     rest[s] = new THREE.Quaternion().setFromUnitVectors(b.sub(a).normalize(), D);
     bones['sh' + s].scale.setScalar(1.14);
   }
-  rig.haloY = 0.335; rig.halo.scale.setScalar(0.78);
+  rig.haloY = 0.335; rig.halo.scale.setScalar(0.78); rig.crown.position.y = 0.27;
   rig.sam = { mesh, bones, mat, rest, hipsY: bones.hips.position.y, base: 0.42 };
   return true;
 }

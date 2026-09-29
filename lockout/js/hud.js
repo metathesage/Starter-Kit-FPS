@@ -257,7 +257,7 @@ export class HUD {
     if (tk && def) { const sp = (def.spread + p.bloom + (p.lastMoveSpeed / 5.4) * def.spread * 0.6) * 22; tk.style.transform = `scale(${1 + clamp(sp, 0, 1.2)})`; }
     E.scope.classList.toggle('on', zoomScope);
     if (zoomScope) {
-      E.zt.textContent = def.zoom[p.zoomLevel - 1].toFixed(0) + 'X'; E.am.textContent = w ? w.mag : 0;
+      E.zt.textContent = def.zoom[p.zoomLevel - 1] + 'X'; E.am.textContent = w ? w.mag : 0;
       const t = ctx.aimEnemy; E.rg.textContent = t ? Math.hypot(t.x - p.x, t.y - p.y, t.z - p.z).toFixed(0) + ' M' : '---';
       E.scope.classList.toggle('lock', !!t);
     }
@@ -291,8 +291,10 @@ export class HUD {
     const { match: m, player: p, camera: cam } = ctx; if (!cam) return;
     const box = this.el.markers, live = new Set();
     const W = innerWidth, H = innerHeight, v = this._v || (this._v = new cam.position.constructor());
+    const placed = [];
     const put = (key, x, y, z, html, cls, fade) => {
       v.set(x, y, z).project(cam);
+      if (cls === 'pick') { const sx = ((v.x + 1) / 2) * W, sy = ((1 - v.y) / 2) * H; if (placed.some(([px, py]) => Math.abs(px - sx) < 90 && Math.abs(py - sy) < 22)) { const e0 = this.mk.get(key); if (e0) e0.style.display = 'none'; live.add(key); return; } placed.push([sx, sy]); }
       let el = this.mk.get(key);
       if (v.z > 1 || Math.abs(v.x) > 1.05 || Math.abs(v.y) > 1.05) { if (el) el.style.display = 'none'; live.add(key); return; }
       if (!el) { el = document.createElement('div'); el.className = 'mk ' + cls; el.innerHTML = html; box.appendChild(el); this.mk.set(key, el); }
