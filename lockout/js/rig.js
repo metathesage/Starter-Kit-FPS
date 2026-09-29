@@ -284,7 +284,7 @@ export function buildWaifu({ team = 'blue', hair = 0xff86c2, eye = 0x5ce1ff, sca
   aL.arm.position.set(-0.19, 0.2, 0); aR.arm.position.set(0.19, 0.2, 0);
   chest.add(aL.arm, aR.arm);
 
-  const wRoot = new THREE.Group(); wRoot.position.set(0.09, 0.13, -0.06); chest.add(wRoot);
+  const wRoot = new THREE.Group(); wRoot.position.set(0.09, 0.08, -0.06); chest.add(wRoot);
   const rig = {
     root, model, hips, spine, chest, head, skirt, crown, tails, backHair, bh2, halo, wings: wingRig, legL: L.leg, kneeL: L.knee, legR: R.leg, kneeR: R.knee, aL, aR, wRoot, mats,
     weaponId: null, weapon: null, flash: 0,
@@ -369,7 +369,7 @@ export function animateRig(rig, dt, s) {
   const w = rig.weapon;
   if (w) {
     const melee = s.melee || 0, throwT = s.throwT || 0;
-    rig.wRoot.position.set(0.09, 0.12, -0.06 + a.kick * 0.06 - (s.reloading ? 0.02 : 0));
+    rig.wRoot.position.set(0.09, 0.07, -0.06 + a.kick * 0.06 - (s.reloading ? 0.02 : 0));
     rig.wRoot.rotation.set((s.pitch || 0) * 0.7 + a.kick * 0.08 + (s.reloading ? 0.5 : 0) + Math.sin(a.t * 1.6) * 0.008, 0.1, 0);
     if (melee > 0) {
       const k = Math.sin(melee * Math.PI);

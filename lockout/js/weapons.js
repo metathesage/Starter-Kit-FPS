@@ -159,7 +159,13 @@ export async function loadWeaponModels(onStatus = () => {}) {
       const o = typeof raw === 'string' ? { file: raw } : raw;
       try {
         onStatus('Loading ' + WEAPONS[id].short);
-        const gltf = await loader.loadAsync(dir + o.file);
+        let gltf;
+        try { gltf = await loader.loadAsync(dir + o.file); }
+        catch (e0) {   // text-only hosts: base64 copy next to the model
+          const r = await fetch(dir + o.file.replace(/\.glb$/, '.b64.txt')); if (!r.ok) throw e0;
+          const bin = atob((await r.text()).trim()), buf = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+          gltf = await new Promise((res, rej) => loader.parse(buf.buffer, '', res, rej));
+        }
         MODELS[id] = normalizeModel(gltf.scene, id, o);
       } catch (e) { console.warn('weapon model failed', id, e); }
     }
@@ -191,7 +197,14 @@ function normalizeModel(scene, id, o) {
     muzzle: new THREE.Vector3(...(o.muzzle || [0, (box.max.y - gy) * 0.6, zf])),
     model: true, back: zb,
   };
-  out.traverse((m) => { if (m.isMesh) { m.frustumCulled = false; if (m.material) m.material.envMapIntensity = 1.2; } });
+  out.traverse((m) => {
+    if (!m.isMesh) return;
+    m.frustumCulled = false;
+    const mt = m.material; if (!mt) return;
+    mt.envMapIntensity = 1.2;
+    if (mt.map) { mt.emissiveMap = mt.map; mt.emissive.setScalar(o.glow ?? 0.34); }   // baked textures read dark under scene lights: self-light a little
+    if ('metalness' in mt) { mt.metalness = Math.min(mt.metalness, 0.3); mt.roughness = Math.max(mt.roughness, 0.62); }
+  });
   return out;
 }
 
