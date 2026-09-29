@@ -22,12 +22,14 @@ const KEEPER = [
   'The board by the pavilion has work for you. Take a mission, earn your keep, come back with stories.',
   'The Vault holds everything we know: every weapon, every operator, every yard we have fought over.',
   'Warlocks pull power from the void. Spartans pull triggers. Both drink tea at the teahouse.',
-  'Ring the bell when you have had a good day. Ring it twice when you have had a bad one.',
+  'Ring the carillon when you have had a good day. Ring it twice when you have had a bad one.',
+  'The statues are older than the plaza. Learn their names and they will tell you the rest.',
   'Some doors only open for the curious. Wander. Sit by the pond. Read the walls.',
   'They say the deep vault keeps something that does not fit on any shelf.',
 ];
 const LORE = [
-  ['THE SANCTUM', 'A garden built on the lid of an old vault. Whoever planted the first cherry tree never said why. The petals never seem to stop falling.'],
+  ['THE SANCTUM', 'A city built on the lid of an old vault. Marble, gold and open sky. Whoever drew the plans never signed them, and nothing in the plaza has ever needed repair.'],
+  ['THE STATUES', 'Goddesses and guardians line the plaza. Study them all: each one has a name, and each name is a small story about the Halo.'],
   ['OPERATORS', 'Nine operators answer to the halo: pushers, marksmen, breachers, ghosts. Each wears the ring differently.'],
   ['THE YARDS', 'Lockout hangs over a void. Cryostat freezes. Mesa burns at dusk. Overgrowth drowns. Warsat waits for a launch that never came.'],
   ['VOID CASTERS', 'Warlocks glide on stolen air and blink between breaths. A charged Nova Bomb ends arguments. Breaking the cast ends the Warlock.'],
@@ -60,7 +62,7 @@ export class Hub {
   // ------------------------------------------------------------ DOM
   build() {
     const d = document.createElement('div'); d.id = 'hubhud'; d.className = 'hidden';
-    d.innerHTML = `<div class="hh-loc"><b>SANCTUM</b><span id="hhRegion">THE GARDEN</span></div>
+    d.innerHTML = `<div class="hh-loc"><b>SANCTUM</b><span id="hhRegion">THE PROMENADE</span></div>
       <div class="hh-disc"><span>DISCOVERIES</span><b id="hhDisc">0/0</b><i><u id="hhDiscBar"></u></i></div>
       <div class="hh-prompt" id="hhPrompt"></div><div class="hh-toast" id="hhToast"></div>
       <div class="hh-hints" id="hhHints"></div>
@@ -133,11 +135,11 @@ export class Hub {
     const label = (text, sub, x, y, z, scale, r = 9) => { const s = labelSprite(text, sub, scale); s.position.set(x, y, z); s.userData.r = r; g.add(s); this.labels.push(s); return s; };
     const item = (o) => { this.items.push(o); return o; };
     // signage
-    label('SANCTUM', 'Keep the petals falling', 0, 8.6, 24, 2.2, 30);
-    label('MISSION BOARD', 'Take on work', POI.board.x, 4.9, POI.board.z - 1.2, 1.2, 12);
-    label('TEAHOUSE', 'Armory · Record · Save', -25, 5.3, 8, 1.3, 16);
+    label('SANCTUM', 'City of the Halo', 0, 10.4, 24, 2.2, 30);
+    label('MISSION BOARD', 'Take on work', POI.board.x, 5.6, POI.board.z - 1.2, 1.2, 12);
+    label('ATRIUM CAFE', 'Armory · Record · Save', -25, 6.6, 8, 1.3, 16);
     label('THE VAULT', 'Everything we know', 0, 12.2, -22.6, 2.2, 26);
-    label('BELL TOWER', 'Ring it', 25, 5, 20.2, 1, 12); label('VOID ALTAR', 'Feel the pull', 31, 4, -11, 1, 12); label('ZEN GARDEN', 'Sit awhile', -28, 3, -3, 1, 12);
+    label('CARILLON', 'Ring it', 25, 4.6, 20.2, 1, 12); label('VOID OBELISK', 'Feel the pull', 31, 7.4, -11, 1, 14); label('COURT OF GODDESSES', 'Marble and quiet', -28, 4.8, -3, 1.2, 14); label('GUARDIAN COURT', 'They keep watch', 31, 7, -22, 1.2, 16);
     // main interactables
     item({ id: 'board', x: POI.board.x, y: 0, z: POI.board.z - 0.6, r: 2.6, verb: 'READ THE MISSION BOARD', disc: 'board', name: 'MISSION BOARD', act: () => ctx.openMissions() });
     item({ id: 'armory', x: POI.teaCounter.x, y: 0.7, z: POI.teaCounter.z + 1.3, r: 2.3, verb: 'ARMORY AND LOCKER', disc: 'armory', name: 'THE ARMORY', act: () => ctx.openArmory() });
@@ -145,12 +147,12 @@ export class Hub {
     label('TEA', 'Warm buff', -22.6, 3.1, 9.2, 0.6, 7);
     item({ id: 'record', x: POI.record.x, y: 0.7, z: POI.record.z - 1.3, r: 2.3, verb: 'SERVICE RECORD', disc: 'record', name: 'SERVICE RECORD', act: () => ctx.openRecord() });
     item({ id: 'save', x: POI.save.x, y: 0.7, z: POI.save.z - 1.3, r: 2.3, verb: 'SAVE DATA', disc: 'saveterm', name: 'SAVE TERMINAL', act: () => ctx.openSave() });
-    item({ id: 'bell', x: POI.bell.x, y: 0, z: POI.bell.z + 1.4, r: 2.6, verb: 'RING THE BELL', disc: 'bell', name: 'THE BELL', act: () => { Sound.play('bell', { vol: 0.9 }); this.world.hub.bellSwing = 1; this.fx.light(25, 2.3, 19.8, 0xffd890, 12, 0.6, 10); this.toast('THE BELL RINGS ACROSS THE GARDEN'); } });
+    item({ id: 'bell', x: POI.bell.x, y: 0, z: POI.bell.z + 1.4, r: 2.6, verb: 'RING THE CARILLON', disc: 'bell', name: 'THE CARILLON', act: () => { Sound.play('bell', { vol: 0.9 }); this.world.hub.bellSwing = 1; this.fx.light(25, 2.3, 19.8, 0xffd890, 12, 0.6, 10); this.toast('THE BELL RINGS ACROSS THE GARDEN'); } });
     item({ id: 'koi', x: POI.koi.x, y: 0, z: POI.koi.z, r: 3.2, verb: 'FEED THE KOI', disc: 'koi', name: 'THE KOI', act: () => { Sound.play('splash', { vol: 0.7 }); this.world.hub.koiLure = { x: 8, z: -2 }; setTimeout(() => { if (this.world && this.world.hub) this.world.hub.koiLure = null; }, 7000); this.toast('THE KOI GATHER'); for (let i = 0; i < 16; i++) this.fx.emit(9.6 + Math.random() * 1.2, 0.2, -2 + (Math.random() - 0.5) * 1.5, (Math.random() - 0.5) * 0.6, 0.6 + Math.random(), (Math.random() - 0.5) * 0.6, 0.9, 0.16, 0.04, 0.8, 0.9, 1, 0.9, 2); } });
     item({ id: 'sit1', x: POI.sit.x, y: 0, z: POI.sit.z, r: 2.0, verb: 'SIT AND WATCH', disc: 'sit', name: 'A QUIET SEAT', act: () => this.sitDown(POI.sit, Math.PI) });
     item({ id: 'sit2', x: POI.sit2.x, y: 0, z: POI.sit2.z, r: 2.0, verb: 'SIT BY THE POND', disc: 'sit', name: 'A QUIET SEAT', act: () => this.sitDown(POI.sit2, -Math.PI / 2) });
-    item({ id: 'sand', x: -28, y: 0, z: -10, r: 5.2, verb: 'RAKE THE SAND', disc: 'sand', name: 'THE RAKED SAND', act: () => { Sound.play('rake', { vol: 0.7 }); for (let i = 0; i < 24; i++) this.fx.emit(this.p.x + (Math.random() - 0.5), 0.1, this.p.z + (Math.random() - 0.5), (Math.random() - 0.5) * 1.2, 0.5 + Math.random() * 0.8, (Math.random() - 0.5) * 1.2, 0.8, 0.12, 0.03, 0.9, 0.85, 0.7, 0.7, 2); this.toast('A CALM LINE IN THE SAND'); } });
-    item({ id: 'altar', x: POI.altar.x, y: 0.4, z: POI.altar.z + 2.4, r: 3.4, verb: 'TOUCH THE VOID ALTAR', disc: 'altar', name: 'THE VOID ALTAR', act: () => { this.fx.nova(31, 1.6, -11, 4); Sound.play('novaBoom', { vol: 0.5 }); this.camShake = 0.5; this.toast('THE VOID ANSWERS. BLINK WITH ' + Input.glyph('blink') + ', HOLD JUMP TO GLIDE'); } });
+    POI.statues.forEach((q, i) => { item({ id: 'st:' + i, x: q.x - Math.sin(q.yaw) * (q.hw + 1.1), y: q.y, z: q.z - Math.cos(q.yaw) * (q.hw + 1.1), r: q.big ? 3.6 : 2.6, verb: 'STUDY ' + q.name, disc: 'st:' + i, name: q.name, act: () => this.openStatue(i) }); });
+    item({ id: 'altar', x: POI.altar.x, y: 0.4, z: POI.altar.z + 2.4, r: 3.4, verb: 'TOUCH THE VOID OBELISK', disc: 'altar', name: 'THE VOID OBELISK', act: () => { this.fx.nova(31, 5.4, -11, 4); Sound.play('novaBoom', { vol: 0.5 }); this.camShake = 0.5; this.toast('THE VOID ANSWERS. BLINK WITH ' + Input.glyph('blink') + ', HOLD JUMP TO GLIDE'); } });
     item({ id: 'vault', x: POI.vaultDoor.x, y: 1.6, z: POI.vaultDoor.z + 2.2, r: 3.6, verb: () => (this.doorOpen ? 'THE VAULT IS OPEN' : 'OPEN THE VAULT'), disc: 'vault', name: 'THE VAULT', act: () => this.openVault() });
     item({ id: 'orb', x: 0, y: 1.6, z: -28.2, r: 2.6, verb: 'READ THE CODEX', disc: 'orb', name: 'THE CODEX', act: () => this.openCodex(0) });
     item({ id: 'deep', x: 0, y: 1.6, z: -42, r: 3.2, verb: () => (this.deepOpen ? 'THE DEEP VAULT IS OPEN' : this.discCount() >= DEEP_AT ? 'UNSEAL THE DEEP VAULT' : 'SEALED DOOR'), disc: null, act: () => this.openDeep() });
@@ -331,6 +333,12 @@ export class Hub {
     Sound.play(def.snd, { vol: 0.7 }); this.fx.flash(wp.x, wp.y + 0.1, wp.z + 0.7, 0.6, def.tracer || 0xffe6a0); this.fx.tracer({ x: wp.x, y: wp.y + 0.1, z: wp.z + 0.7 }, { x: wp.x, y: wp.y + 0.1, z: wp.z + 6 }, def.tracer || 0xffe6a0); this.fx.light(wp.x, wp.y + 0.2, wp.z + 0.7, def.tracer || 0xffc070, 14, 0.12, 6);
     this.spin.forEach((s) => { if (s.o === holder) s.kick = 1; }); void f;
   }
+  openStatue(i) {
+    const S = POI.statues, n = S.length; i = ((i % n) + n) % n; const q = S[i], top = q.y + q.top, fx = -Math.sin(q.yaw), fz = -Math.cos(q.yaw);
+    this.statueI = i; this.focus = { x: q.x, y: top + (q.big ? 3.6 : 2.0), z: q.z, d: q.big ? 8 : 4.2, from: [q.x + fx * (q.big ? 8.5 : 4.6) + fz * 0.9, top + (q.big ? 3.0 : 1.7), q.z + fz * (q.big ? 8.5 : 4.6) - fx * 0.9] };
+    this.discover('st:' + i, q.name);
+    this.showCard({ kicker: `${q.k === 'goddess' ? 'GODDESS' : 'GUARDIAN'} · ${i + 1}/${n}`, title: q.name, sub: q.epi.toUpperCase(), body: q.lore, pager: true, onPrev: () => this.openStatue(i - 1), onNext: () => this.openStatue(i + 1) });
+  }
   openOperator(w, idx, need, locked) {
     const own = Profile.d.eq.operator === w.id;
     const opos = POI.operators.find((q) => q.id === w.id); if (opos) this.focus = { x: opos.x, y: opos.y + 1.05, z: opos.z, d: 3.1, from: [opos.x - 1.2, opos.y + 1.5, opos.z + 3.4] };
@@ -383,13 +391,14 @@ export class Hub {
     const { x, z } = this.p;
     if (z < -23 && z > -44 && Math.abs(x) < 17) return 'THE VAULT';
     if (z < -44) return 'THE DEEP VAULT';
-    if (x < -18 && z > 1 && z < 16) return 'THE TEAHOUSE';
-    if (x < -19 && z < -1 && z > -19) return 'ZEN GARDEN';
-    if (x > 20 && z > 10 && z < 22) return 'BELL TOWER';
-    if (x > 22 && z < -1 && z > -24) return 'BAMBOO GROVE';
-    if (Math.abs(x) < 12 && z < 7 && z > -11) return 'THE KOI POND';
+    if (x < -18 && z > 1 && z < 16) return 'ATRIUM CAFE';
+    if (x < -19 && z < -1 && z > -22) return 'COURT OF GODDESSES';
+    if (x > 20 && z > 10 && z < 22) return 'CARILLON';
+    if (x > 22 && z < -1 && z > -25) return 'GUARDIAN COURT';
+    if (Math.abs(x) < 12 && z < 7 && z > -11) return 'REFLECTING POOL';
     if (z < -11 && z > -24) return 'VAULT TERRACE';
-    return 'THE GARDEN';
+    if (z > 16 && z < 30 && Math.abs(x) < 19) return 'GRAND PLAZA';
+    return 'THE PROMENADE';
   }
 
   update(dt) {

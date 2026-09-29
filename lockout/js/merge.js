@@ -12,7 +12,7 @@ export function mergeStatic(group) {
     let b = buckets.get(key);
     if (!b) buckets.set(key, (b = { mat: o.material, cast: o.castShadow, recv: o.receiveShadow, geos: [] }));
     const g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone();
-    if (g.attributes.color) b.color = true;
+    if (g.attributes.color) { b.color = true; (mergeStatic.cm ||= new Set()).add(o.material.uuid); }
     for (const n of Object.keys(g.attributes)) if (!['position', 'normal', 'uv', 'color'].includes(n)) g.deleteAttribute(n);
     if (!g.attributes.uv) g.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(g.attributes.position.count * 2), 2));
     if (!g.attributes.normal) g.computeVertexNormals();
@@ -21,7 +21,7 @@ export function mergeStatic(group) {
   });
   for (const o of doomed) { o.parent.remove(o); }
   for (const b of buckets.values()) {
-    if (b.color) { for (const g of b.geos) if (!g.attributes.color) g.setAttribute('color', new THREE.BufferAttribute(new Float32Array(g.attributes.position.count * 3).fill(1), 3)); if (!b.mat.vertexColors) { b.mat.vertexColors = true; b.mat.needsUpdate = true; } }
+    if (b.color || b.mat.vertexColors || (mergeStatic.cm && mergeStatic.cm.has(b.mat.uuid))) { for (const g of b.geos) if (!g.attributes.color) g.setAttribute('color', new THREE.BufferAttribute(new Float32Array(g.attributes.position.count * 3).fill(1), 3)); if (!b.mat.vertexColors) { b.mat.vertexColors = true; b.mat.needsUpdate = true; } }
     else for (const g of b.geos) if (g.attributes.color) g.deleteAttribute('color');
     const merged = mergeGeometries(b.geos, false);
     if (!merged) continue;

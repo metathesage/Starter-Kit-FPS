@@ -157,10 +157,11 @@ Progress autosaves in the browser (`lockout.profile`, save version 2: player id,
 
 ## Sanctum (the hub)
 
-Title menu > Enter Sanctum. A calm, combat-free cherry-blossom garden you walk around in third person (glide with jump held, blink with X / LB). It runs a slow sunset-to-night cycle.
+Title menu > Enter Sanctum. A clean, sunlit art-deco utopia you walk around in third person (glide with jump held, blink with X / LB). A slow afternoon-to-night cycle turns the skyline, lamps and fountains on.
 
-- **Mission Board** (pavilion): ten missions plus a rotating Daily Bloom. Bot matches with a fixed setup, first-clear rewards, a bonus objective and an unlock chain. Results return you to the garden.
-- **Teahouse:** Armory / locker, Service Record, Save Data terminal, and a cup of tea (+15% XP on your next match).
-- **The Vault** (north, opens with a door interaction): all 11 weapons on plinths (stats, test fire, rotate, preview skins), all 9 operators on daises (locked ones show as silhouettes, equip unlocked ones), dioramas of every map, a codex orb (power-ups, modes, medals, lore), and a wall of your medals.
-- **Discoveries:** 46 things to find (weapons, operators, maps, garden spots, secrets). Milestones pay credits; 20 unseals the Deep Vault and its relic (Sakura halo + Keeper title).
-- **Life:** koi to feed, a bell to ring, a garden cat to pet, seats to sit on, sand to rake, a void altar, fireflies, photo mode (V hides the HUD).
+- **Look:** white marble with gold inlay, fluted colonnades, a sunburst arch, a reflecting pool with fountains and koi, cherry-blossom accent trees, a deco skyline and an orbital ring. Marble goddesses (the operator model carved in stone) and armoured guardians stand in courts around the plaza; 17 statues to study, each with a name and a line of lore.
+- **Mission Board** (colonnade): ten missions plus a rotating Daily Bloom, with first-clear rewards, bonus objectives and an unlock chain. Results return you to the plaza.
+- **Atrium Cafe:** Armory / locker, Service Record, Save Data terminal, and a cup of tea (+15% XP on your next match).
+- **The Vault** (north; interact to open the door): all 11 weapons on plinths (stats, test fire, rotate, skin preview), all 9 operators, dioramas of every map, a codex orb and a wall of your medals.
+- **Discoveries:** statues, weapons, operators, maps and secrets. Milestones pay credits; 20 unseals the Deep Vault and its relic (Sakura halo + Keeper title).
+- **Life:** koi, a carillon bell, a plaza cat, seats, a void obelisk, fireflies, photo mode (V hides the HUD).

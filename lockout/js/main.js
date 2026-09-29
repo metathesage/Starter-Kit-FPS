@@ -41,7 +41,7 @@ if (Q.get('map')) loadout.map = Q.get('map');
 if (!['lockout', 'cryostat', 'mesa', 'overgrowth', 'warsat'].includes(loadout.map)) loadout.map = 'lockout';
 const persist = () => { save('settings', settings); save('loadout', loadout); };
 
-const EXPOSURE = { lockout: 1.05, cryostat: 1.3, mesa: 0.95, overgrowth: 1.2, warsat: 1.35 };
+const EXPOSURE = { lockout: 1.05, cryostat: 1.3, mesa: 0.95, overgrowth: 1.2, warsat: 1.35, sanctum: 0.92 };
 // title-screen framing per map: operator position, camera position, look-at
 const MENU = {
   lockout: { show: [-24.6, 4, 2.6], cam: [-27.3, 5.2, 4.7], look: [-22.4, 5.0, -0.2] },
@@ -77,7 +77,7 @@ const GRADE = {
   mesa: { tint: [1.07, 1, 0.92], sat: 1.12, con: 1.05, bloom: 0.55, vig: 0.22, thr: 1.15 },
   overgrowth: { tint: [0.95, 1.04, 1], sat: 1.12, con: 1.12, bloom: 0.38, vig: 0.26, thr: 1.25 },
   warsat: { tint: [1.06, 1.02, 0.92], sat: 1.08, con: 1.06, bloom: 0.5, vig: 0.22, thr: 1.15 },
-  sanctum: { tint: [1.04, 1, 1.02], sat: 1.12, con: 1.04, bloom: 0.8, vig: 0.2, thr: 0.95 },
+  sanctum: { tint: [1.02, 1, 1], sat: 1.08, con: 1.1, bloom: 0.5, vig: 0.2, thr: 1.35 },
 };
 renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap;
