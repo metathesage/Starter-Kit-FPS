@@ -134,6 +134,10 @@ export class FX {
     t.m.material.color.setHex(color); t.t = t.dur = dur; t.m.visible = true; t.m.material.opacity = 0.9;
   }
 
+  burst(x, y, z, c = [1, 0.8, 0.3], n = 14, spd = 4) {
+    for (let i = 0; i < n; i++) { const a = rand(0, 6.28), e = rand(-0.3, 1), s = rand(spd * 0.4, spd); this.emit(x, y, z, Math.cos(a) * s, e * s + 1, Math.sin(a) * s, rand(0.3, 0.7), rand(0.18, 0.4), 0.02, c[0], c[1], c[2], 1, 3); }
+    this.emit(x, y, z, 0, 0, 0, 0.18, 1.3, 0.2, c[0], c[1], c[2], 1, 0);
+  }
   // nova bomb detonation: expanding void shells, an upward column, a ring of embers
   nova(x, y, z, R = 8) {
     for (const v of this.void) { v.m.position.set(x, y, z); v.t = 0.001; v.R = R; v.m.visible = true; }

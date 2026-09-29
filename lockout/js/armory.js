@@ -33,7 +33,7 @@ function items(cat) {
     case 'skin': return C.SKINS.map((s) => ({ ...s, cat, sub: s.price ? fmtN(s.price) + ' CR' : 'LEVEL ' + s.lvl, color: s.tint ? hex(s.tint) : '#c9c9c4' }));
     case 'emblem': return C.EMBLEMS.map((e) => ({ ...e, cat, sub: C.TIER[e.tier].name, color: C.TIER[e.tier].color }));
     case 'title': return C.TITLES.map((t) => ({ ...t, cat, name: t.text, sub: t.stat ? 'ACHIEVEMENT' : 'LEVEL ' + t.lvl, price: 0, blurb: t.stat ? 'Earned by play: ' + C.unlockText(t) : 'Unlocks at level ' + t.lvl + '.' }));
-    case 'weapons': return Object.values(WEAPONS).map((w) => ({ cat, id: w.id, name: w.short, sub: w.melee ? 'MELEE' : w.power >= 3 ? 'POWER' : 'STANDARD', state: 'info', blurb: C.WEAPON_INFO[w.id] || '', w }));
+    case 'weapons': return Object.values(WEAPONS).map((w) => ({ cat, id: w.id, name: w.short, sub: w.exotic ? 'EXOTIC' : w.melee ? 'MELEE' : w.power >= 3 ? 'POWER' : 'STANDARD', state: 'info', blurb: C.WEAPON_INFO[w.id] || '', w }));
     case 'power': return C.POWER_INFO.map((p) => ({ cat, id: p.id, name: p.name, sub: 'POWER-UP', state: 'info', blurb: p.blurb, color: p.color }));
     case 'maps': return World.MAP_LIST.map((m) => ({ cat, id: m.id, name: m.name, sub: 'SYMMETRICAL', state: 'info', blurb: m.tag }));
     case 'modes': return Object.values(MODES).map((m) => ({ cat, id: m.id, name: m.name, sub: m.unit + ' TO ' + m.limits[1], state: 'info', blurb: m.blurb }));

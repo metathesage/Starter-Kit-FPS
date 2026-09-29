@@ -3,7 +3,7 @@ import * as W from './world.js';
 import { WEAPONS } from './weapons.js';
 import { clamp, rand, chance, angDiff, forward, pick } from './util.js';
 
-const RANGE = { br: 85, magnum: 55, smg: 34, shotgun: 12, sniper: 120, rocket: 50, sword: 3, hammer: 3.2, carbine: 90, plasmarifle: 38, needler: 42 };
+const RANGE = { hawkmoon: 95, lastword: 44, felwinter: 16, gjallarhorn: 52, thorn: 90, br: 85, magnum: 55, smg: 34, shotgun: 12, sniper: 120, rocket: 50, sword: 3, hammer: 3.2, carbine: 90, plasmarifle: 38, needler: 42 };
 
 export class Brain {
   constructor(actor, match, diff) { this.a = actor; this.m = match; this.d = diff; this.reset(); }
@@ -28,6 +28,11 @@ export class Brain {
 
   score(id, dist) {
     switch (id) {
+      case 'hawkmoon': return dist > 12 ? 8.6 : 7;
+      case 'lastword': return dist < 24 ? 8.4 : 3;
+      case 'felwinter': return dist < 12 ? 9.6 : dist < 18 ? 3 : 0.5;
+      case 'gjallarhorn': return dist > 8 && dist < 48 ? 8.8 : 2;
+      case 'thorn': return dist > 8 ? 7.6 : 5.5;
       case 'sword': return dist < 9 ? 9 : 0;
       case 'hammer': return dist < 6 ? 9 : 0;
       case 'carbine': return dist > 25 ? 6.5 : 5;
@@ -138,7 +143,7 @@ export class Brain {
     } else if (this.state === 'combat' && this.target) {
       const t = this.target, dist = Math.hypot(t.x - a.x, t.z - a.z);
       const def = a.def || WEAPONS.br;
-      const close = a.weapon && (a.weapon.id === 'shotgun' || a.weapon.id === 'sword');
+      const close = a.weapon && (a.weapon.id === 'shotgun' || a.weapon.id === 'sword' || a.weapon.id === 'felwinter');
       if ((dist > (close ? 3 : RANGE[a.weapon ? a.weapon.id : 'br'] * 0.6) || !this.visible) && this.repathT <= 0) { this.setGoal(t.x, t.y, t.z); this.repathT = 0.7; }
       void def;
     }
@@ -161,9 +166,9 @@ export class Brain {
       const wid = a.weapon ? a.weapon.id : 'br';
       let ax = t.x, ay = t.chest, az = t.z;
       const dist = Math.hypot(t.x - a.x, t.z - a.z);
-      if (wid === 'rocket') { ay = t.y + 0.2; const tt = dist / 34; ax += t.vx * tt; az += t.vz * tt; }
+      if (wid === 'rocket' || wid === 'gjallarhorn') { ay = t.y + 0.2; const tt = dist / 34; ax += t.vx * tt; az += t.vz * tt; }
       else if (wid === 'sniper' || wid === 'br') { const tt = dist / 400; ax += t.vx * tt; az += t.vz * tt; }
-      if (wid !== 'rocket' && chance(0.002 * d.acc / (this.d.aimErr * 20 + 0.2))) ay = t.y + t.h - 0.2;
+      if (wid !== 'rocket' && wid !== 'gjallarhorn' && chance(0.002 * d.acc / (this.d.aimErr * 20 + 0.2))) ay = t.y + t.h - 0.2;
       if (this.visible) {
         wantYaw = Math.atan2(-(ax - a.x), -(az - a.z));
         wantPitch = Math.atan2(ay - a.eye, Math.max(0.1, Math.hypot(ax - a.x, az - a.z)));
@@ -221,7 +226,7 @@ export class Brain {
       const t = this.target, dist = Math.hypot(t.x - a.x, t.z - a.z);
       const wid = a.weapon ? a.weapon.id : 'br';
       const [tx, tz] = dirTo(t);
-      const closeWeapon = wid === 'shotgun' || wid === 'sword';
+      const closeWeapon = wid === 'shotgun' || wid === 'sword' || wid === 'felwinter';
       this.strafeT -= dt;
       if (this.strafeT <= 0) { this.strafeT = rand(0.5, 1.5) / d.strafe; this.strafeDir = chance(0.5) ? 1 : -1; if (chance(0.25 * d.strafe) && a.grounded && dist < 22) this.hopNext = true; }
       let fwd = 0;

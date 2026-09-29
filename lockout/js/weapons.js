@@ -13,6 +13,11 @@ export const WEAPONS = {
   carbine: { name: 'Type-51 Carbine', short: 'CARBINE', mag: 18, reserve: 72, reload: 1.9, cycle: 0.21, burst: 1, gap: 0, dmg: 17, head: 2.2, spread: 0.003, range: 140, zoom: [3], kick: 0.014, snd: 'carbine', tracer: 0x9dffb0, ret: 'dot', slot: 0, power: 1 },
   plasmarifle: { name: 'Type-25 Plasma Rifle', short: 'PLASMA RIFLE', mag: 100, reserve: 100, reload: 2.0, cycle: 0.075, burst: 1, gap: 0, auto: true, dmg: 5.8, head: 1.3, spread: 0.022, range: 60, zoom: [1.2], kick: 0.004, snd: 'plasmar', tracer: 0x6ab8ff, ret: 'ring', slot: 0, power: 1 },
   needler: { name: 'Type-33 Needler', short: 'NEEDLER', mag: 20, reserve: 80, reload: 1.8, cycle: 0.12, burst: 1, gap: 0, auto: true, dmg: 5.4, head: 1.2, spread: 0.018, range: 70, zoom: [1.2], kick: 0.003, snd: 'needler', tracer: 0xff5bd0, ret: 'ring', slot: 0, power: 1 },
+  hawkmoon: { name: 'Hawkmoon', short: 'HAWKMOON', mag: 11, reserve: 55, reload: 1.55, cycle: 0.27, burst: 1, gap: 0, dmg: 38, head: 2.15, spread: 0.0016, range: 115, zoom: [1.7], kick: 0.024, snd: 'hawk', tracer: 0xffd070, ret: 'dot', slot: 0, power: 5, exotic: true, luck: 0.34, perk: ['LUCK IN THE CHAMBER', 'Precision hits have a chance to load bonus rounds into the magazine.'] },
+  lastword: { name: 'Last Word', short: 'LAST WORD', mag: 16, reserve: 96, reload: 1.7, cycle: 0.115, burst: 1, gap: 0, auto: true, dmg: 12.5, head: 1.7, spread: 0.024, spreadHip: 0.0055, range: 75, falloff: [22, 60], hipMul: 1.3, draw: 0.18, zoom: [1.25], kick: 0.007, snd: 'lw', tracer: 0xffe0a0, ret: 'ring', slot: 0, power: 5, exotic: true, perk: ['TAP THE TRIGGER', 'Full-auto hand cannon. Hip-fire is accurate and hits harder. Aiming down sights is a trap. Draws in a blink.'] },
+  felwinter: { name: "Felwinter's Lie", short: "FELWINTER'S LIE", mag: 6, reserve: 24, reload: 2.2, cycle: 0.8, burst: 1, gap: 0, pellets: 11, dmg: 15, head: 1.0, spread: 0.018, spreadHip: 0.052, range: 28, falloff: [5, 19], opening: 1.25, zoom: [1.3], kick: 0.055, snd: 'fw', tracer: 0xff9a5a, ret: 'ring', slot: 0, power: 4, exotic: true, perk: ['SHOT PACKAGE', 'Pellets tighten sharply when aiming down sights. The first shot after a reload hits 25% harder.'] },
+  gjallarhorn: { name: 'Gjallarhorn', short: 'GJALLARHORN', mag: 2, reserve: 6, reload: 2.9, cycle: 1.15, burst: 1, gap: 0, dmg: 110, radius: 4.6, speed: 30, spread: 0.002, range: 200, zoom: [1.6], kick: 0.05, snd: 'gjall', proj: 'wolf', ret: 'ring', slot: 0, power: 5, exotic: true, perk: ['WOLFPACK ROUNDS', 'The rocket splits mid-flight into three homing rockets that hunt the nearest target.'] },
+  thorn: { name: 'Thorn', short: 'THORN', mag: 11, reserve: 44, reload: 1.7, cycle: 0.33, burst: 1, gap: 0, dmg: 28, head: 2.0, spread: 0.002, range: 105, zoom: [1.7], kick: 0.02, snd: 'thorn', tracer: 0x7dff5a, ret: 'dot', slot: 0, power: 5, exotic: true, poison: 5, perk: ['HUNTER\'S POISON', 'Hits poison the target: damage over time that blocks shield recharge. Stacks up to three times.'] },
   hammer: { name: 'Gravity Hammer', short: 'GRAVITY HAMMER', mag: 100, reserve: 0, reload: 0, cycle: 1.1, burst: 1, gap: 0, dmg: 999, range: 3.0, lungeRange: 0, knock: 16, melee: true, kick: 0, snd: 'swing', ret: 'none', slot: 0, power: 3 },
   sword: { name: 'Energy Sword', short: 'ENERGY SWORD', mag: 100, reserve: 0, reload: 0, cycle: 0.6, burst: 1, gap: 0, dmg: 150, range: 2.6, lungeRange: 7.5, melee: true, kick: 0, snd: 'swing', ret: 'none', slot: 0, power: 3 },
 };
@@ -20,7 +25,13 @@ export const WEAPONS = {
 for (const [k, v] of Object.entries(WEAPONS)) v.id = k;
 
 // Silhouette icons (24-unit grid, single stroke) for HUD + pickups
+export const EXOTICS = ['hawkmoon', 'lastword', 'felwinter', 'gjallarhorn', 'thorn'];
 export const ICONS = {
+  hawkmoon: 'M2 11h13l2 1h5v3h-5l-1 1h-3l-1 4H8l1-4-2-1H2z M9 8h5',
+  lastword: 'M2 10h14l3 1v3h-4l-1 1h-3l-1 5H8l1-5-1-1H2z M16 8v2',
+  thorn: 'M2 11h12l2 1h6v3h-6l-1 1h-3l-1 4H8l1-4-1-1H2z M12 8l2-3 2 3 M16 8l2-3 2 3',
+  felwinter: 'M1 12h16l2-2h4v3h-4l-2 1H8l-2 3H4l1-3H1z M4 9h4',
+  gjallarhorn: 'M2 10h11l8-3v10l-8-3H2z M5 10v4 M9 10v4',
   br: 'M2 13h4l2-3h9l1 2h4v3h-6l-1 4H9l-1-4H2z M9 10V8h6v2',
   magnum: 'M3 10h13l3 1v3h-6l-1 5H9l1-5H3z',
   smg: 'M2 12h5l2-3h8l1 2h4v3h-7l-1 5h-3l1-5H2z',
@@ -149,7 +160,7 @@ const BUILD = {
 
 // ---- optional real models: drop .glb files in models/weapons (or git-ignored models/private) ----
 const MODELS = {};
-const DEFAULT_LEN = { carbine: 0.95, plasmarifle: 0.7, needler: 0.65, hammer: 1.4, br: 0.95, magnum: 0.32, smg: 0.55, shotgun: 0.9, sniper: 1.25, rocket: 1.05, sword: 1.2 };
+const DEFAULT_LEN = { hawkmoon: 0.36, lastword: 0.34, thorn: 0.36, felwinter: 1.0, gjallarhorn: 1.1, carbine: 0.95, plasmarifle: 0.7, needler: 0.65, hammer: 1.4, br: 0.95, magnum: 0.32, smg: 0.55, shotgun: 0.9, sniper: 1.25, rocket: 1.05, sword: 1.2 };
 export async function loadWeaponModels(onStatus = () => {}) {
   let loader = null;
   for (const dir of ['models/private/', 'models/weapons/']) {

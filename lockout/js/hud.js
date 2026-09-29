@@ -23,7 +23,7 @@ export const MEDAL_ICONS = {
   shield: 'M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6z',
   crown: 'M3 8l4.500 4L12 5l4.500 7L21 8l-2 11H5z',
 };
-const WEAPON_ICON = { br: ICONS.br, magnum: ICONS.magnum, smg: ICONS.smg, shotgun: ICONS.shotgun, sniper: ICONS.sniper, rocket: ICONS.rocket, sword: ICONS.sword, carbine: ICONS.carbine, plasmarifle: ICONS.plasmarifle, needler: ICONS.needler, hammer: ICONS.hammer, frag: ICONS.frag, plasma: ICONS.plasma, melee: MEDAL_ICONS.fist, explosion: ICONS.frag, fall: ICONS.skull, nova: ICONS.nova };
+const WEAPON_ICON = { br: ICONS.br, magnum: ICONS.magnum, smg: ICONS.smg, shotgun: ICONS.shotgun, sniper: ICONS.sniper, rocket: ICONS.rocket, sword: ICONS.sword, carbine: ICONS.carbine, plasmarifle: ICONS.plasmarifle, needler: ICONS.needler, hammer: ICONS.hammer, hawkmoon: ICONS.hawkmoon, lastword: ICONS.lastword, felwinter: ICONS.felwinter, gjallarhorn: ICONS.gjallarhorn, thorn: ICONS.thorn, frag: ICONS.frag, plasma: ICONS.plasma, melee: MEDAL_ICONS.fist, explosion: ICONS.frag, fall: ICONS.skull, nova: ICONS.nova };
 export const wIcon = (id) => svg(WEAPON_ICON[id] || MEDAL_ICONS.skull);
 
 export function glyph(action) {
@@ -151,7 +151,7 @@ export class HUD {
 
   modeIntro() {
     const md = MODES[this.match.mode], m = this.el.modeBig;
-    const vn = { lowgrav: 'LOW GRAVITY', fiesta: 'FIESTA', snipers: 'SNIPERS', swords: 'SWORDS + MAGNUMS' }[this.match.variant];
+    const vn = { lowgrav: 'LOW GRAVITY', fiesta: 'FIESTA', snipers: 'SNIPERS', swords: 'SWORDS + MAGNUMS', iconic: 'ICONIC' }[this.match.variant];
     m.innerHTML = `${vn ? vn + ' · ' : ''}${md.name}<br><span style="color:var(--gold)">FIRST TO ${this.match.limit} ${md.unit}</span>`; m.classList.remove('on'); void m.offsetWidth; m.classList.add('on');
   }
 

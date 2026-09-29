@@ -1,7 +1,7 @@
 // Match engine: actors, movement, weapons, projectiles, damage, medals, pickups, rules.
 import * as THREE from 'three';
 import * as W from './world.js';
-import { WEAPONS, makeWeaponMesh, makeGrenadeMesh, makeRocketMesh, makeNovaMesh } from './weapons.js';
+import { WEAPONS, EXOTICS, makeWeaponMesh, makeGrenadeMesh, makeRocketMesh, makeNovaMesh } from './weapons.js';
 import { buildWaifu, animateRig, disposeRig, BOT_STYLES, TEAM, setHuntTeams } from './rig.js';
 import { MODES, P_TEAMS, Objectives } from './modes.js';
 import { Sound } from './audio.js';
@@ -29,9 +29,9 @@ export const DIFFICULTY = {
 
 let _uid = 1;
 // weapons that can earn a PERFECT: every shot of the engagement landed, headshot finish, no damage taken. Value = min hits.
-const ENERGY = new Set(['plasmarifle', 'needler', 'carbine']);
-const SHELLS = new Set(['br', 'magnum', 'smg', 'shotgun', 'sniper']);
-const PERFECT_W = new Map([['br', 4], ['carbine', 5], ['magnum', 3], ['sniper', 1]]);
+const ENERGY = new Set(['plasmarifle', 'needler', 'carbine', 'thorn']);
+const SHELLS = new Set(['br', 'magnum', 'smg', 'shotgun', 'sniper', 'hawkmoon', 'lastword', 'felwinter']);
+const PERFECT_W = new Map([['br', 4], ['carbine', 5], ['magnum', 3], ['sniper', 1], ['hawkmoon', 3], ['thorn', 3]]);
 
 export class Actor {
   constructor(match, { name, team, style, isPlayer = false, id = null, remote = null, helmet }) {
@@ -70,7 +70,7 @@ export class Actor {
     const wl = this.cls === 'warlock';
     this.gren = wl ? { frag: 0, plasma: 0 } : { frag: 2, plasma: 2 }; this.gtype = 'frag';
     this.blinkCh = BLINK_MAX; this.blinkT = 0; this.novaT = 0; this.castDmg = 0; this.glide = false; if (wl) this.sup = Math.min(this.sup, 0.35);
-    this.resetTimers(); this.spawnProt = 2.2; this.dmgBy.clear();
+    this.resetTimers(); this.spawnProt = 2.2; this.dmgBy.clear(); this.poison = null;
     this.spawnSeq++; this.netT = null; this.carry = null; this.pf = null;
     this.rig.root.visible = !this.isPlayer || this.m.thirdPerson;
     this.rig.a.dead = 0;
@@ -124,6 +124,11 @@ export class Actor {
     if (this.overT > 0) {
       this.overT -= dt;
       if (this.overT <= 0) { this.over = 0; }
+    }
+    if (this.poison && this.poison.t > 0) {
+      this.poison.t -= dt; this.poison.tick = (this.poison.tick || 0) + dt;
+      if (this.poison.tick >= 0.5) { this.poison.tick = 0; const P = this.poison; this.m.damage(this, P.dps * P.n * 0.5, { attacker: P.by, weapon: 'thorn', kind: 'poison', dot: true }); }
+      if (this.poison && this.poison.t <= 0) this.poison = null;
     }
     if (this.camoT > 0) this.camoT = Math.max(0, this.camoT - dt);
     if (this.boostT > 0) this.boostT = Math.max(0, this.boostT - dt);
@@ -330,7 +335,7 @@ export class Actor {
     if (def && !def.zoom && this.zoomLevel) this.zoomLevel = 0;
 
     if (c.swap && this.weapons.length > 1 && this.swapT <= 0.15) {
-      this.cur ^= 1; this.swapT = 0.5; this.reloadT = 0; this.burstLeft = 0; this.zoomLevel = 0;
+      this.cur ^= 1; this.swapT = (WEAPONS[this.weapons[this.cur].id].draw ?? 0.5); this.reloadT = 0; this.burstLeft = 0; this.zoomLevel = 0;
       m.sfx('swap', this, 0.6); m.bus.emit('swap', this);
       return;
     }
@@ -345,7 +350,7 @@ export class Actor {
     if (this.reloadT > 0) {
       this.reloadT -= dt;
       if (this.reloadT <= 0 && w) {
-        const n = Math.min(def.mag - w.mag, w.res); w.mag += n; w.res -= n;
+        const n = Math.min(def.mag - w.mag, w.res); w.mag += n; w.res -= n; w.fresh = true;
       }
       return;
     }
@@ -499,7 +504,7 @@ export class Match {
         this.actors.push(a); this.byId.set(a.id, a);
         if (r.id === cfg.you) this.player = a;
       }
-      for (const p of W.PICKUPS) { if (['snipers', 'swords', 'fiesta'].includes(this.variant) && !POWER.has(p.id)) continue; this.addPickup({ ...p }); }
+      for (const p of W.PICKUPS) { if (!this.keepPickup(p)) continue; this.addPickup({ ...p }); }
       this.nStatic = this.pickups.length;
       if (MODES[this.mode].obj) this.obj = new Objectives(this);
       return;
@@ -526,7 +531,7 @@ export class Match {
     for (const a of this.actors) if ((!a.isPlayer || cfg.autoPlayer) && !a.remote) a.brain = new Brain(a, this, this.diff);
     this.actors.forEach((a) => this.byId.set(a.id, a));
 
-    for (const p of W.PICKUPS) { if (['snipers', 'swords', 'fiesta'].includes(this.variant) && !POWER.has(p.id)) continue; this.addPickup({ ...p }); }
+    for (const p of W.PICKUPS) { if (!this.keepPickup(p)) continue; this.addPickup({ ...p }); }
     this.nStatic = this.pickups.length;
     if (MODES[this.mode].obj) this.obj = new Objectives(this);
     const used = { red: 0, blue: 0 };
@@ -541,7 +546,8 @@ export class Match {
     const v = this.variant;
     if (v === 'snipers') return [slot('sniper')];
     if (v === 'swords') return [slot('sword'), slot('magnum')];
-    if (v === 'fiesta') { const ids = ['br', 'magnum', 'smg', 'shotgun', 'sniper', 'rocket', 'carbine', 'plasmarifle', 'needler', 'sword', 'hammer']; return [slot(ids[(Math.random() * ids.length) | 0])]; }
+    if (v === 'iconic') { const ex = EXOTICS.filter((x) => x !== 'gjallarhorn'), a1 = ex[(Math.random() * ex.length) | 0], a2 = ex.filter((x) => x !== a1)[(Math.random() * (ex.length - 1)) | 0]; return [slot(a1), slot(a2)]; }
+    if (v === 'fiesta') { const ids = ['br', 'magnum', 'smg', 'shotgun', 'sniper', 'rocket', 'carbine', 'plasmarifle', 'needler', 'sword', 'hammer', ...EXOTICS]; return [slot(ids[(Math.random() * ids.length) | 0])]; }
     if (a && a.cls === 'warlock') return [slot('br'), slot('magnum')];
     return [slot('br')];
   }
@@ -555,10 +561,11 @@ export class Match {
 
   // ---- pickups --------------------------------------------------------------
   addPickup(p) {
+    if (p.id === 'exotic') { p = { ...p, id: EXOTICS[(Math.random() * EXOTICS.length) | 0], rot: true }; }
     const isPower = POWER.has(p.id);
     const g = new THREE.Group();
     const tier = isPower ? 4 : WEAPONS[p.id].power;
-    const col = isPower ? ({ overshield: 0xb28cff, camo: 0x7fe6ff, boost: 0xff8a3a })[p.id] : ([0xffffff, 0xffffff, 0xffb347, 0x6ab8ff, 0xb28cff][tier] || 0xffffff);
+    const col = isPower ? ({ overshield: 0xb28cff, camo: 0x7fe6ff, boost: 0xff8a3a })[p.id] : ([0xffffff, 0xffffff, 0xffb347, 0x6ab8ff, 0xb28cff, 0xffd25a][tier] || 0xffffff);
     const ring = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.03, 5, 20), new THREE.MeshStandardMaterial({ color: 0x111111, emissive: col, emissiveIntensity: 2.4 }));
     ring.rotation.x = Math.PI / 2; ring.position.y = 0.06; g.add(ring);
     const disc = new THREE.Mesh(new THREE.CircleGeometry(0.6, 20), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, depthWrite: false }));
@@ -569,11 +576,22 @@ export class Match {
     obj.position.y = 0.95; g.add(obj);
     g.position.set(p.x, p.y, p.z);
     this.pgroup.add(g);
+    if (tier >= 5) {   // exotic: a tall gold beam you can see across the map
+      const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.42, 22, 10, 1, true), new THREE.MeshBasicMaterial({ color: 0xffd25a, transparent: true, opacity: 0.2, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false })); beam.position.y = 11; g.add(beam);
+      const ring2 = new THREE.Mesh(new THREE.TorusGeometry(0.85, 0.02, 5, 32), new THREE.MeshBasicMaterial({ color: 0xffe9a0, fog: false })); ring2.rotation.x = Math.PI / 2; ring2.position.y = 0.1; g.add(ring2); p.beamMesh = beam;
+    }
     const pk = { ...p, mesh: g, obj, active: true, back: 0, born: this.time, isPower, ammo: p.ammo || null, uid: p.uid ?? ++this.puid };
     this.pickups.push(pk);
     return pk;
   }
 
+  keepPickup(p) { const v = this.variant; if (POWER.has(p.id)) return true; if (v === 'snipers' || v === 'swords') return false; if (v === 'fiesta' || v === 'iconic') return p.id === 'exotic'; return true; }
+  rerollExotic(p) {
+    const pool = EXOTICS.filter((x) => x !== p.id); p.id = pool[(Math.random() * pool.length) | 0]; this.swapPickupObj(p);
+  }
+  swapPickupObj(p) {
+    p.mesh.remove(p.obj); const o = makeWeaponMesh(p.id); o.scale.setScalar(1.5); o.position.y = 0.95; p.mesh.add(o); p.obj = o;
+  }
   updatePickups(dt) {
     for (let i = this.pickups.length - 1; i >= 0; i--) {
       const p = this.pickups[i];
@@ -629,10 +647,11 @@ export class Match {
       } else if (p.ammo) a.giveWeapon(p.id, p.ammo[0], p.ammo[1]);
       else a.giveWeapon(p.id);
       this.sfx('pickup', a, 0.7);
+      if (def.exotic) { this.sfx('exotic', a, 1); this.bus.emit('announce', a.isPlayer ? `EXOTIC ACQUIRED  ${def.short}` : `${a.name} HAS ${def.short}`, a.team); }
     }
     this.bus.emit('pickup', a, p);
     if (p.dropped || p.t === 0) { this.pgroup.remove(p.mesh); this.pickups.splice(this.pickups.indexOf(p), 1); }
-    else { p.active = false; p.mesh.visible = false; p.back = p.t; }
+    else { p.active = false; p.mesh.visible = false; p.back = p.t; if (p.rot) this.rerollExotic(p); }
     return true;
   }
 
@@ -654,6 +673,8 @@ export class Match {
     const mvBonus = clamp(a.lastMoveSpeed / RUN, 0, 1) * def.spread * 0.6;
     a.bloom = Math.min(0.04, a.bloom + (def.auto || def.burst > 1 ? def.kick * 0.25 : 0));
     let sp = spreadBase + mvBonus + a.bloom * (a.zoomLevel ? 0.3 : 1);
+    const wslot = a.weapon; let openMul = 1;
+    if (def.opening && wslot && wslot.fresh) { openMul = def.opening; sp *= 0.45; wslot.fresh = false; } else if (wslot) wslot.fresh = false;
     if (a.brain) sp *= 1 + (1 - this.diff.acc) * 2;
     const base = forward(a.yaw, a.pitch, { x: 0, y: 0, z: 0 });
     const mp = this.muzzlePos(a, _mz);
@@ -665,8 +686,9 @@ export class Match {
     this.bus.emit('shot', a, def);
     a.zoomHold = a.zoomLevel;
 
-    if (def.proj === 'rocket') {
-      const p = { type: 'rocket', x: mx, y: my, z: mz, vx: base.x * def.speed, vy: base.y * def.speed, vz: base.z * def.speed, owner: a, uid: ++this.puid, life: 6, mesh: makeRocketMesh(), alive: true, dmg: def.dmg, radius: def.radius };
+    if (def.proj === 'rocket' || def.proj === 'wolf') {
+      const p = { type: 'rocket', x: mx, y: my, z: mz, vx: base.x * def.speed, vy: base.y * def.speed, vz: base.z * def.speed, owner: a, uid: ++this.puid, life: 6, mesh: makeRocketMesh(), alive: true, dmg: def.dmg, radius: def.radius, wolf: def.proj === 'wolf', wid: def.proj === 'wolf' ? 'gjallarhorn' : 'rocket', age: 0 };
+      if (p.wolf) { p.mesh.scale.setScalar(1.3); this.fx.flash(mx, my, mz, 1.1, 0xffb060); }
       p.mesh.position.set(mx, my, mz); this.pgroup.add(p.mesh);
       this.projs.push(p);
       return;
@@ -695,11 +717,13 @@ export class Match {
       }
       const hx = ox + dx * tt, hy = oy + dy * tt, hz = oz + dz * tt;
       if (hitA) {
-        let dmg = def.dmg * (hh ? def.head : 1);
+        let dmg = def.dmg * (hh ? def.head : 1) * openMul * (def.hipMul && a.zoomLevel === 0 ? def.hipMul : 1);
         if (def.falloff) { const d = tt; dmg *= d <= def.falloff[0] ? 1 : clamp(1 - (d - def.falloff[0]) / (def.falloff[1] - def.falloff[0]), 0.08, 1); }
         if (a.brain) dmg *= 1;
         this.damage(hitA, dmg, { attacker: a, weapon: def.id, head: hh, kind: 'bullet', dir: { x: dx, y: dy, z: dz }, point: { x: hx, y: hy, z: hz } });
         anyHead = anyHead || hh;
+        if (def.luck && hh && wslot && Math.random() < def.luck && wslot.mag < def.mag) { wslot.mag = Math.min(def.mag, wslot.mag + 2); fx.burst(hx, hy, hz, [1, 0.82, 0.32], 16, 4.5); this.sfx('luck', a, 0.8); this.bus.emit('luck', a, def); }
+        if (def.poison && hitA.alive) { const P = hitA.poison; hitA.poison = { t: 4, dps: def.poison, n: Math.min(3, P ? P.n + 1 : 1), by: a, tick: P ? P.tick : 0 }; fx.blood(hx, hy, hz, [0.4, 1, 0.3]); }
         if (pfw && a.pf) a.pf.h++;
       } else if (tw < def.range) {
         fx.sparks(hx - dx * 0.05, hy - dy * 0.05, hz - dz * 0.05, -dx * 0.5, 0.6, -dz * 0.5, def.pellets ? 4 : 7);
@@ -773,7 +797,33 @@ export class Match {
         }
         this.fx.emit(p.x, p.y, p.z, rand(-0.4, 0.4), rand(-0.4, 0.4), rand(-0.4, 0.4), 0.45, 0.32, 0.06, 1, 0.6, 0.25, 0.9, 0);
         p.mesh.position.set(p.x, p.y, p.z); p.mesh.lookAt(p.x + p.vx, p.y + p.vy, p.z + p.vz);
-        if (boom || p.life <= 0) { p.alive = false; this.explode(p.x, p.y, p.z, p.radius, p.dmg, p.owner, 'rocket', direct); }
+        p.age = (p.age || 0) + dt;
+        if (p.wolf && !p.split && p.age > 0.3 && !boom) {
+          p.split = true; p.alive = false; this.sfx('luck', p, 0.9); this.fx.burst(p.x, p.y, p.z, [1, 0.6, 0.25], 14, 4);
+          for (let k = 0; k < 3; k++) {
+            const sp = 24, ang = (k - 1) * 0.42, ca = Math.cos(ang), sa = Math.sin(ang), dx = p.vx / 30, dz = p.vz / 30;
+            const m2 = { type: 'mini', x: p.x, y: p.y, z: p.z, vx: (dx * ca - dz * sa) * sp, vy: p.vy / 30 * sp + (k === 1 ? 2 : k === 0 ? -1 : 1), vz: (dx * sa + dz * ca) * sp, owner: p.owner, uid: ++this.puid, life: 3.2, mesh: makeRocketMesh(), alive: true, dmg: 46, radius: 2.5, age: 0 };
+            m2.mesh.scale.setScalar(0.7); m2.mesh.position.set(m2.x, m2.y, m2.z); this.pgroup.add(m2.mesh); this.projs.push(m2);
+          }
+          continue;
+        }
+        if (boom || p.life <= 0) { p.alive = false; this.explode(p.x, p.y, p.z, p.radius, p.dmg, p.owner, p.wid || 'rocket', direct); }
+        continue;
+      }
+      if (p.type === 'mini') {   // wolfpack rocket: steers hard toward the nearest foe ahead
+        p.age += dt;
+        let best = null, bd = 1e9;
+        for (const o of this.actors) { if (!o.alive || !this.foe(p.owner, o)) continue; const dx = o.x - p.x, dy = o.chest - p.y, dz = o.z - p.z, d = Math.hypot(dx, dy, dz), sp = Math.hypot(p.vx, p.vy, p.vz) || 1; if (d > 48 || d >= bd || (dx * p.vx + dy * p.vy + dz * p.vz) / (d * sp) < 0.1 || !W.los(p.x, p.y, p.z, o.x, o.chest, o.z)) continue; bd = d; best = o; }
+        if (best && p.age > 0.08) { const k = Math.min(1, dt * 4.2), dx = best.x - p.x, dy = best.chest - p.y, dz = best.z - p.z, d = Math.hypot(dx, dy, dz) || 1; p.vx += ((dx / d) * 26 - p.vx) * k; p.vy += ((dy / d) * 26 - p.vy) * k; p.vz += ((dz / d) * 26 - p.vz) * k; }
+        let boom = false, direct = null; const steps = Math.ceil((Math.hypot(p.vx, p.vy, p.vz) * dt) / 0.4), sdt = dt / steps;
+        for (let s = 0; s < steps && !boom; s++) {
+          p.x += p.vx * sdt; p.y += p.vy * sdt; p.z += p.vz * sdt;
+          if (W.pointSolid(p.x, p.y, p.z)) { boom = true; break; }
+          for (const o of this.actors) { if (!o.alive || !this.foe(p.owner, o)) continue; if (Math.abs(p.x - o.x) < 0.6 && Math.abs(p.z - o.z) < 0.6 && p.y > o.y && p.y < o.y + o.h) { boom = true; direct = o; break; } }
+        }
+        this.fx.emit(p.x, p.y, p.z, rand(-0.3, 0.3), rand(-0.3, 0.3), rand(-0.3, 0.3), 0.4, 0.28, 0.05, 1, 0.55, 0.2, 0.9, 0);
+        p.mesh.position.set(p.x, p.y, p.z); p.mesh.lookAt(p.x + p.vx, p.y + p.vy, p.z + p.vz);
+        if (boom || p.life <= 0) { p.alive = false; this.explode(p.x, p.y, p.z, p.radius, p.dmg, p.owner, 'gjallarhorn', direct); }
         continue;
       }
       if (p.type === 'nova') {
@@ -865,7 +915,8 @@ export class Match {
     const wasShield = v.shield > 0;
     v.lastHit = 0;
     let rem = amt;
-    if (v.shield > 0) { const ab = Math.min(v.shield, amt); v.shield -= ab; rem = amt - ab; }
+    if (info.dot) { rem = amt; }   // poison seeps through the shield
+    else if (v.shield > 0) { const ab = Math.min(v.shield, amt); v.shield -= ab; rem = amt - ab; }
     if (rem > 0) v.health -= rem;
     if (a && a !== v) v.dmgBy.set(a.id, this.time);
     if (info.weapon === 'needler' && !info.explosion && a && !dead0(v)) { v.nd = (this.time - v.ndT < 2.4 ? v.nd : 0) + 1; v.ndT = this.time; if (v.nd >= 7) { v.nd = 0; this.explode(v.x, v.chest, v.z, 2.6, 60, a, 'needler'); } }
@@ -877,11 +928,12 @@ export class Match {
       void c;
     }
     const dead = v.health <= 0;
-    if (wasShield && v.shield <= 0 && !dead) this.sfx('shieldBreak', v, 1);
+    if (info.dot) { if (!dead) v.rig.flash = 0.25; }
+    else if (wasShield && v.shield <= 0 && !dead) this.sfx('shieldBreak', v, 1);
     else if (!dead) this.sfx(v.shield > 0 ? 'shieldHit' : 'hit', v, 0.8);
     if (a && a !== v) this.bus.emit('hit', a, v, !!info.head, dead, amt);
     this.bus.emit('hurt', v, a, amt, a || pos);
-    if (v.isPlayer) this.bus.emit('shake', clamp(amt / 90, 0.08, 0.6));
+    if (v.isPlayer && !info.dot) this.bus.emit('shake', clamp(amt / 90, 0.08, 0.6));
     if (dead) this.kill(v, a, info);
     return amt;
   }
@@ -1110,7 +1162,7 @@ export class Match {
         g1: a.gren.frag, g2: a.gren.plasma, gt: a.gtype === 'frag' ? 0 : 1, k: a.kills, d: a.deaths, as: a.assists, st: a.streak,
         mt: r2(a.meleeT), tt: r2(a.throwT), rt: r2(a.reloadT), sw: r2(a.swapT), zl: a.zoomLevel, sq: a.spawnSeq, ra: r2(Math.max(0, a.respawnAt - this.time)), lm: r2(a.lastMoveSpeed), lf: r2(this.time - a.lastFireT), sp: r2(a.sup), nv: r2(a.novaT), ot: r2(a.overT), cm: r2(a.camoT), bt: r2(a.boostT),
       })),
-      pk: this.pickups.slice(0, this.nStatic || W.PICKUPS.length).map((p) => (p.active ? 1 : 0)),
+      pk: this.pickups.slice(0, this.nStatic || W.PICKUPS.length).map((p) => (p.rot ? 10 + EXOTICS.indexOf(p.id) + (p.active ? 0 : 20) : p.active ? 1 : 0)),
       dr: this.pickups.filter((p) => p.dropped).map((p) => ({ u: p.uid, id: p.id, x: r2(p.mesh.position.x), y: r2(p.mesh.position.y), z: r2(p.mesh.position.z), a: p.ammo })),
       pj: this.projs.filter((p) => p.alive).map((p) => [p.uid, p.type, r2(p.x), r2(p.y), r2(p.z), r2(p.vx), r2(p.vy), r2(p.vz)]),
     };
@@ -1151,7 +1203,7 @@ export class Match {
       if (a === this.player && a.first) { a.x = o.x; a.y = o.y; a.z = o.z; a.yaw = o.yw; a.first = false; a.spawnSeq = o.sq; }
       if (!a.alive && wasAlive) { a.deadT = 0; a.vy = 1; }
     }
-    s.pk.forEach((v, i) => { const p = this.pickups[i]; if (p && p.active !== !!v) { p.active = !!v; p.mesh.visible = !!v; } });
+    s.pk.forEach((v, i) => { const p = this.pickups[i]; if (!p) return; const act = v >= 30 ? false : !!v, ei = v >= 10 ? (v - 10) % 20 : -1; if (p.rot && ei >= 0 && p.id !== EXOTICS[ei]) { p.id = EXOTICS[ei]; this.swapPickupObj(p); } if (p.active !== act) { p.active = act; p.mesh.visible = act; } });
     const have = new Set(s.dr.map((d) => d.u));
     for (const d of s.dr) if (!this.pickups.some((p) => p.uid === d.u)) this.addPickup({ id: d.id, x: d.x, y: d.y, z: d.z, t: 0, dropped: true, ammo: d.a, uid: d.u });
     for (let i = this.pickups.length - 1; i >= 0; i--) { const p = this.pickups[i]; if (p.dropped && !have.has(p.uid)) { this.pgroup.remove(p.mesh); this.pickups.splice(i, 1); } }
@@ -1159,7 +1211,7 @@ export class Match {
     for (const [u, type, x, y, z, vx, vy, vz] of s.pj) {
       seen.add(u);
       let r = this.rp.get(u);
-      if (!r) { r = { mesh: type === 'rocket' ? makeRocketMesh() : type === 'nova' ? makeNovaMesh() : makeGrenadeMesh(type), type, first: true }; r.mesh.position.set(x, y, z); this.pgroup.add(r.mesh); this.rp.set(u, r); }
+      if (!r) { r = { mesh: type === 'rocket' || type === 'mini' ? makeRocketMesh() : type === 'nova' ? makeNovaMesh() : makeGrenadeMesh(type), type, first: true }; r.mesh.position.set(x, y, z); this.pgroup.add(r.mesh); this.rp.set(u, r); }
       r.t = { x, y, z }; r.v = { x: vx, y: vy, z: vz };
     }
     for (const [u, r] of this.rp) if (!seen.has(u)) { this.pgroup.remove(r.mesh); this.rp.delete(u); }
@@ -1195,7 +1247,7 @@ export class Match {
     for (const r of this.rp.values()) {
       const m = r.mesh, t = r.t; if (!t) continue;
       m.position.x += (t.x - m.position.x) * k; m.position.y += (t.y - m.position.y) * k; m.position.z += (t.z - m.position.z) * k;
-      if (r.type === 'rocket') { m.lookAt(m.position.x + r.v.x, m.position.y + r.v.y, m.position.z + r.v.z); this.fx.emit(m.position.x, m.position.y, m.position.z, rand(-0.4, 0.4), rand(-0.4, 0.4), rand(-0.4, 0.4), 0.45, 0.32, 0.06, 1, 0.6, 0.25, 0.9, 0); }
+      if (r.type === 'rocket' || r.type === 'mini') { m.lookAt(m.position.x + r.v.x, m.position.y + r.v.y, m.position.z + r.v.z); this.fx.emit(m.position.x, m.position.y, m.position.z, rand(-0.4, 0.4), rand(-0.4, 0.4), rand(-0.4, 0.4), 0.45, 0.32, 0.06, 1, 0.6, 0.25, 0.9, 0); }
       else if (r.type === 'nova') { m.rotation.y += dt * 5; m.rotation.x += dt * 3; this.fx.emit(m.position.x + rand(-0.4, 0.4), m.position.y + rand(-0.4, 0.4), m.position.z + rand(-0.4, 0.4), 0, 0, 0, 0.5, 0.55, 0.05, 0.6, 0.35, 1, 0.9, 0); }
       else { m.rotation.x += dt * 9; m.rotation.z += dt * 6; if (r.type === 'plasma') this.fx.emit(m.position.x, m.position.y, m.position.z, 0, 0.3, 0, 0.25, 0.22, 0.04, 0.4, 0.8, 1, 0.8, 0); }
     }

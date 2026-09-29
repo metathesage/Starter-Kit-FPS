@@ -160,7 +160,7 @@ export class Hub {
     item({ id: 'relic', x: 0, y: 1.6, z: -46.2, r: 2.4, verb: () => (Profile.d.stats.relic ? 'THE RELIC HUMS' : 'CLAIM THE SANCTUM RELIC'), disc: 'relic', name: 'THE SANCTUM RELIC', act: () => this.claimRelic() });
     // weapon plinths
     const wl = [];
-    for (const p of POI.weapons) {
+    for (const p of [...POI.weapons, ...POI.exotics]) {
       const def = WEAPONS[p.id], m = makeWeaponMesh(p.id); m.scale.setScalar(1.35); const holder = new THREE.Group(); holder.position.set(p.x, p.y + 0.75, p.z); holder.add(m); g.add(holder); this.spin.push({ o: holder, y0: holder.position.y, sp: 0.5, ph: Math.random() * 6 });
       m.rotation.y = 0; wl.push(holder);
       label(def.short, 'Inspect', p.x, p.y + 1.7, p.z, 0.55, 7);
@@ -319,7 +319,7 @@ export class Hub {
 
   openWeapon(p, holder) {
     const id = p.id, def = WEAPONS[id]; this.focus = { x: p.x, y: p.y + 0.85, z: p.z, d: 2.6, from: [p.x + 2.3, p.y + 1.15, p.z + 1.2], spin: holder }; this.skinIdx = 0;
-    this.showCard({ swapUse: true, kicker: `${def.melee ? 'MELEE' : 'FIREARM'} · ${['SIDEARM', 'STANDARD', 'HEAVY', 'POWER', 'RELIC'][clamp(def.power, 0, 4)] || 'ISSUE'}`, title: def.name, body: C.WEAPON_INFO[id], stats: C.weaponStats(id), alt: def.melee ? 'SWING' : 'TEST FIRE', altAction: 'fire',
+    this.showCard({ swapUse: true, kicker: `${def.exotic ? 'EXOTIC' : def.melee ? 'MELEE' : 'FIREARM'} · ${['SIDEARM', 'STANDARD', 'HEAVY', 'POWER', 'RELIC', 'EXOTIC'][clamp(def.power, 0, 5)] || 'ISSUE'}`, title: def.name, body: (def.perk ? def.perk[0] + '. ' + def.perk[1] + '  ' : '') + C.WEAPON_INFO[id], stats: C.weaponStats(id), alt: def.melee ? 'SWING' : 'TEST FIRE', altAction: 'fire',
       onAlt: () => this.testFire(id, def, holder), skin: true, onSkin: () => this.cycleSkin(id, holder) });
   }
   cycleSkin(id, holder) {

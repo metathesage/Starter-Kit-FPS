@@ -108,6 +108,11 @@ export const WEAPON_INFO = {
   carbine: 'Precise single shots with a fast cycle. The plasma-era answer to the BR.',
   plasmarifle: 'Fast plasma stream that strips shields quickly.',
   needler: 'Homing needles. Seven stuck needles supercombine into a blast.',
+  hawkmoon: 'Exotic hand cannon. Precision hits can load bonus rounds into the magazine. Luck in the chamber.',
+  lastword: 'Exotic full-auto hand cannon. Devastating from the hip, hopeless through the scope. Draws instantly.',
+  felwinter: 'Legendary shotgun. Tightens dramatically when aimed. The opening shot after a reload hits hard.',
+  gjallarhorn: 'Exotic rocket launcher. One rocket becomes four: a main round and three homing wolves.',
+  thorn: 'Exotic hand cannon. Hits poison and stack, and poison blocks shield recharge.',
   hammer: 'One swing, one kill. The knockback is a feature.',
   sword: 'Lunge across the room and finish it. Silent up close.',
 };

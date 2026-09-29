@@ -33,7 +33,7 @@ if (Q.get('team') === 'red' || Q.get('team') === 'blue') loadout.team = Q.get('t
 const limitOf = () => { const l = MODES[loadout.mode].limits, v = loadout.limits && loadout.limits[loadout.mode]; return l.includes(v) ? v : l[1]; };
 const haloHex = (id) => { const h = C.HALOS.find((x) => x.id === (id || Profile.d.eq.halo)); return h ? h.color : undefined; };
 const skinHex = (id) => { const s = C.SKINS.find((x) => x.id === (id || Profile.d.eq.skin)); return s ? s.tint : null; };
-const VARIANTS = [['standard', 'STANDARD'], ['lowgrav', 'LOW GRAVITY'], ['fiesta', 'FIESTA'], ['snipers', 'SNIPERS'], ['swords', 'SWORDS + MAGNUMS']];
+const VARIANTS = [['standard', 'STANDARD'], ['lowgrav', 'LOW GRAVITY'], ['fiesta', 'FIESTA'], ['snipers', 'SNIPERS'], ['swords', 'SWORDS + MAGNUMS'], ['iconic', 'ICONIC HAND CANNONS']];
 if (!VARIANTS.some((v) => v[0] === loadout.variant)) loadout.variant = 'standard';
 const matchCfg = () => ({ variant: loadout.variant, mode: loadout.mode, limit: limitOf(), haloColor: haloHex(), skinTint: skinHex() });
 { const i = WAIFUS.findIndex((w) => w.id === Profile.d.eq.operator); if (i >= 0) loadout.waifu = i; else loadout.waifu = 0; }

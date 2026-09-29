@@ -17,12 +17,13 @@ export const POI = {
   bell: { x: 25, y: 0, z: 20.2 }, altar: { x: 31, y: 0.4, z: -11 }, koi: { x: 11.8, y: 0, z: -2 }, sit: { x: -27, y: 0, z: -3.2 }, sit2: { x: 13.5, y: 0, z: 9.5 },
   vaultDoor: { x: 0, y: 1.6, z: -22.6 }, deepDoor: { x: 0, y: 1.6, z: -42.6 }, orb: { x: 0, y: 1.6, z: -30 }, relic: { x: 0, y: 1.6, z: -47.5 },
   medalWall: { x: 0, y: 1.6, z: -41.4 }, torii: { x: 0, y: 0, z: 24 }, sand: { x: -28, y: 0, z: -10 }, lantern: { x: -3.6, y: 0, z: 15 },
-  weapons: [], operators: [], maps: [], statues: [],
+  weapons: [], exotics: [], operators: [], maps: [], statues: [],
 };
 // weapon plinths: 11 along the west wing
 {
   const ids = ['br', 'magnum', 'smg', 'shotgun', 'sniper', 'rocket', 'carbine', 'plasmarifle', 'needler', 'hammer', 'sword'];
   ids.forEach((id, i) => { const col = i < 6 ? 0 : 1, row = col ? i - 6 : i; POI.weapons.push({ id, x: col ? -8.4 : -12.8, y: 2.7, z: -27.4 - row * 2.7 - (col ? 1.35 : 0) }); });
+  ['hawkmoon', 'lastword', 'felwinter', 'gjallarhorn', 'thorn'].forEach((id, i) => POI.exotics.push({ id, x: [-3.6, 3.6, -3.6, 3.6, 0][i], y: 2.7, z: [-45.8, -45.8, -49.6, -49.6, -50.3][i] }));
   const ops = ['aoi', 'kira', 'nova', 'yuna', 'mira', 'ivy', 'hana', 'zero', 'eos'];
   ops.forEach((id, i) => POI.operators.push({ id, x: 7.4 + (i % 3) * 2.9, y: 2.0, z: -27.4 - Math.floor(i / 3) * 4.6 }));
   ['lockout', 'cryostat', 'mesa', 'overgrowth', 'warsat', 'sanctum'].forEach((id, i) => POI.maps.push({ id, x: i < 3 ? -11 + i * 3.4 : 4.6 + (i - 3) * 3.4, y: 2.62, z: -40.9 }));
@@ -56,7 +57,7 @@ export function defineSanctum(A) {
   box(-5, 5, -51, -44, 0, 1.6, 'vfloor'); box(-6, -5, -52, -44, 1.6, 8, 'vwall'); box(5, 6, -52, -44, 1.6, 8, 'vwall'); box(-6, 6, -52, -51, 1.6, 8, 'vwall'); box(-6, 6, -52, -43, 8, 8.6, 'vroof');
   const doorDeep = B(-1.8, 1.8, -44.4, -43.4, 1.6, 5, 'vdoor');
   // exhibits
-  POI.weapons.forEach((w) => box(w.x - 0.6, w.x + 0.6, w.z - 0.6, w.z + 0.6, 1.6, 2.7, 'plinth'));
+  [...POI.weapons, ...POI.exotics].forEach((w) => box(w.x - 0.6, w.x + 0.6, w.z - 0.6, w.z + 0.6, 1.6, 2.7, 'plinth'));
   POI.operators.forEach((o) => box(o.x - 1.1, o.x + 1.1, o.z - 1.1, o.z + 1.1, 1.6, 2.0, 'dais'));
   box(-1, 1, -31, -29, 1.6, 2.6, 'plinth');
   box(-12.6, -3, -42.6, -39.4, 1.6, 2.6, 'table'); box(3, 12.6, -42.6, -39.4, 1.6, 2.6, 'table');

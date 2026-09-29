@@ -374,7 +374,7 @@ export async function buildSanctumVisuals(A, scene, renderer, onProgress) {
   for (const sx of [-1, 1]) for (let z = -26; z > -42; z -= 4) { bev(WM.marble, sx * 16.5 - 0.4, sx * 16.5 + 0.4, 1.6, 9.9, z - 0.4, z + 0.4, 0.04); strip(gGold, sx * 16.15, 5.7, z, 0.04, 8, 0.05); }
   const beam = new THREE.Mesh(new THREE.CylinderGeometry(3.6, 4.2, 8.4, 16, 1, true), new THREE.MeshBasicMaterial({ color: 0xfff0d0, transparent: true, opacity: 0.1, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false })); beam.position.set(0, 6, -30); root.add(beam);
   for (const [x, z, c] of [[-10, -30, 0xfff0d8], [10, -30, 0xfff0d8], [0, -38, 0xd8f4ff]]) { const l = new THREE.PointLight(c, 40, 24, 1.4); l.position.set(x, 7, z); root.add(l); }
-  for (const p of POI.weapons) { strip(gGold, p.x, 2.72, p.z, 1.0, 0.02, 1.0); gl(p.x, 3.2, p.z, 0xffe0a8, 2.4); }
+  for (const p of [...POI.weapons, ...POI.exotics]) { strip(gGold, p.x, 2.72, p.z, 1.0, 0.02, 1.0); gl(p.x, 3.2, p.z, p.id && POI.exotics.includes(p) ? 0xffd25a : 0xffe0a8, p.id && POI.exotics.includes(p) ? 4 : 2.4); }
   for (const p of POI.operators) { const r = new THREE.Mesh(new THREE.TorusGeometry(1.0, 0.03, 6, 40), new THREE.MeshBasicMaterial({ color: 0xffe0a8, fog: false })); r.rotation.x = Math.PI / 2; r.position.set(p.x, 2.03, p.z); root.add(r); }
   mergeStatic(world);
   await onProgress(0.85, 'Skyline');

@@ -89,7 +89,7 @@ function defineLockout() {
     { id: 'shotgun', x: 8, y: 8, z: -3, t: 55 }, { id: 'sniper', x: 25.5, y: 12, z: -18.5, t: 70 },
     { id: 'rocket', x: 19, y: 0, z: 17, t: 90 }, { id: 'carbine', x: 23.5, y: 8, z: -7.6, t: 45 },
     { id: 'needler', x: 7, y: 8, z: 4.4, t: 45 }, { id: 'plasmarifle', x: 14, y: 0, z: 4.6, t: 40 },
-  ], [{ id: 'sword', x: 0, y: 8, z: 0, t: 90 }, { id: 'overshield', x: 0, y: 4, z: 0, t: 120 }, { id: 'hammer', x: 0, y: 0, z: 0, t: 100 }, { id: 'camo', x: 0, y: 8, z: 4.2, t: 120 }]);
+  ], [{ id: 'sword', x: 0, y: 8, z: 0, t: 90 }, { id: 'overshield', x: 0, y: 4, z: 0, t: 120 }, { id: 'hammer', x: 0, y: 0, z: 0, t: 100 }, { id: 'camo', x: 0, y: 8, z: 4.2, t: 120 }, { id: 'exotic', x: 3.6, y: 8, z: -3.4, t: 150 }]);
   MAP = { id: 'lockout', nav: { x0: -30, x1: 30, z0: -26, z1: 26 }, obj: { flags: { blue: [26.4, 4, 0], red: [-26.4, 4, 0] }, ball: [0, 8, -4] } };
 }
 
@@ -142,7 +142,7 @@ function defineCryostat() {
     { id: 'carbine', x: 16.5, y: 3.5, z: 9.4, t: 45 }, { id: 'plasmarifle', x: 22, y: 0, z: 9.6, t: 40 },
     { id: 'needler', x: 3.4, y: 6, z: 5.6, t: 45 }, { id: 'shotgun', x: 9, y: 0, z: -8, t: 55 },
     { id: 'rocket', x: 20, y: 0, z: -18, t: 90 }, { id: 'sniper', x: 28, y: 7, z: -12, t: 70 },
-    { id: 'sword', x: 4.6, y: 6, z: 0, t: 90 }, { id: 'hammer', x: 0, y: 0, z: 21, t: 100 },
+    { id: 'sword', x: 4.6, y: 6, z: 0, t: 90 }, { id: 'exotic', x: 0, y: 6, z: 4.6, t: 150 }, { id: 'hammer', x: 0, y: 0, z: 21, t: 100 },
     { id: 'overshield', x: 34, y: 3, z: -1.6, t: 120 }, { id: 'camo', x: 17.6, y: 3.5, z: 13, t: 120 },
     { id: 'boost', x: 7, y: 0, z: -22.5, t: 120 },
   ]);
@@ -189,7 +189,7 @@ function defineMesa() {
     { id: 'smg', x: 14, y: 0, z: -6, t: 30 }, { id: 'carbine', x: 14, y: 3, z: 15.2, t: 45 }, { id: 'plasmarifle', x: 22, y: 0, z: 7, t: 40 },
     { id: 'needler', x: 0, y: 4, z: -5, t: 45 }, { id: 'shotgun', x: 9, y: 0, z: 9, t: 55 }, { id: 'rocket', x: 22, y: 0, z: -19, t: 90 },
     { id: 'sniper', x: 24, y: 8, z: -13, t: 70 }, { id: 'camo', x: 15, y: 0, z: -9.6, t: 120 }, { id: 'overshield', x: 33.6, y: 3, z: -4.6, t: 120 },
-  ], [{ id: 'sword', x: 0, y: 4, z: 3.2, t: 90 }, { id: 'hammer', x: 0, y: 0, z: 20, t: 100 }, { id: 'boost', x: 0, y: 0, z: -20, t: 120 }]);
+  ], [{ id: 'sword', x: 0, y: 4, z: 3.2, t: 90 }, { id: 'exotic', x: 0, y: 4, z: -3.4, t: 150 }, { id: 'hammer', x: 0, y: 0, z: 20, t: 100 }, { id: 'boost', x: 0, y: 0, z: -20, t: 120 }]);
   MAP = { id: 'mesa', nav: { x0: -34, x1: 34, z0: -24, z1: 24 }, obj: { flags: { blue: [30.4, 3, 2.4], red: [-30.4, 3, -2.4] }, ball: [0, 4, -2] } };
 }
 
@@ -233,7 +233,7 @@ function defineOvergrowth() {
     { id: 'smg', x: 15, y: 0, z: -4, t: 30 }, { id: 'carbine', x: 17, y: 3.6, z: 14, t: 45 }, { id: 'plasmarifle', x: 24, y: 0, z: 6, t: 40 },
     { id: 'needler', x: 0, y: 3, z: 13, t: 45 }, { id: 'shotgun', x: 8, y: 0, z: 9.5, t: 55 }, { id: 'rocket', x: 26, y: 0, z: -12, t: 90 },
     { id: 'sniper', x: 25, y: 9, z: -19, t: 70 }, { id: 'camo', x: 12, y: 0, z: -13, t: 120 }, { id: 'overshield', x: 33.6, y: 2.6, z: -6, t: 120 },
-  ], [{ id: 'sword', x: 0, y: 5, z: 1.6, t: 90 }, { id: 'hammer', x: 0, y: 0, z: 21, t: 100 }, { id: 'boost', x: 0, y: 0, z: -21, t: 120 }]);
+  ], [{ id: 'sword', x: 0, y: 5, z: 1.6, t: 90 }, { id: 'exotic', x: 0, y: 5, z: -1.6, t: 150 }, { id: 'hammer', x: 0, y: 0, z: 21, t: 100 }, { id: 'boost', x: 0, y: 0, z: -21, t: 120 }]);
   MAP = { id: 'overgrowth', nav: { x0: -34, x1: 34, z0: -24, z1: 24 }, obj: { flags: { blue: [33, 2.6, 0], red: [-33, 2.6, 0] }, ball: [0, 5, -0.8] } };
 }
 
@@ -276,7 +276,7 @@ function defineWarsat() {
     { id: 'smg', x: 15, y: 0, z: -3, t: 30 }, { id: 'carbine', x: 16, y: 4.4, z: 14, t: 45 }, { id: 'plasmarifle', x: 19, y: 0, z: 7.5, t: 40 },
     { id: 'needler', x: 0, y: 4, z: 8, t: 45 }, { id: 'shotgun', x: 9, y: 0, z: -10, t: 55 }, { id: 'rocket', x: 26, y: 0, z: -10, t: 90 },
     { id: 'sniper', x: 31, y: 8, z: -19, t: 70 }, { id: 'camo', x: 10, y: 0, z: 10.5, t: 120 }, { id: 'overshield', x: 33.6, y: 2.6, z: -7, t: 120 },
-  ], [{ id: 'sword', x: 8, y: 4, z: 0, t: 90 }, { id: 'hammer', x: 0, y: 0, z: 21, t: 100 }, { id: 'boost', x: 0, y: 0, z: -21, t: 120 }]);
+  ], [{ id: 'sword', x: 8, y: 4, z: 0, t: 90 }, { id: 'exotic', x: -8, y: 4, z: 0, t: 150 }, { id: 'hammer', x: 0, y: 0, z: 21, t: 100 }, { id: 'boost', x: 0, y: 0, z: -21, t: 120 }]);
   MAP = { id: 'warsat', nav: { x0: -34, x1: 34, z0: -24, z1: 24 }, obj: { flags: { blue: [34, 2.6, 0], red: [-34, 2.6, 0] }, ball: [0, 4, -8] } };
 }
 
