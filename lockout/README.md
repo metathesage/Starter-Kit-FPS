@@ -107,9 +107,10 @@ Weapon skins (tints) are unlocked with level and credits.
 
 ## Maps
 
-Both are rotationally symmetric about the origin (Red -X, Blue +X) with mirrored spawns and pickups. Pick in Deployment -> Map (or `?map=lockout|cryostat`).
+Both are rotationally symmetric about the origin (Red -X, Blue +X) with mirrored spawns and pickups. Pick in Deployment -> Map (or `?map=lockout|cryostat|mesa|halcyon`).
 
 - **Lockout** - two raised bases, catwalk bridges, central tower with ramps to every height, sniper ledges at the top, dense cover and rails. No floor: fall and you die.
+- **Halcyon** - violet dusk ruins under a cracked moon. A raised bridge over the centre lane, side balconies, floating shard platforms, a broken arch at each base and a sniper spire per side. Tuned for Warlock Hunt: blink between levels, glide the gaps, nova down the long lane.
 - **Mesa** - sunset canyon. Central plateau with four ramps, one sniper spire per side reached by a long ramp, sandstone bases, side pods, big sightlines.
 - **Cryostat** - night snow yard. Two sniper towers (one per side, one rifle each), central reactor deck, base pads, skybridges, ramps to every level, lots of spawn pads, camo, damage boost, overshield, sword, hammer. Aurora, moon, drifting snow.
 

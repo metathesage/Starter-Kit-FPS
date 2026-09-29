@@ -12,7 +12,7 @@ export const EYE_STAND = 1.62, EYE_CROUCH = 1.15, H_STAND = 1.78, H_CROUCH = 1.3
 const RUN = 5.4, CROUCH_SPEED = 2.6, GRAV = 21, JUMP = 7.4;
 const SHIELD_MAX = 100, HEALTH_MAX = 45, RECHARGE_DELAY = 4.6, RECHARGE_RATE = 30;
 // warlock kit
-const BLINK_DIST = 9.5, BLINK_CD = 4.2, BLINK_MAX = 2, NOVA_WIND = 1.05, NOVA_SPEED = 15, NOVA_R = 8.5, NOVA_DMG = 230, SUPER_RATE = 1 / 70, GLIDE_FALL = -2.3;
+const BLINK_DIST = 9.5, BLINK_CD = 3.6, BLINK_MAX = 2, NOVA_WIND = 1.05, NOVA_SPEED = 15, NOVA_R = 8.5, NOVA_DMG = 230, SUPER_RATE = 1 / 55, GLIDE_FALL = -2.3;
 const _f = { x: 0, y: 0, z: 0 };
 const dead0 = (v) => v.health <= 0;
 export const POWER = new Set(['overshield', 'camo', 'boost']);
@@ -542,7 +542,7 @@ export class Match {
     if (v === 'snipers') return [slot('sniper')];
     if (v === 'swords') return [slot('sword'), slot('magnum')];
     if (v === 'fiesta') { const ids = ['br', 'magnum', 'smg', 'shotgun', 'sniper', 'rocket', 'carbine', 'plasmarifle', 'needler', 'sword', 'hammer']; return [slot(ids[(Math.random() * ids.length) | 0])]; }
-    if (a && a.cls === 'warlock') return [slot('smg'), slot('magnum')];
+    if (a && a.cls === 'warlock') return [slot('br'), slot('magnum')];
     return [slot('br')];
   }
   foe(a, b) { return a !== b && (this.ffa || a.team !== b.team); }
@@ -857,7 +857,6 @@ export class Match {
     if (a && a !== v && !this.foe(a, v)) return 0;
     if (a && a.brain && v.isPlayer && !info.explosion) amt *= this.diff.dmgIn;
     if (a && a !== v && a.boostT > 0) amt *= 2;
-    if (v.cls === 'warlock' && a !== v) amt *= 1.1;
     if (a && a !== v && a.cls === 'warlock' && !info.explosion) a.sup = Math.min(1, a.sup + amt * 0.0009);
     if (v.novaT > 0 && a && a !== v && this.foe(a, v)) {
       v.castDmg += amt;

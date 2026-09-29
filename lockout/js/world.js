@@ -13,6 +13,7 @@ export let MAP = null;
 export const MAP_LIST = [
   { id: 'lockout', name: 'LOCKOUT', tag: 'Cold storage. Glass deck, drum towers, elbow bridge, void below.' },
   { id: 'cryostat', name: 'CRYOSTAT', tag: 'Night snow station. Twin snipe towers, reactor core, power-ups everywhere.' },
+  { id: 'halcyon', name: 'HALCYON', tag: 'Dusk ruins under a wounded moon. A bridge over the lane, high balconies, a broken arch at each base. Built for blink and nova.' },
   { id: 'mesa', name: 'MESA', tag: 'Sunset canyon. A central plateau, two sniper spires, sandstone bases and long sightlines.' },
 ];
 
@@ -187,9 +188,52 @@ function defineMesa() {
   MAP = { id: 'mesa', nav: { x0: -34, x1: 34, z0: -24, z1: 24 }, obj: { flags: { blue: [30.4, 3, 2.4], red: [-30.4, 3, -2.4] }, ball: [0, 4, -2] } };
 }
 
+// ================= HALCYON: dusk ruins under a wounded moon =================
+// Rotationally symmetric. Blue +X, Red -X. A bridge spans the centre lane, balconies flank it, spires hold the power weapons.
+function defineHalcyon() {
+  BOUNDS = { x: 36, z: 26 }; KILL_Y = -60;
+  box(-37, 37, -27, 27, -T, 0, 'floor');
+  box(-37, 37, 26, 27, 0, 11, 'wall'); box(-37, 37, -27, -26, 0, 11, 'wall'); box(36, 37, -27, 27, 0, 11, 'wall'); box(-37, -36, -27, 27, 0, 11, 'wall');
+  // base plinth, ramps, broken arch
+  pBox(26, 36, -9, 9, 0, 2.6, 'plinth');
+  pRamp(21, 26, -3.5, 3.5, 0, 'x', 21, 26, 0, 2.6);
+  pRamp(28, 32, 9, 15, 0, 'z', 15, 9, 0, 2.6);
+  pBox(34.4, 36, -10, -8, 2.6, 11, 'column'); pBox(34.4, 36, 8, 10, 2.6, 11, 'column'); pBox(34.4, 36, -10, -1, 10, 11.2, 'ruin');
+  pBox(26, 27.2, -7.2, -5.6, 2.6, 3.9, 'rubble'); pBox(26, 27.2, 5.6, 7.2, 2.6, 3.9, 'rubble');
+  // balcony over the side lane
+  pBox(11, 20, 12, 20, 0, 3.6, 'ruin');
+  pRamp(4, 11, 14, 18, 0, 'x', 4, 11, 0, 3.6);
+  pRamp(20, 27, 13.5, 17, 0, 'x', 27, 20, 0, 3.6);
+  pBox(11, 20, 19.6, 20, 3.6, 4.8, 'rubble'); pBox(19.6, 20, 12, 20, 3.6, 4.8, 'rubble'); pBox(14, 15.4, 15, 16.4, 3.6, 9.5, 'column');
+  // the bridge and its ramps
+  box(-12, 12, -2.5, 2.5, 4.2, 5, 'bridge');
+  pRamp(12, 21, -2.5, 2.5, 0, 'x', 21, 12, 0, 5);
+  box(-1.2, 1.2, -1.2, 1.2, 0, 4.2, 'column');
+  box(-12, 12, -2.5, -2.1, 5, 5.9, 'rubble'); box(-12, 12, 2.1, 2.5, 5, 5.9, 'rubble');
+  // sniper spires
+  pBox(22, 28, -22, -16, 0, 9, 'spire');
+  pRamp(6, 22, -21, -17.5, 0, 'x', 6, 22, 0, 9);
+  pBox(22, 28, -22.4, -22, 9, 9.9, 'rubble'); pBox(27.6, 28, -22, -16, 9, 9.9, 'rubble'); pBox(22, 28, -16.4, -16, 9, 9.9, 'rubble');
+  // floating shard platforms
+  pBox(-4, 4, 11, 15, 2.4, 3, 'shard');
+  pRamp(4, 9.5, 11.5, 14.5, 0, 'x', 9.5, 4, 0, 3);
+  // ground cover
+  pBox(12, 14, -10, -6, 0, 1.4, 'rubble'); pBox(16, 17.4, -10, -8.6, 0, 4, 'column'); pBox(8, 9.4, 4, 5.4, 0, 3.2, 'column'); pBox(14, 17, 5, 7, 0, 1.2, 'rubble');
+  pBox(30, 32, -16, -14, 0, 1.2, 'rubble'); pBox(4, 6, -12, -10.5, 0, 2, 'rubble');
+  const pad = [[28, -4], [28, 0], [28, 4], [31, -6], [31, 6], [33, -3], [33, 3], [30, 0]];
+  SPAWNS = { red: pad.map(([x, z]) => ({ x: -x, y: 2.6, z: -z, yaw: -Math.PI / 2 })), blue: pad.map(([x, z]) => ({ x, y: 2.6, z, yaw: Math.PI / 2 })) };
+  PICKUPS = mirrorPickups([
+    { id: 'br', x: 28.4, y: 2.6, z: 5.6, t: 25 }, { id: 'br', x: 28.4, y: 2.6, z: -5.6, t: 25 }, { id: 'magnum', x: 33.4, y: 2.6, z: 0, t: 30 },
+    { id: 'smg', x: 15, y: 0, z: -4, t: 30 }, { id: 'carbine', x: 17, y: 3.6, z: 14, t: 45 }, { id: 'plasmarifle', x: 24, y: 0, z: 6, t: 40 },
+    { id: 'needler', x: 0, y: 3, z: 13, t: 45 }, { id: 'shotgun', x: 8, y: 0, z: 9.5, t: 55 }, { id: 'rocket', x: 26, y: 0, z: -12, t: 90 },
+    { id: 'sniper', x: 25, y: 9, z: -19, t: 70 }, { id: 'camo', x: 12, y: 0, z: -13, t: 120 }, { id: 'overshield', x: 33.6, y: 2.6, z: -6, t: 120 },
+  ], [{ id: 'sword', x: 0, y: 5, z: 1.6, t: 90 }, { id: 'hammer', x: 0, y: 0, z: 21, t: 100 }, { id: 'boost', x: 0, y: 0, z: -21, t: 120 }]);
+  MAP = { id: 'halcyon', nav: { x0: -34, x1: 34, z0: -24, z1: 24 }, obj: { flags: { blue: [33, 2.6, 0], red: [-33, 2.6, 0] }, ball: [0, 5, -0.8] } };
+}
+
 export function defineMap(id) {
   solids.length = 0; nav.nodes.length = 0; nav.built = false;
-  if (id === 'cryostat') defineCryostat(); else if (id === 'mesa') defineMesa(); else defineLockout();
+  if (id === 'cryostat') defineCryostat(); else if (id === 'mesa') defineMesa(); else if (id === 'halcyon') defineHalcyon(); else defineLockout();
 }
 
 // ---- collision --------------------------------------------------------------
@@ -789,6 +833,99 @@ async function buildMesaVisuals(scene, renderer, onProgress) {
   return { root, sky, dir, hemi, mats, glow, snow };
 }
 
+// ---------- HALCYON visuals: violet dusk, a wounded moon, pale ruin marble with gold inlay ----------
+function makeRuinTextures() {
+  const veins = (g, s, n) => { g.strokeStyle = 'rgba(90,80,120,.16)'; g.lineWidth = 1.5; for (let i = 0; i < n; i++) { g.beginPath(); g.moveTo(Math.random() * s, 0); g.bezierCurveTo(Math.random() * s, s * 0.3, Math.random() * s, s * 0.7, Math.random() * s, s); g.stroke(); } };
+  const marble = canvasTex(256, (g, s) => { g.fillStyle = '#d7d0e2'; g.fillRect(0, 0, s, s); speck(g, s, 600, 0.08); veins(g, s, 8); g.strokeStyle = 'rgba(60,44,90,.55)'; g.lineWidth = 4; g.strokeRect(2, 2, s - 4, s - 4); g.fillStyle = 'rgba(232,190,110,.7)'; g.fillRect(0, s * 0.46, s, 5); });
+  const plinth = canvasTex(256, (g, s) => { g.fillStyle = '#bdb4d0'; g.fillRect(0, s / 2 - 0, s, s); g.fillStyle = '#c6bfd8'; g.fillRect(0, 0, s, s); speck(g, s, 500, 0.1); veins(g, s, 5); g.strokeStyle = 'rgba(60,44,90,.6)'; g.lineWidth = 3; g.strokeRect(2, 2, s - 4, s - 4); g.strokeStyle = 'rgba(232,190,110,.85)'; g.lineWidth = 3; g.strokeRect(30, 30, s - 60, s - 60); g.beginPath(); g.moveTo(30, 30); g.lineTo(s - 30, s - 30); g.moveTo(s - 30, 30); g.lineTo(30, s - 30); g.stroke(); });
+  const column = canvasTex(128, (g, s) => { g.fillStyle = '#a99fc0'; g.fillRect(0, 0, s, s); speck(g, s, 300, 0.12); g.fillStyle = 'rgba(40,28,64,.3)'; for (let x = 8; x < s; x += 22) g.fillRect(x, 0, 5, s); g.fillStyle = 'rgba(232,190,110,.8)'; g.fillRect(0, s * 0.1, s, 4); g.fillRect(0, s * 0.86, s, 4); });
+  const floor = canvasTex(256, (g, s) => { g.fillStyle = '#7d7391'; g.fillRect(0, 0, s, s); speck(g, s, 900, 0.1); g.strokeStyle = 'rgba(20,14,36,.55)'; g.lineWidth = 3; g.strokeRect(1.5, 1.5, s - 3, s - 3); g.strokeStyle = 'rgba(20,14,36,.25)'; g.lineWidth = 2; g.beginPath(); g.moveTo(s / 2, 0); g.lineTo(s / 2, s); g.moveTo(0, s / 2); g.lineTo(s, s / 2); g.stroke(); for (let i = 0; i < 6; i++) { g.fillStyle = 'rgba(50,90,60,.12)'; g.beginPath(); g.ellipse(Math.random() * s, Math.random() * s, 18 + Math.random() * 30, 8 + Math.random() * 16, Math.random() * 3, 0, TAUC); g.fill(); } });
+  const rubble = canvasTex(128, (g, s) => { g.fillStyle = '#6e6479'; g.fillRect(0, 0, s, s); speck(g, s, 400, 0.18); g.strokeStyle = 'rgba(15,10,28,.6)'; g.lineWidth = 3; for (let i = 0; i < 5; i++) { g.beginPath(); g.moveTo(Math.random() * s, Math.random() * s); g.lineTo(Math.random() * s, Math.random() * s); g.stroke(); } });
+  const bridge = canvasTex(256, (g, s) => { g.fillStyle = '#3a3448'; g.fillRect(0, 0, s, s); speck(g, s, 500, 0.1); g.fillStyle = 'rgba(232,190,110,.75)'; g.fillRect(0, 0, s, 8); g.fillRect(0, s - 8, s, 8); g.fillStyle = 'rgba(160,130,255,.5)'; g.fillRect(s / 2 - 2, 20, 4, s - 40); });
+  const rampT = canvasTex(256, (g, s) => { g.fillStyle = '#9188a6'; g.fillRect(0, 0, s, s); speck(g, s, 400, 0.1); g.fillStyle = 'rgba(40,28,64,.22)'; for (let i = -s; i < s * 2; i += 64) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i + 32, 0); g.lineTo(i + 32 - s, s); g.lineTo(i - s, s); g.fill(); } });
+  return { marble, plinth, column, floor, rubble, bridge, ramp: rampT };
+}
+
+async function buildHalcyonVisuals(scene, renderer, onProgress) {
+  const root = new THREE.Group(); scene.add(root);
+  const tex = makeRuinTextures();
+  await onProgress(0.15, 'Laying the marble');
+  const M = (map, o = {}) => new THREE.MeshStandardMaterial({ map, roughness: 0.82, metalness: 0.06, ...o });
+  const mats = {
+    floor: M(tex.floor, { roughness: 0.95 }), wall: M(tex.rubble), ruin: M(tex.marble), plinth: M(tex.plinth), column: M(tex.column), spire: M(tex.marble, { color: 0xe6dcf2 }),
+    rubble: M(tex.rubble), bridge: M(tex.bridge, { metalness: 0.3, roughness: 0.55 }), shard: M(tex.column, { color: 0xc9b8ff }), ramp: M(tex.ramp, { side: THREE.DoubleSide }),
+  };
+  const world = new THREE.Group(); root.add(world);
+  for (const so of solids) {
+    const m = new THREE.Mesh(so.ramp ? prismGeo(so, 5) : boxGeo(so, so.mat === 'floor' ? 8 : 5), mats[so.mat] || mats.wall);
+    if (!so.ramp) m.position.set((so.x0 + so.x1) / 2, (so.y0 + so.y1) / 2, (so.z0 + so.z1) / 2);
+    m.castShadow = true; m.receiveShadow = true; world.add(m);
+  }
+  await onProgress(0.4, 'Lighting the inlay');
+  const glow = (c, i = 2.4) => new THREE.MeshStandardMaterial({ color: 0x050505, emissive: c, emissiveIntensity: i, roughness: 0.4 });
+  const red = glow(0xff3b6a, 2.8), blue = glow(0x4a8dff, 2.8), gold = glow(0xffc46a, 2.6), violet = glow(0xa070ff, 3);
+  const strip = (m, x, y, z, w, h, d) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(x, y, z); world.add(b); return b; };
+  for (const sg of [1, -1]) {
+    const tm = sg === 1 ? blue : red;
+    strip(tm, sg * 30.5, 2.62, 0, 10, 0.05, 0.12); strip(tm, sg * 35.8, 4, sg * -4.5, 0.12, 5, 0.12); strip(tm, sg * 35.8, 4, sg * 4.5, 0.12, 5, 0.12);
+    strip(gold, sg * 25, 9.02, sg * -19, 6, 0.05, 0.1); strip(gold, sg * 15.5, 3.62, sg * 12.05, 9, 0.05, 0.1); strip(violet, 0, 3.02, sg * 13, 8, 0.05, 0.1);
+  }
+  strip(violet, 0, 4.22, 2.52, 24, 0.05, 0.1); strip(violet, 0, 4.22, -2.52, 24, 0.05, 0.1);
+  mergeStatic(world);
+  // the ring that hangs over the bridge
+  const rift = new THREE.Group(); rift.position.set(0, 15, 0); root.add(rift);
+  const ringM = new THREE.MeshBasicMaterial({ color: 0xb08cff, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
+  const r1 = new THREE.Mesh(new THREE.TorusGeometry(4.2, 0.07, 6, 64), ringM), r2 = new THREE.Mesh(new THREE.TorusGeometry(3.1, 0.05, 6, 64), ringM); r2.rotation.x = 1.1; rift.add(r1, r2);
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 15, 8, 1, true), new THREE.MeshBasicMaterial({ color: 0xa070ff, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, side: THREE.DoubleSide })); beam.position.y = -7.5; rift.add(beam);
+  const glowTex = haloTex();
+  // sky: violet to amber, a huge cracked moon with a halo ring, stars
+  const skyGeo = new THREE.SphereGeometry(320, 18, 12), col = [], pp = skyGeo.attributes.position, c = new THREE.Color();
+  const top = new THREE.Color(0x2a1a62), mid = new THREE.Color(0x9a4a94), low = new THREE.Color(0xffa060);
+  for (let i = 0; i < pp.count; i++) { const y = pp.getY(i) / 320; c.copy(y > 0 ? low.clone().lerp(mid, clamp(y * 3.2, 0, 1)).lerp(top, clamp((y - 0.16) * 2.1, 0, 1)) : low); col.push(c.r, c.g, c.b); }
+  skyGeo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  const sky = new THREE.Mesh(skyGeo, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, fog: false, depthWrite: false })); sky.renderOrder = -10; root.add(sky);
+  const stars = []; for (let i = 0; i < 500; i++) { const a = Math.random() * 6.283, e = 0.18 + Math.random() * 1.2, r = 300; stars.push(Math.cos(a) * Math.cos(e) * r, Math.sin(e) * r, Math.sin(a) * Math.cos(e) * r); }
+  const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.Float32BufferAttribute(stars, 3));
+  root.add(new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xffffff, size: 1.6, sizeAttenuation: false, transparent: true, opacity: 0.8, fog: false, depthWrite: false })));
+  const moonPos = new THREE.Vector3(-120, 95, -230);
+  const moon = new THREE.Mesh(new THREE.SphereGeometry(58, 24, 16), new THREE.MeshBasicMaterial({ color: 0xf1ecff, fog: false })); moon.position.copy(moonPos); root.add(moon);
+  for (const [rot, rad, op, w] of [[0.5, 84, 0.5, 1.5], [1.15, 96, 0.3, 1]]) {
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(rad, w, 6, 90, 5.2), new THREE.MeshBasicMaterial({ color: 0xd8c8ff, transparent: true, opacity: op, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+    ring.position.copy(moonPos); ring.rotation.set(rot, 0.4, 0.2); root.add(ring);
+  }
+  const mh = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0xb8a4ff, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })); mh.scale.setScalar(360); mh.position.copy(moonPos); root.add(mh);
+  const sunPos = new THREE.Vector3(160, 22, 210);
+  const sh = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0xff9a5a, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })); sh.scale.setScalar(300); sh.position.copy(sunPos); root.add(sh);
+  await onProgress(0.7, 'Raising the skyline');
+  // outer ground, fallen skyline, drifting debris
+  const outer = new THREE.Mesh(new THREE.PlaneGeometry(900, 900).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x4a3f5e, roughness: 1 })); outer.position.y = -0.7; outer.receiveShadow = true; root.add(outer);
+  let seed = 23; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  const towerM = new THREE.MeshStandardMaterial({ color: 0x3a2f4d, flatShading: true, roughness: 1 }), capM = new THREE.MeshStandardMaterial({ color: 0x8a76a8, flatShading: true, roughness: 1 });
+  const city = new THREE.Group();
+  for (let i = 0; i < 44; i++) {
+    const a = rnd() * 6.283, r = 95 + rnd() * 130, h = 16 + rnd() * 62, w = 6 + rnd() * 12;
+    const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, w * (0.6 + rnd() * 0.8)), towerM); b.position.set(Math.cos(a) * r, h / 2 - 3, Math.sin(a) * r); b.rotation.y = rnd() * 3; b.rotation.z = (rnd() - 0.5) * 0.12; city.add(b);
+    if (rnd() < 0.5) { const cp = new THREE.Mesh(new THREE.BoxGeometry(w * 1.1, 1.6, w * 1.1), capM); cp.position.set(b.position.x, h - 2.2, b.position.z); cp.rotation.copy(b.rotation); city.add(cp); }
+  }
+  for (let i = 0; i < 46; i++) { let x, z; do { x = (rnd() - 0.5) * 240; z = (rnd() - 0.5) * 180; } while (Math.abs(x) < 42 && Math.abs(z) < 32); const s2 = 1 + rnd() * 3.6; const b = new THREE.Mesh(new THREE.DodecahedronGeometry(s2, 0), towerM); b.position.set(x, s2 * 0.5, z); b.rotation.set(rnd() * 3, rnd() * 3, 0); city.add(b); }
+  for (let i = 0; i < 26; i++) { const a = rnd() * 6.283, r = 50 + rnd() * 70, s2 = 1.5 + rnd() * 5; const b = new THREE.Mesh(new THREE.OctahedronGeometry(s2, 0), capM); b.position.set(Math.cos(a) * r, 18 + rnd() * 38, Math.sin(a) * r); b.rotation.set(rnd() * 3, rnd() * 3, rnd() * 3); city.add(b); }
+  root.add(mergeStatic(city));
+  {
+    const envScene = new THREE.Scene();
+    envScene.add(new THREE.Mesh(skyGeo, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide })));
+    const pm = new THREE.PMREMGenerator(renderer); scene.environment = pm.fromScene(envScene, 0.03).texture; scene.environmentIntensity = 0.9; pm.dispose();
+  }
+  scene.fog = new THREE.Fog(0x8f5f96, 34, 180); scene.background = new THREE.Color(0xc07a7a);
+  const hemi = new THREE.HemisphereLight(0xc4b4ff, 0x6a4a5e, 1.9); root.add(hemi);
+  const dir = new THREE.DirectionalLight(0xffb480, 3.1); dir.position.set(40, 34, 48); dir.castShadow = true; dir.shadow.mapSize.set(2048, 2048);
+  Object.assign(dir.shadow.camera, { left: -46, right: 46, top: 34, bottom: -34, near: 10, far: 160 }); dir.shadow.bias = -0.0006; dir.shadow.normalBias = 0.04; root.add(dir);
+  const rim = new THREE.DirectionalLight(0x9cb0ff, 1.1); rim.position.set(-40, 30, -50); root.add(rim);
+  const snow = makeSnow(root, 900, 70, 22, 0.1, 0xffe0b8);
+  snow.extra = (dt, t) => { r1.rotation.z += dt * 0.6; r2.rotation.y += dt * 0.9; r2.rotation.z -= dt * 0.4; rift.position.y = 15 + Math.sin(t * 0.8) * 0.4; beam.material.opacity = 0.2 + Math.sin(t * 2.2) * 0.06; };
+  await onProgress(1, 'Ready');
+  return { root, sky, dir, hemi, mats, glow, snow };
+}
+
 let current = null;
 export function disposeMap(scene) {
   if (!current) return;
@@ -802,6 +939,6 @@ export function disposeMap(scene) {
 export async function loadMap(scene, renderer, id, onProgress = () => {}) {
   disposeMap(scene);
   defineMap(id); buildNav();
-  current = id === 'cryostat' ? await buildCryostatVisuals(scene, renderer, onProgress) : id === 'mesa' ? await buildMesaVisuals(scene, renderer, onProgress) : await buildLockoutVisuals(scene, renderer, onProgress);
+  current = id === 'cryostat' ? await buildCryostatVisuals(scene, renderer, onProgress) : id === 'mesa' ? await buildMesaVisuals(scene, renderer, onProgress) : id === 'halcyon' ? await buildHalcyonVisuals(scene, renderer, onProgress) : await buildLockoutVisuals(scene, renderer, onProgress);
   return current;
 }

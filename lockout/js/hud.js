@@ -5,6 +5,7 @@ import { Input } from './input.js';
 import { Sound } from './audio.js';
 import { clamp, angDiff, TAU } from './util.js';
 import { MODES } from './modes.js';
+import { MAP, MAP_LIST } from './world.js';
 import { Profile } from './profile.js';
 
 export const svg = (d, cls = '') => `<svg viewBox="0 0 24 24" class="${cls}"><path d="${d}"/></svg>`;
@@ -45,7 +46,7 @@ export class HUD {
   constructor(root) {
     this.root = root;
     root.innerHTML = `
-      <div class="h-over"></div><div class="h-warn"></div><div class="h-flash"></div><div class="h-dmg"></div><div class="h-scope"><i class="sb t"></i><i class="sb b"></i><i class="sh"></i><i class="sv"></i><i class="sv2"></i><div class="zt"></div><div class="rg"><small>RANGE</small><b>---</b></div><div class="am"><small>ROUNDS</small><b>4</b></div><div class="rc"></div></div>
+      <div class="h-over"></div><div class="h-novaw"><b>NOVA INCOMING</b><span></span></div><div class="h-warn"></div><div class="h-flash"></div><div class="h-dmg"></div><div class="h-scope"><i class="sb t"></i><i class="sb b"></i><i class="sh"></i><i class="sv"></i><i class="sv2"></i><div class="zt"></div><div class="rg"><small>RANGE</small><b>---</b></div><div class="am"><small>ROUNDS</small><b>4</b></div><div class="rc"></div></div>
       <div class="h-markers"></div>
       <div class="h-top">
         <div class="compass"><div class="cmp-track"></div><b class="cmp-hd">000</b><i class="cmp-tick"></i></div>
@@ -92,7 +93,7 @@ export class HUD {
       wIcon: q('.wp-icon'), wName: q('.wp-name'), wMag: q('.wp-mag'), wRes: q('.wp-res'), wRel: q('.wp-reload'), ret: q('.h-reticle'), retSvg: q('.h-reticle svg'),
       hit: q('.h-hit'), ann: q('.h-announce'), count: q('.h-count'), modeBig: q('.h-mode'), medals: q('.h-medals'), prompt: q('.h-prompt'), cam: q('.h-cam'),
       death: q('.h-death'), dName: q('.dd .nm'), dRes: q('.dd .rs'), board: q('.h-board'), fps: q('.h-fps'), flash: q('.h-flash'), dmg: q('.h-dmg'), scope: q('.h-scope'), zt: q('.h-scope .zt'), rg: q('.h-scope .rg b'), am: q('.h-scope .am b'),
-      tut: q('.h-tut'), obj: q('.h-obj'), lead: q('.sc-lead'), elim: q('.h-elim'), skull: q('.h-skull'), pu: q('.pu-row'), cmpTrack: cmp, cmpHd: q('.cmp-hd'), markers: q('.h-markers'), weaponBox: q('.h-weapon'), abil: q('.h-abil'), novaBox: q('.ab.nova'), novaPg: q('.ab.nova .pg'), novaPct: q('.ab.nova .pct'), novaKd: q('.ab.nova .kd'), blinkKd: q('.ab.blink .kd'), pips: root.querySelectorAll('.ab.blink .pips i'), grRow: q('.gr-row') };
+      tut: q('.h-tut'), obj: q('.h-obj'), lead: q('.sc-lead'), elim: q('.h-elim'), skull: q('.h-skull'), pu: q('.pu-row'), cmpTrack: cmp, cmpHd: q('.cmp-hd'), markers: q('.h-markers'), weaponBox: q('.h-weapon'), abil: q('.h-abil'), novaw: q('.h-novaw'), novawD: q('.h-novaw span'), novaBox: q('.ab.nova'), novaPg: q('.ab.nova .pg'), novaPct: q('.ab.nova .pct'), novaKd: q('.ab.nova .kd'), blinkKd: q('.ab.blink .kd'), pips: root.querySelectorAll('.ab.blink .pips i'), grRow: q('.gr-row') };
     this.el.hp.innerHTML = '<i></i>'.repeat(5);
     this.rctx = this.el.radar.getContext('2d');
     this.ghost = 1; this.retId = null; this.alarmT = 0; this.subs = [];
@@ -134,6 +135,7 @@ export class HUD {
     this.rowA = ffa ? 'blue' : this.p.team; this.rowB = ffa ? 'red' : this.p.team === 'red' ? 'blue' : 'red';
     this.el.sc.blue.classList.toggle('mine', this.rowA === 'blue'); this.el.sc.red.classList.toggle('mine', this.rowA === 'red');
     this.el.mode.textContent = md.short + ' · ' + match.limit;
+    const rp = this.root.querySelector('.rd-place'); if (rp && MAP) rp.textContent = (MAP_LIST.find((x) => x.id === MAP.id) || { name: '' }).name;
     this.el.sc.red.querySelector('.sc-nm').textContent = TEAM.red.name; this.el.sc.blue.querySelector('.sc-nm').textContent = TEAM.blue.name;
     this.el.obj.innerHTML = ''; this.objKey = '';
     this.tut = !Profile.d.seen.tutorial;
@@ -264,6 +266,16 @@ export class HUD {
       E.wRel.textContent = p.reloadT > 0 ? 'RELOADING' : (!melee && w.mag === 0 && w.res === 0 ? 'NO AMMO' : (!melee && w.mag <= def.mag * 0.25 && w.res > 0 ? `${glyphText('reload')} RELOAD` : ''));
     }
     E.weaponBox.style.display = p.alive ? '' : 'none';
+    {
+      let nd = 1e9; const pr = m.replica ? [...m.rp.values()].filter((r) => r.type === 'nova').map((r) => ({ x: r.mesh.position.x, y: r.mesh.position.y, z: r.mesh.position.z })) : m.projs.filter((q) => q.alive && q.type === 'nova' && m.foe(q.owner, p));
+      for (const q of pr) nd = Math.min(nd, Math.hypot(q.x - p.x, q.y - p.y, q.z - p.z));
+      const on = p.alive && nd < 36;
+      E.novaw.classList.toggle('on', on);
+      if (on) {
+        E.novawD.textContent = Math.round(nd) + ' M'; E.novaw.style.setProperty('--u', clamp(1 - nd / 36, 0, 1));
+        this.nwT = (this.nwT || 0) - dt; if (this.nwT <= 0) { this.nwT = clamp(nd / 45, 0.16, 0.6); Sound.play('alarm', { vol: 0.35 }); }
+      }
+    }
     const wl = p.cls === 'warlock';
     document.body.classList.toggle('is-warlock', wl);
     E.grRow.style.display = wl ? 'none' : '';
@@ -274,7 +286,7 @@ export class HUD {
       E.novaBox.classList.toggle('ready', p.sup >= 1); E.novaBox.classList.toggle('cast', p.novaT > 0);
       E.novaPct.textContent = p.novaT > 0 ? 'CASTING' : p.sup >= 1 ? 'READY' : pct + '%';
       const kn = Input.last + glyphText('nova'); if (this.kn !== kn) { this.kn = kn; E.novaKd.textContent = glyphText('nova'); E.blinkKd.textContent = glyphText('blink'); }
-      E.pips.forEach((el, i) => { const full = p.blinkCh > i, part = p.blinkCh === i ? Math.min(1, p.blinkT / 4.2) : 0; el.style.setProperty('--f', full ? 1 : part); el.classList.toggle('full', full); });
+      E.pips.forEach((el, i) => { const full = p.blinkCh > i, part = p.blinkCh === i ? Math.min(1, p.blinkT / 3.6) : 0; el.style.setProperty('--f', full ? 1 : part); el.classList.toggle('full', full); });
     }
     // reticle
     const retId = def ? def.ret : 'none';

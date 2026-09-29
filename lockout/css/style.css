@@ -313,7 +313,7 @@ body.touch-on.playing #touch, body.touch-on.online-play #touch { display: block;
 .roll { width: 40px; height: 40px; display: grid; place-items: center; background: none; border: 1px solid var(--line); color: #fff; cursor: pointer; } .roll svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; } .roll:hover { border-color: #fff; }
 
 /* modes: score names, objective status, markers, crown, perfect */
-.sc-row { grid-template-columns: 14px 54px 1fr 46px; }
+.sc-row { grid-template-columns: 14px 78px 1fr 46px; } .sc-nm { letter-spacing: .1em; }
 .sc-nm { font: 500 9px var(--f-mono); font-style: normal; letter-spacing: .18em; color: #cfcfca; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .h-obj { display: flex; flex-direction: column; gap: 3px; margin-top: 4px; }
 .ob { display: grid; grid-template-columns: 10px 1fr auto; align-items: center; gap: 8px; padding: 3px 8px; background: var(--hd); backdrop-filter: blur(6px); font: 500 10px var(--f-mono); letter-spacing: .16em; color: #cfcfca; }
@@ -431,3 +431,9 @@ body.is-warlock .t-blink, body.is-warlock .t-nova { display: grid; }
 body.is-warlock .t-gren { display: none; }
 .t-blink { right: calc(96px + var(--safe-r)); bottom: calc(126px + var(--safe-b)); border-color: #b98cff; }
 .t-nova { right: calc(170px + var(--safe-r)); bottom: calc(150px + var(--safe-b)); width: 64px; height: 64px; border-color: #b98cff; box-shadow: 0 0 18px rgba(185, 140, 255, .45); }
+/* nova incoming warning */
+.h-novaw { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .15s; --u: 0; background: radial-gradient(ellipse at center, transparent 45%, rgba(150, 80, 255, calc(.18 + var(--u) * .4)) 100%); }
+.h-novaw.on { opacity: 1; animation: novaWarn calc(.9s - var(--u) * .6s) ease-in-out infinite; }
+.h-novaw b { position: absolute; left: 50%; top: 30%; transform: translateX(-50%); font: 700 13px var(--f-mono); letter-spacing: .5em; text-indent: .5em; color: #d9c2ff; text-shadow: 0 0 14px #9a5cff; white-space: nowrap; }
+.h-novaw span { position: absolute; left: 50%; top: calc(30% + 24px); transform: translateX(-50%); font: 500 11px var(--f-mono); letter-spacing: .3em; color: var(--paper); font-variant-numeric: tabular-nums; }
+@keyframes novaWarn { 50% { filter: brightness(1.5); } }

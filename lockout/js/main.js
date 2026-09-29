@@ -35,15 +35,16 @@ if (!VARIANTS.some((v) => v[0] === loadout.variant)) loadout.variant = 'standard
 const matchCfg = () => ({ variant: loadout.variant, mode: loadout.mode, limit: limitOf(), haloColor: haloHex(), skinTint: skinHex() });
 { const i = WAIFUS.findIndex((w) => w.id === Profile.d.eq.operator); if (i >= 0) loadout.waifu = i; else loadout.waifu = 0; }
 if (Q.get('map')) loadout.map = Q.get('map');
-if (!['lockout', 'cryostat', 'mesa'].includes(loadout.map)) loadout.map = 'lockout';
+if (!['lockout', 'cryostat', 'mesa', 'halcyon'].includes(loadout.map)) loadout.map = 'lockout';
 const persist = () => { save('settings', settings); save('loadout', loadout); };
 
-const EXPOSURE = { lockout: 1.05, cryostat: 1.3, mesa: 0.95 };
+const EXPOSURE = { lockout: 1.05, cryostat: 1.3, mesa: 0.95, halcyon: 1.05 };
 // title-screen framing per map: operator position, camera position, look-at
 const MENU = {
   lockout: { show: [-24.6, 4, 2.6], cam: [-27.3, 5.2, 4.7], look: [-22.4, 5.0, -0.2] },
   cryostat: { show: [-29.4, 3, -2.2], cam: [-33.6, 4.5, 2.4], look: [-24.4, 4.3, -4.4] },
   mesa: { show: [-29.6, 3, 1.4], cam: [-32.3, 4.2, 3.5], look: [-27.4, 4.0, -1.4] },
+  halcyon: { show: [-30, 2.6, 1.6], cam: [-32.8, 3.8, 3.7], look: [-27.8, 3.7, -1.2] },
 };
 const TIPS = [
   'Shields recharge after a few seconds out of fire. Break line of sight, then re-peek.',
@@ -211,7 +212,7 @@ function showTitle() {
 function quickPlay() {
   const modes = Object.keys(MODES), maps = World.MAP_LIST.map((x) => x.id);
   const keep = { mode: loadout.mode, map: loadout.map, variant: loadout.variant };
-  loadout.mode = modes[(Math.random() * modes.length) | 0]; loadout.map = maps[(Math.random() * maps.length) | 0];
+  loadout.mode = modes[(Math.random() * modes.length) | 0]; loadout.map = loadout.mode === 'hunt' && Math.random() < 0.65 ? 'halcyon' : maps[(Math.random() * maps.length) | 0];
   loadout.variant = Math.random() < 0.65 ? 'standard' : VARIANTS[1 + ((Math.random() * (VARIANTS.length - 1)) | 0)][0];
   UI.toast(`${MODES[loadout.mode].name} · ${World.MAP_LIST.find((x) => x.id === loadout.map).name}${loadout.variant !== 'standard' ? ' · ' + VARIANTS.find((v) => v[0] === loadout.variant)[1] : ''}`, 2200);
   startMatch().then(() => { loadout.mode = keep.mode; loadout.map = keep.map; loadout.variant = keep.variant; });
