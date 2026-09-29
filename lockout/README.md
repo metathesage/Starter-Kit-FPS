@@ -1,7 +1,7 @@
 # LOCKOUT — Team Slayer, Waifu Edition
 
 A browser arena shooter built as a tribute to classic console team-slayer on a symmetrical map.
-4v4 against bots. Low-poly armored operators, energy sword, sniper tower, rockets, overshield.
+4v4 against bots or friends. Cyber-angel armored operators (halo, wing blades, twin tails), two symmetrical maps, a full sandbox of Halo-style weapons and power-ups. Noir minimal UI.
 No install, no build step, no downloaded assets: geometry, textures, audio and music are all generated at runtime.
 
 **Stack:** Three.js r186 (WebGL2, vendored in `vendor/`), ES modules, Web Audio synth.
@@ -59,15 +59,19 @@ Live URL: `https://<owner>.github.io/<repo>/`.
 
 - Team Slayer, 4v4, first to 15 / 25 / 50 kills or 12 minutes.
 - Shield 100 + health 45. Shields recharge after ~4.6s out of fire. Headshots pay extra.
-- Weapons: BR, magnum, SMG, shotgun, sniper, rocket launcher, energy sword (lunge). Frag + plasma grenades.
-- Overshield (+200 for 30s). Killed players drop weapons. Medals: multi-kills, sprees, headshot, assassination, sword, grenade, revenge.
+- Weapons: BR, magnum, SMG, shotgun, sniper, rocket launcher, carbine, plasma rifle, needler (supercombine), energy sword (lunge), gravity hammer. Frag + plasma grenades.
+- Power-ups: overshield (+200), active camo (cloaks you, hides you from radar), damage boost (x2). Killed players drop weapons.
+- Medals: multi-kills, sprees, headshot, assassination, sword, grenade, revenge. Headshot kills show a skull; every kill shows an elimination banner.
 - Four bot difficulties (Easy, Normal, Heroic, Legendary): reaction time, aim error, turn rate, strafing.
 
-## Map
+## Maps
 
-Original layout inspired by symmetrical two-base arena design: two raised bases, catwalk bridges at height,
-a central sniper tower, ground lanes, cover crates. Rotationally symmetric about the origin (Red -X, Blue +X).
-It is not a copy of any existing map or asset.
+Both are rotationally symmetric about the origin (Red -X, Blue +X) with mirrored spawns and pickups. Pick in Deployment -> Map (or `?map=lockout|cryostat`).
+
+- **Lockout** - two raised bases, catwalk bridges, central tower with ramps to every height, sniper ledges at the top, dense cover and rails. No floor: fall and you die.
+- **Cryostat** - night snow yard. Two sniper towers (one per side, one rifle each), central reactor deck, base pads, skybridges, ramps to every level, lots of spawn pads, camo, damage boost, overshield, sword, hammer. Aurora, moon, drifting snow.
+
+Original layouts inspired by classic symmetrical arena design. Not a copy of any existing map or asset.
 
 ## Layout
 
@@ -89,8 +93,8 @@ js/touch.js    on-screen controls for phones
 js/main.js     boot, loading, menus, online flow, camera, loop
 ```
 
-Operators wear Spartan-style armor (bulk, domed helm, gold visor) with twin tails out the back.
-Setup lets you swap the helm for a bare anime face. Real weapon models: see `models/README.md`.
+Operators are armored angels: halo, wing blades, twin tails, white skirt plate, gold trim, big anime eyes.
+Setup lets you toggle a helm on. Real weapon models: see `models/README.md`.
 
 Debug: `?fast` skips splash delays, `?touch` forces touch controls, `?peerhost=localhost&peerport=9000&peerpath=/` uses a local PeerJS server, `?fps` shows an FPS counter (or F3), `?quick` skips splash and drops straight into a match,
 `?quick&bot` lets the AI play for you.

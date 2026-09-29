@@ -24,7 +24,7 @@ export const TEAM = {
 
 // ---- geometry merging: many primitives -> one mesh per material ------------
 const _e = new THREE.Euler(), _q = new THREE.Quaternion(), _v = new THREE.Vector3(), _s = new THREE.Vector3();
-const BUCKET = { skin: 'body', suit: 'body', armor: 'body', armor2: 'body', glow: 'body', trim: 'skirt' };
+const BUCKET = { skin: 'body', suit: 'body', armor: 'body', armor2: 'body', gold: 'body', glow: 'body', hair: 'body', hair2: 'body', trim: 'skirt' };
 const GLOW_KEYS = new Set(['glow', 'trim']);
 const partColor = (mats, key) => (key === 'glow' || key === 'trim' ? mats[key].emissive : key === 'skirt' ? mats._skirtColor.color : mats[key].color);
 class Parts {
@@ -64,23 +64,40 @@ const sph = (r, w = 8, h = 6) => new THREE.SphereGeometry(r, w, h);
 const _face = {};
 export function faceTexture(eye) {
   if (_face[eye]) return _face[eye];
-  const c = document.createElement('canvas'); c.width = 256; c.height = 154;
+  const W = 512, H = 308, c = document.createElement('canvas'); c.width = W; c.height = H;
   const g = c.getContext('2d');
-  const col = '#' + new THREE.Color(eye).getHexString();
-  for (const sx of [0.29, 0.71]) {
-    const cx = c.width * sx, cy = 74, s = sx < 0.5 ? -1 : 1;
-    g.fillStyle = 'rgba(255,120,150,.22)'; g.beginPath(); g.ellipse(cx + s * 6, cy + 40, 16, 6, 0, 0, TAU); g.fill();
-    g.fillStyle = '#fff'; g.beginPath(); g.ellipse(cx, cy, 27, 37, 0, 0, TAU); g.fill();
-    const gr = g.createLinearGradient(0, cy - 30, 0, cy + 30); gr.addColorStop(0, '#1b1230'); gr.addColorStop(0.35, col); gr.addColorStop(1, '#fff');
-    g.fillStyle = gr; g.beginPath(); g.ellipse(cx, cy + 2, 21, 33, 0, 0, TAU); g.fill();
-    g.fillStyle = '#120a20'; g.beginPath(); g.ellipse(cx, cy + 3, 9, 17, 0, 0, TAU); g.fill();
-    g.fillStyle = '#fff'; g.beginPath(); g.arc(cx - 7, cy - 12, 7, 0, TAU); g.fill(); g.beginPath(); g.arc(cx + 8, cy + 14, 3.5, 0, TAU); g.fill();
-    g.strokeStyle = '#1b1230'; g.lineWidth = 6; g.lineCap = 'round';
-    g.beginPath(); g.moveTo(cx - 28, cy - 12); g.quadraticCurveTo(cx, cy - 42, cx + 28, cy - 14); g.stroke();
-    g.lineWidth = 4; g.beginPath(); g.moveTo(cx + s * 26, cy - 14); g.lineTo(cx + s * 36, cy - 24); g.stroke();
+  const ec = new THREE.Color(eye), light = ec.clone().lerp(new THREE.Color(1, 1, 1), 0.55), dark = ec.clone().multiplyScalar(0.35);
+  const hex = (k) => '#' + k.getHexString();
+  const ell = (x, y, rx, ry) => { g.beginPath(); g.ellipse(x, y, rx, ry, 0, 0, TAU); };
+  for (const sx of [0.275, 0.725]) {
+    const cx = W * sx, cy = 150, s = sx < 0.5 ? -1 : 1;
+    g.save(); g.translate(cx, cy + 6); g.scale(1.32, 1.22); g.translate(-cx, -(cy + 6));
+    // blush
+    const bl = g.createRadialGradient(cx + s * 12, cy + 84, 2, cx + s * 12, cy + 84, 46); bl.addColorStop(0, 'rgba(255,110,140,.42)'); bl.addColorStop(1, 'rgba(255,110,140,0)');
+    g.fillStyle = bl; g.fillRect(cx - 60, cy + 30, 130, 110);
+    // brow
+    g.strokeStyle = '#3a2233'; g.lineWidth = 6; g.lineCap = 'round'; g.beginPath(); g.moveTo(cx - 44, cy - 92); g.quadraticCurveTo(cx + s * 2, cy - 112, cx + 46, cy - 90); g.stroke();
+    // sclera
+    const sc = g.createLinearGradient(0, cy - 62, 0, cy + 62); sc.addColorStop(0, '#c9c4d6'); sc.addColorStop(0.35, '#fffdff'); sc.addColorStop(1, '#ffffff');
+    g.fillStyle = sc; ell(cx, cy, 52, 62); g.fill();
+    // iris
+    const ir = g.createLinearGradient(0, cy - 56, 0, cy + 62); ir.addColorStop(0, '#120a24'); ir.addColorStop(0.32, hex(dark.clone().lerp(ec, 0.7))); ir.addColorStop(0.7, hex(ec)); ir.addColorStop(1, hex(light));
+    g.fillStyle = ir; ell(cx, cy + 6, 41, 57); g.fill();
+    g.strokeStyle = 'rgba(10,4,24,.85)'; g.lineWidth = 4; ell(cx, cy + 6, 41, 57); g.stroke();
+    g.fillStyle = '#0a0518'; ell(cx, cy + 8, 15, 29); g.fill();
+    // highlights
+    g.fillStyle = '#fff'; g.beginPath(); g.arc(cx - 15, cy - 22, 14, 0, TAU); g.fill(); g.beginPath(); g.arc(cx + 15, cy + 30, 7, 0, TAU); g.fill();
+    g.beginPath(); g.moveTo(cx + 18, cy - 14); g.lineTo(cx + 21, cy - 6); g.lineTo(cx + 29, cy - 3); g.lineTo(cx + 21, cy); g.lineTo(cx + 18, cy + 8); g.lineTo(cx + 15, cy); g.lineTo(cx + 7, cy - 3); g.lineTo(cx + 15, cy - 6); g.closePath(); g.fill();
+    // upper lash with a flick, lower lash
+    g.strokeStyle = '#1b0f22'; g.lineWidth = 12; g.beginPath(); g.moveTo(cx - 58, cy - 20); g.quadraticCurveTo(cx, cy - 100, cx + 58, cy - 24); g.stroke();
+    g.lineWidth = 7; g.beginPath(); g.moveTo(cx + s * 56, cy - 24); g.quadraticCurveTo(cx + s * 72, cy - 34, cx + s * 80, cy - 52); g.stroke();
+    g.lineWidth = 4; g.beginPath(); g.moveTo(cx - 40, cy + 62); g.quadraticCurveTo(cx, cy + 74, cx + 40, cy + 62); g.stroke();
+    g.restore();
   }
-  g.strokeStyle = '#a84a5a'; g.lineWidth = 3; g.beginPath(); g.moveTo(118, 136); g.quadraticCurveTo(128, 143, 138, 136); g.stroke();
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  g.fillStyle = 'rgba(160,90,90,.7)'; g.beginPath(); g.arc(W / 2, 214, 3.5, 0, TAU); g.fill();
+  g.strokeStyle = '#b0505f'; g.lineWidth = 5; g.lineCap = 'round'; g.beginPath(); g.moveTo(W / 2 - 24, 252); g.quadraticCurveTo(W / 2, 274, W / 2 + 24, 252); g.stroke();
+  g.strokeStyle = 'rgba(255,255,255,.55)'; g.lineWidth = 2; g.beginPath(); g.moveTo(W / 2 - 8, 262); g.quadraticCurveTo(W / 2, 266, W / 2 + 8, 262); g.stroke();
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
   return (_face[eye] = t);
 }
 
@@ -106,13 +123,12 @@ export function solveArm(arm, elbow, target, pole, L1, L2) {
 
 export function makeArm(mats, L1, L2, r = 1) {
   const arm = new THREE.Group(), elbow = new THREE.Group(); elbow.position.y = -L1; arm.add(elbow);
-  const up = new Parts().add(cyl(0.042 * r, 0.037 * r, L1, 6), 'suit', 0, -L1 / 2, 0);
-  up.add(sph(0.118 * r, 7, 5), 'armor', 0, 0.03, 0, 0, 0, 0, 1.05, 0.85, 1.05).add(bx(0.13 * r, 0.05 * r, 0.14 * r), 'armor2', 0, -0.05 * r, 0).add(cyl(0.05 * r, 0.045 * r, L1 * 0.4, 6), 'armor2', 0, -L1 * 0.62, 0);
+  const up = new Parts().add(cyl(0.04 * r, 0.035 * r, L1, 7), 'suit', 0, -L1 / 2, 0);
+  up.add(sph(0.098 * r, 7, 5), 'armor2', 0, 0.03, 0, 0, 0, 0, 1.05, 0.8, 1.05).add(cyl(0.1 * r, 0.1 * r, 0.014, 8), 'gold', 0, -0.03 * r, 0).add(bx(0.06 * r, 0.03 * r, 0.05 * r), 'armor', 0, 0.09 * r, 0);
   arm.add(up.build(mats));
-  const lo = new Parts().add(cyl(0.037 * r, 0.03 * r, L2, 6), 'suit', 0, -L2 / 2, 0);
-  lo.add(cyl(0.062 * r, 0.054 * r, L2 * 0.6, 6), 'armor', 0, -L2 * 0.42, 0);
-  lo.add(bx(0.085 * r, 0.095 * r, 0.105 * r), 'suit', 0, -L2 - 0.02, 0).add(bx(0.09 * r, 0.03 * r, 0.11 * r), 'armor2', 0, -L2 * 0.72, 0);
-  lo.add(bx(0.02 * r, 0.02 * r, 0.06 * r), 'glow', 0, -L2 * 0.4, -0.05 * r);
+  const lo = new Parts().add(cyl(0.034 * r, 0.028 * r, L2, 7), 'suit', 0, -L2 / 2, 0);
+  lo.add(cyl(0.05 * r, 0.044 * r, L2 * 0.55, 7), 'armor2', 0, -L2 * 0.42, 0).add(cyl(0.054 * r, 0.054 * r, 0.014, 7), 'gold', 0, -L2 * 0.16, 0).add(cyl(0.05 * r, 0.05 * r, 0.014, 7), 'gold', 0, -L2 * 0.68, 0);
+  lo.add(bx(0.075 * r, 0.085 * r, 0.1 * r), 'suit', 0, -L2 - 0.02, 0).add(bx(0.014 * r, 0.014 * r, 0.06 * r), 'glow', 0, -L2 * 0.42, -0.05 * r);
   elbow.add(lo.build(mats));
   return { arm, elbow };
 }
@@ -120,98 +136,137 @@ export function makeArm(mats, L1, L2, r = 1) {
 // ---- the waifu ------------------------------------------------------------------
 export function makeMats(team, hair, eye) {
   const T = TEAM[team] || TEAM.blue;
-  const M = (o) => new THREE.MeshStandardMaterial({ flatShading: true, roughness: 0.6, metalness: 0.1, ...o });
+  const M = (o) => new THREE.MeshStandardMaterial({ flatShading: true, roughness: 0.55, metalness: 0.15, ...o });
+  const h1 = new THREE.Color(hair), hsl = {}; h1.getHSL(hsl);
+  const h2 = new THREE.Color().setHSL((hsl.h + 0.06) % 1, Math.min(1, hsl.s * 0.95), Math.min(0.88, hsl.l + 0.17));
   return {
-    skin: M({ color: 0xffd8c8, roughness: 0.75 }),
-    suit: M({ color: 0x1d2430, roughness: 0.6, metalness: 0.15 }),
-    armor: M({ color: T.armor, roughness: 0.4, metalness: 0.25 }),
-    armor2: M({ color: 0x3a424f, roughness: 0.4, metalness: 0.45 }),
+    skin: M({ color: 0xffe0d0, roughness: 0.75 }),
+    suit: M({ color: 0x141926, roughness: 0.55, metalness: 0.25 }),
+    armor: M({ color: T.armor, roughness: 0.4, metalness: 0.3 }),
+    armor2: M({ color: 0xf3f1ec, roughness: 0.35, metalness: 0.3 }),
+    gold: M({ color: 0xe9cb7c, roughness: 0.3, metalness: 0.7 }),
     glow: M({ color: 0x111111, emissive: T.glow, emissiveIntensity: 2.4, roughness: 0.3 }),
-    hair: M({ color: hair, roughness: 0.45, metalness: 0.1, emissive: hair, emissiveIntensity: 0.12 }),
-    skirt: M({ vertexColors: true, roughness: 0.5, metalness: 0.25, side: THREE.DoubleSide }),
-    _skirtColor: M({ color: 0x2f3642 }),
-    trim: M({ color: 0x111111, emissive: T.glow, emissiveIntensity: 2.2, side: THREE.DoubleSide }),
+    hair: M({ color: h1, roughness: 0.45, metalness: 0.1 }),
+    hair2: M({ color: h2, roughness: 0.45, metalness: 0.1 }),
     body: M({ vertexColors: true, roughness: 0.5, metalness: 0.2 }),
+    skirt: M({ vertexColors: true, roughness: 0.5, metalness: 0.2, side: THREE.DoubleSide }),
+    _skirtColor: M({ color: 0xf1efea }),
+    trim: M({ color: 0x111111, emissive: T.glow, emissiveIntensity: 2.2, side: THREE.DoubleSide }),
     visor: M({ color: 0xffd25a, metalness: 0.6, roughness: 0.2, emissive: 0xffa010, emissiveIntensity: 0.85 }),
+    wing: new THREE.MeshBasicMaterial({ color: T.glow, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }),
+    halo: new THREE.MeshBasicMaterial({ color: 0xfff0c4, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }),
     face: new THREE.MeshBasicMaterial({ map: faceTexture(eye), transparent: true, alphaTest: 0.05, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }),
   };
 }
 
-export function buildWaifu({ team = 'blue', hair = 0xff86c2, eye = 0x5ce1ff, scale = 1.04, helmet = true } = {}) {
+const rnd01 = (() => { let sd = 3; return () => ((sd = (sd * 16807) % 2147483647) / 2147483647); })();
+
+export function buildWaifu({ team = 'blue', hair = 0xff86c2, eye = 0x5ce1ff, scale = 1.04, helmet = false } = {}) {
   const mats = makeMats(team, hair, eye);
   const root = new THREE.Group(); root.rotation.order = 'YXZ';
   const model = new THREE.Group(); model.scale.setScalar(scale); root.add(model);
 
+  // ---- hips: pelvis, white hip plates with gold edging, belt with team buckle ----
   const hips = new THREE.Group(); hips.position.y = 0.96; model.add(hips);
-  hips.add(new Parts().add(bx(0.3, 0.13, 0.2), 'suit').add(bx(0.08, 0.17, 0.2), 'armor', -0.18, -0.01, 0).add(bx(0.08, 0.17, 0.2), 'armor', 0.18, -0.01, 0)
-    .add(bx(0.12, 0.09, 0.03), 'armor2', 0, -0.01, -0.11).add(bx(0.04, 0.03, 0.02), 'glow', 0, -0.01, -0.13).build(mats));
+  hips.add(new Parts().add(bx(0.26, 0.11, 0.18), 'suit')
+    .add(bx(0.07, 0.15, 0.2), 'armor2', -0.16, -0.01, 0).add(bx(0.07, 0.15, 0.2), 'armor2', 0.16, -0.01, 0)
+    .add(bx(0.075, 0.025, 0.205), 'gold', -0.16, 0.07, 0).add(bx(0.075, 0.025, 0.205), 'gold', 0.16, 0.07, 0)
+    .add(bx(0.27, 0.03, 0.19), 'gold', 0, 0.07, 0).add(bx(0.085, 0.085, 0.035), 'armor', 0, 0.06, -0.105).add(bx(0.03, 0.03, 0.02), 'glow', 0, 0.06, -0.125)
+    .add(bx(0.11, 0.2, 0.02), 'armor', 0, -0.08, 0.1).build(mats));
   const skirt = new THREE.Group(); skirt.position.y = -0.03; hips.add(skirt);
-  skirt.add(new Parts().add(new THREE.CylinderGeometry(0.16, 0.245, 0.15, 8, 1, true), 'skirt', 0, -0.07, 0).add(new THREE.CylinderGeometry(0.246, 0.25, 0.022, 8, 1, true), 'trim', 0, -0.15, 0).build(mats, false));
+  skirt.add(new Parts()
+    .add(new THREE.CylinderGeometry(0.15, 0.235, 0.13, 10, 1, true), 'skirt', 0, -0.055, 0)
+    .add(new THREE.CylinderGeometry(0.225, 0.29, 0.1, 10, 1, true), 'skirt', 0, -0.165, 0)
+    .add(new THREE.CylinderGeometry(0.236, 0.241, 0.018, 10, 1, true), 'trim', 0, -0.12, 0)
+    .add(new THREE.CylinderGeometry(0.291, 0.296, 0.018, 10, 1, true), 'trim', 0, -0.213, 0).build(mats, false));
 
-  const mkLeg = (s) => {
-    const leg = new THREE.Group(); leg.position.set(0.095 * s, -0.04, 0); hips.add(leg);
-    leg.add(new Parts().add(cyl(0.076, 0.058, 0.45, 6), 'suit', 0, -0.225, 0).add(bx(0.07, 0.27, 0.15), 'armor', 0.066 * s, -0.16, -0.01).add(bx(0.025, 0.22, 0.02), 'glow', 0.104 * s, -0.16, -0.01).build(mats));
+  // ---- legs: thigh-high stockings, skin band, white armored boots with gold + glow ----
+  const mkLeg = (sd) => {
+    const leg = new THREE.Group(); leg.position.set(0.09 * sd, -0.04, 0); hips.add(leg);
+    leg.add(new Parts().add(cyl(0.072, 0.07, 0.1, 8), 'skin', 0, -0.06, 0).add(cyl(0.07, 0.056, 0.36, 8), 'suit', 0, -0.29, 0).add(cyl(0.075, 0.075, 0.016, 8), 'gold', 0, -0.115, 0)
+      .add(bx(0.045, 0.2, 0.105), 'armor2', 0.068 * sd, -0.22, -0.01).add(bx(0.014, 0.16, 0.02), 'glow', 0.094 * sd, -0.22, -0.01).add(bx(0.05, 0.02, 0.11), 'gold', 0.068 * sd, -0.32, -0.01).build(mats));
     const knee = new THREE.Group(); knee.position.y = -0.45; leg.add(knee);
-    knee.add(new Parts().add(cyl(0.056, 0.04, 0.42, 6), 'suit', 0, -0.21, 0).add(bx(0.115, 0.3, 0.115), 'armor', 0, -0.19, -0.05).add(sph(0.08, 6, 4), 'armor', 0, 0, -0.04)
-      .add(bx(0.115, 0.1, 0.23), 'armor', 0, -0.44, -0.045).add(bx(0.09, 0.05, 0.05), 'armor2', 0, -0.47, 0.055).add(bx(0.07, 0.02, 0.01), 'glow', 0, -0.435, -0.145).build(mats));
+    knee.add(new Parts().add(cyl(0.055, 0.036, 0.42, 8), 'suit', 0, -0.21, 0).add(sph(0.058, 7, 5), 'armor2', 0, 0.0, -0.035)
+      .add(bx(0.088, 0.27, 0.09), 'armor2', 0, -0.2, -0.04).add(bx(0.092, 0.025, 0.094), 'gold', 0, -0.075, -0.04).add(bx(0.068, 0.03, 0.068), 'armor', 0, -0.09, 0.03)
+      .add(bx(0.09, 0.07, 0.2), 'armor2', 0, -0.455, -0.045).add(bx(0.055, 0.03, 0.05), 'gold', 0, -0.48, 0.06).add(bx(0.06, 0.012, 0.012), 'glow', 0, -0.435, -0.146).build(mats));
     return { leg, knee };
   };
   const L = mkLeg(-1), R = mkLeg(1);
 
+  // ---- torso: corseted waist, slim white plate with gold trim and a team gem, wing mount ----
   const spine = new THREE.Group(); spine.position.y = 0.06; hips.add(spine);
-  spine.add(new Parts().add(cyl(0.105, 0.125, 0.15, 8), 'suit', 0, 0.075, 0).add(bx(0.2, 0.05, 0.14), 'armor2', 0, 0.02, 0).build(mats));
+  spine.add(new Parts().add(cyl(0.082, 0.098, 0.15, 8), 'suit', 0, 0.075, 0).add(bx(0.028, 0.14, 0.02), 'gold', 0, 0.075, -0.085).add(bx(0.2, 0.03, 0.15), 'gold', 0, 0.02, 0).build(mats));
   const chest = new THREE.Group(); chest.position.y = 0.14; spine.add(chest);
-  chest.add(new Parts().add(cyl(0.155, 0.16, 0.25, 6), 'suit', 0, 0.12, 0, 0, 0, 0, 1, 1, 0.78)
-    .add(bx(0.33, 0.2, 0.08), 'armor', 0, 0.15, -0.095).add(bx(0.2, 0.06, 0.07), 'armor2', 0, 0.27, -0.06).add(bx(0.06, 0.1, 0.02), 'glow', 0, 0.16, -0.125).add(bx(0.3, 0.05, 0.05), 'armor2', 0, 0.06, -0.075)
-    .add(bx(0.2, 0.22, 0.09), 'armor2', 0, 0.14, 0.11).add(bx(0.03, 0.14, 0.02), 'glow', -0.05, 0.15, 0.16).add(bx(0.03, 0.14, 0.02), 'glow', 0.05, 0.15, 0.16)
-    .add(cyl(0.03, 0.035, 0.07, 6), 'skin', 0, 0.27, 0).add(cyl(0.05, 0.06, 0.03, 6), 'armor2', 0, 0.245, 0).build(mats));
+  chest.add(new Parts().add(cyl(0.118, 0.108, 0.27, 8), 'suit', 0, 0.13, 0, 0, 0, 0, 1, 1, 0.78)
+    .add(bx(0.235, 0.14, 0.07), 'armor2', 0, 0.165, -0.082).add(bx(0.245, 0.018, 0.076), 'gold', 0, 0.238, -0.082).add(bx(0.05, 0.075, 0.02), 'glow', 0, 0.165, -0.12).add(bx(0.09, 0.05, 0.05), 'armor', 0, 0.09, -0.085)
+    .add(cyl(0.05, 0.062, 0.05, 8), 'armor2', 0, 0.275, 0).add(cyl(0.03, 0.035, 0.08, 6), 'skin', 0, 0.31, 0)
+    .add(bx(0.15, 0.17, 0.05), 'armor2', 0, 0.16, 0.1).add(bx(0.03, 0.12, 0.02), 'glow', -0.045, 0.16, 0.14).add(bx(0.03, 0.12, 0.02), 'glow', 0.045, 0.16, 0.14)
+    .add(bx(0.05, 0.035, 0.03), 'armor', -0.035, 0.235, -0.1, 0, 0, 0.3).add(bx(0.05, 0.035, 0.03), 'armor', 0.035, 0.235, -0.1, 0, 0, -0.3).build(mats));
 
-  const head = new THREE.Group(); head.position.y = 0.33; chest.add(head);
+  // wings: blades of light fanned off the back mount
+  const wingRig = {};
+  for (const sd of [-1, 1]) {
+    const grp = new THREE.Group(); grp.position.set(0.055 * sd, 0.2, 0.14); chest.add(grp);
+    const wp = new Parts(), lens = [0.7, 0.6, 0.48, 0.36];
+    lens.forEach((len, i) => { const g = new THREE.CylinderGeometry(0.004, 0.05 - i * 0.006, len, 4); g.translate(0, len / 2, 0); wp.add(g, 'wing', 0, 0, 0, 0.5, 0, -sd * (0.18 + i * 0.26), 1, 1, 0.22); });
+    grp.add(wp.build(mats, false)); wingRig[sd < 0 ? 'L' : 'R'] = grp;
+  }
+
+  // ---- head ----
+  const head = new THREE.Group(); head.position.y = 0.33; head.scale.setScalar(1.16); chest.add(head);
   const hp = new Parts();
-  hp.add(sph(0.13, 10, 8), 'skin', 0, 0.12, 0, 0, 0, 0, 0.95, 1.02, 0.98);
-  hp.add(sph(0.14, 8, 6), 'hair', 0, 0.09, 0.06, 0, 0, 0, 1, 1.25, 0.95);
-  for (const s_ of [-1, 1]) hp.add(cyl(0.05, 0.05, 0.05, 8), 'armor', 0.145 * s_, 0.11, 0.0, 0, 0, Math.PI / 2).add(cyl(0.032, 0.032, 0.055, 8), 'glow', 0.15 * s_, 0.11, 0, 0, 0, Math.PI / 2);
+  hp.add(sph(0.122, 12, 10), 'skin', 0, 0.12, 0, 0, 0, 0, 0.94, 1.05, 0.98).add(sph(0.05, 8, 6), 'skin', 0, 0.05, -0.07, 0, 0, 0, 0.9, 0.8, 0.9);
+  for (const sd of [-1, 1]) {
+    hp.add(new THREE.ConeGeometry(0.02, 0.06, 4), 'skin', 0.118 * sd, 0.115, 0, 0, 0, -sd * Math.PI / 2);
+    hp.add(cyl(0.045, 0.045, 0.03, 10), 'armor2', 0.135 * sd, 0.115, 0, 0, 0, Math.PI / 2).add(cyl(0.05, 0.05, 0.008, 10), 'gold', 0.15 * sd, 0.115, 0, 0, 0, Math.PI / 2).add(cyl(0.024, 0.024, 0.02, 8), 'glow', 0.155 * sd, 0.115, 0, 0, 0, Math.PI / 2);
+  }
+  hp.add(sph(0.14, 10, 8), 'hair', 0, 0.09, 0.065, 0, 0, 0, 1.02, 1.3, 0.95);
   if (!helmet) {
-    hp.add(new THREE.SphereGeometry(0.153, 10, 8, 0, TAU, 0, Math.PI * 0.6), 'hair', 0, 0.14, 0.008, -0.22, 0, 0);
-    for (let i = -3; i <= 3; i++) {
-      const a_ = i * 0.27;
-      hp.add(new THREE.ConeGeometry(0.036, 0.12 - Math.abs(i) * 0.008, 4), 'hair', Math.sin(a_) * 0.125, 0.205 - Math.abs(i) * 0.02, -Math.cos(a_) * 0.115, Math.PI + 0.35, 0, -a_ * 0.6);
+    hp.add(new THREE.SphereGeometry(0.15, 12, 9, 0, TAU, 0, Math.PI * 0.44), 'hair', 0, 0.135, 0.012, -0.12, 0, 0);
+    for (let i = -4; i <= 4; i++) {
+      const a_ = i * 0.2, len = 0.085 - Math.abs(i) * 0.004 + (i === -3 ? 0.04 : 0), x = Math.sin(a_) * 0.132, y = 0.212 - Math.abs(i) * 0.012, z = -Math.cos(a_) * 0.12;
+      hp.add(new THREE.ConeGeometry(0.03, len, 4), 'hair', x, y, z, Math.PI + 0.35, 0, -a_ * 0.5);
+      hp.add(new THREE.ConeGeometry(0.018, 0.05, 4), 'hair2', x * 1.02, y - len * 0.6, z - 0.02, Math.PI + 0.35, 0, -a_ * 0.5);
     }
-    hp.add(bx(0.035, 0.17, 0.06), 'hair', 0.135, 0.07, -0.035).add(bx(0.035, 0.17, 0.06), 'hair', -0.135, 0.07, -0.035);
-    hp.add(new THREE.TorusGeometry(0.158, 0.008, 4, 14, Math.PI), 'armor2', 0, 0.12, 0, 0, 0, 0);
-    hp.add(cyl(0.006, 0.006, 0.1, 4), 'armor2', 0.1, 0.06, -0.08, 0.5, 0, -1.0).add(sph(0.014, 5, 4), 'glow', 0.075, 0.035, -0.115);
-    hp.add(new THREE.TorusGeometry(0.05, 0.007, 4, 8, Math.PI * 1.3), 'hair', 0, 0.28, -0.02, 0.2, 0, 0.5);
+    for (const sd of [-1, 1]) hp.add(bx(0.032, 0.2, 0.05), 'hair', 0.13 * sd, 0.03, -0.03).add(bx(0.03, 0.12, 0.045), 'hair2', 0.13 * sd, -0.13, -0.03);
+    hp.add(new THREE.TorusGeometry(0.05, 0.007, 4, 8, Math.PI * 1.3), 'hair2', 0.02, 0.29, -0.02, 0.2, 0, 0.5);
+    hp.add(new THREE.TorusGeometry(0.135, 0.006, 4, 16, Math.PI * 0.75), 'gold', 0, 0.12, -0.028, 0.06, 0, Math.PI * 0.125).add(bx(0.03, 0.045, 0.02), 'glow', 0, 0.255, -0.135, 0.5, 0, 0);
+    hp.add(new THREE.OctahedronGeometry(0.03, 0), 'gold', 0.108, 0.235, -0.08).add(sph(0.014, 5, 4), 'glow', 0.108, 0.235, -0.11);
   } else {
-    // Mjolnir-style helmet: domed shell, gold visor, jaw guard, side vents, crest
-    hp.add(sph(0.158, 10, 8), 'armor', 0, 0.125, 0.006, 0, 0, 0, 1.0, 1.02, 1.1);
+    hp.add(sph(0.158, 10, 8), 'armor2', 0, 0.125, 0.006, 0, 0, 0, 1.0, 1.02, 1.1);
     hp.add(new THREE.SphereGeometry(0.166, 12, 8, Math.PI * 1.5 - 0.95, 1.9, 1.02, 0.72), 'visor', 0, 0.125, 0.0, 0, 0, 0, 1.0, 1.02, 1.1);
-    hp.add(bx(0.17, 0.075, 0.1), 'armor2', 0, 0.02, -0.085).add(bx(0.09, 0.05, 0.05), 'armor2', 0, -0.005, -0.13);
-    hp.add(bx(0.035, 0.06, 0.24), 'armor2', 0, 0.29, 0.0).add(bx(0.2, 0.03, 0.05), 'armor2', 0, 0.215, -0.11);
-    for (const s_ of [-1, 1]) hp.add(bx(0.03, 0.07, 0.11), 'armor2', 0.155 * s_, 0.06, -0.06).add(bx(0.012, 0.03, 0.05), 'glow', 0.171 * s_, 0.075, -0.06);
-    hp.add(cyl(0.006, 0.006, 0.16, 4), 'armor2', 0.14, 0.32, 0.06, 0, 0, 0).add(sph(0.012, 5, 4), 'glow', 0.14, 0.4, 0.06);
+    hp.add(bx(0.17, 0.075, 0.1), 'gold', 0, 0.02, -0.085).add(bx(0.035, 0.06, 0.24), 'gold', 0, 0.29, 0.0).add(bx(0.2, 0.03, 0.05), 'armor', 0, 0.215, -0.11);
+    for (const sd of [-1, 1]) hp.add(bx(0.03, 0.07, 0.11), 'armor', 0.155 * sd, 0.06, -0.06);
   }
   head.add(hp.build(mats));
-  const face = new THREE.Mesh(new THREE.CylinderGeometry(0.1335, 0.1335, 0.145, 14, 1, true, Math.PI - 0.95, 1.9), mats.face);
+  const face = new THREE.Mesh(new THREE.CylinderGeometry(0.1235, 0.1235, 0.145, 16, 1, true, Math.PI - 0.95, 1.9), mats.face);
   face.position.y = 0.118; face.visible = !helmet; head.add(face);
+  const halo = new THREE.Group(); halo.position.set(0, 0.44, 0.02); halo.rotation.x = 0.16; head.add(halo);
+  halo.add(new Parts().add(new THREE.TorusGeometry(0.17, 0.007, 6, 32), 'halo', 0, 0, 0, Math.PI / 2, 0, 0).add(new THREE.TorusGeometry(0.205, 0.0035, 4, 32), 'halo', 0, 0.012, 0, Math.PI / 2, 0, 0).build(mats, false));
 
+  // long back hair + twin tails
+  const backHair = new THREE.Group(); backHair.position.set(0, 0.11, 0.09); head.add(backHair);
+  backHair.add(new Parts().add(cyl(0.1, 0.085, 0.3, 8), 'hair', 0, -0.15, 0, 0, 0, 0, 1, 1, 0.62).build(mats, false));
+  const bh2 = new THREE.Group(); bh2.position.y = -0.3; backHair.add(bh2);
+  bh2.add(new Parts().add(cyl(0.085, 0.05, 0.3, 8), 'hair', 0, -0.15, 0, 0, 0, 0, 1, 1, 0.55).add(new THREE.ConeGeometry(0.05, 0.16, 6), 'hair2', 0, -0.36, 0, Math.PI, 0, 0, 1, 1, 0.55).build(mats, false));
   const tails = [];
-  for (const s of [-1, 1]) {
-    const t1 = new THREE.Group(); t1.position.set((helmet ? 0.13 : 0.13) * s, helmet ? 0.17 : 0.2, helmet ? 0.12 : 0.07); head.add(t1); t1.rotation.z = -(helmet ? 0.75 : 0.4) * s; if (helmet) t1.scale.setScalar(1.35);
-    t1.add(new Parts().add(cyl(0.05, 0.042, 0.2, 6), 'hair', 0, -0.1, 0).add(new THREE.OctahedronGeometry(0.045, 0), 'glow', 0, 0.02, 0, 0, 0, 0, 1.4, 0.8, 1).build(mats, false));
-    const t2 = new THREE.Group(); t2.position.y = -0.2; t1.add(t2);
-    t2.add(new Parts().add(cyl(0.042, 0.03, 0.2, 6), 'hair', 0, -0.1, 0).build(mats, false));
-    const t3 = new THREE.Group(); t3.position.y = -0.2; t2.add(t3);
-    t3.add(new Parts().add(new THREE.ConeGeometry(0.03, 0.2, 6), 'hair', 0, -0.1, 0, Math.PI, 0, 0).build(mats, false));
-    tails.push({ t1, t2, t3, s });
+  for (const sd of [-1, 1]) {
+    const t1 = new THREE.Group(); t1.position.set(0.135 * sd, 0.235, 0.06); head.add(t1); t1.rotation.z = -0.5 * sd; t1.rotation.x = 0.15;
+    t1.add(new Parts().add(cyl(0.056, 0.05, 0.26, 7), 'hair', 0, -0.13, 0).add(new THREE.OctahedronGeometry(0.05, 0), 'armor', 0, 0.02, 0, 0, 0, 0, 1.5, 0.85, 1).add(sph(0.018, 5, 4), 'gold', 0, 0.02, -0.055).build(mats, false));
+    const t2 = new THREE.Group(); t2.position.y = -0.26; t1.add(t2);
+    t2.add(new Parts().add(cyl(0.05, 0.042, 0.26, 7), 'hair', 0, -0.13, 0).build(mats, false));
+    const t3 = new THREE.Group(); t3.position.y = -0.26; t2.add(t3);
+    t3.add(new Parts().add(cyl(0.042, 0.032, 0.14, 7), 'hair', 0, -0.07, 0).add(new THREE.ConeGeometry(0.034, 0.26, 7), 'hair2', 0, -0.27, 0, Math.PI, 0, 0).build(mats, false));
+    tails.push({ t1, t2, t3, s: sd });
   }
 
   const aL = makeArm(mats, 0.28, 0.3), aR = makeArm(mats, 0.28, 0.3);
-  aL.arm.position.set(-0.2, 0.2, 0); aR.arm.position.set(0.2, 0.2, 0);
+  aL.arm.position.set(-0.19, 0.2, 0); aR.arm.position.set(0.19, 0.2, 0);
   chest.add(aL.arm, aR.arm);
 
   const wRoot = new THREE.Group(); wRoot.position.set(0.09, 0.13, -0.06); chest.add(wRoot);
   const rig = {
-    root, model, hips, spine, chest, head, skirt, tails, legL: L.leg, kneeL: L.knee, legR: R.leg, kneeR: R.knee, aL, aR, wRoot, mats,
+    root, model, hips, spine, chest, head, skirt, tails, backHair, bh2, halo, wings: wingRig, legL: L.leg, kneeL: L.knee, legR: R.leg, kneeR: R.knee, aL, aR, wRoot, mats,
     weaponId: null, weapon: null, flash: 0,
     a: { phase: 0, speed: 0, crouch: 0, air: 0, dead: 0, t: Math.random() * 10, flinch: 0, melee: 0, throw: 0, reloading: 0, kick: 0 },
   };
@@ -223,8 +278,13 @@ export function buildWaifu({ team = 'blue', hair = 0xff86c2, eye = 0x5ce1ff, sca
     rig.weapon = id ? makeWeaponMesh(id) : null;
     if (rig.weapon) wRoot.add(rig.weapon);
   };
-  rig.setStyle = (hairC, eyeC) => { mats.hair.color.setHex(hairC); mats.hair.emissive.setHex(hairC); mats.face.map = faceTexture(eyeC); mats.face.needsUpdate = true; };
+  rig.setStyle = () => {};
   rig.helmet = helmet;
+  rig._camo = 0;
+  rig.setCamo = (k) => {
+    if (rig._camo === k) return; rig._camo = k;
+    for (const key of ['body', 'skirt', 'visor', 'face', 'wing', 'halo']) { const m = mats[key]; if (!m) continue; m.transparent = k > 0 || key === 'face' || key === 'wing' || key === 'halo'; m.opacity = key === 'wing' ? (k > 0 ? 0.03 : 0.6) : key === 'halo' ? (k > 0 ? 0.04 : 0.95) : k > 0 ? (k >= 1 ? 0.07 : 0.4) : 1; m.depthWrite = k === 0 && key !== 'wing' && key !== 'halo'; m.needsUpdate = true; }
+  };
   rig.setVisible = (v) => { root.visible = v; };
   return rig;
 }
@@ -276,7 +336,7 @@ export function animateRig(rig, dt, s) {
   for (let i = 0; i < rig.tails.length; i++) {
     const t = rig.tails[i], o = i * 1.7;
     t.t1.rotation.x = -sp * 0.55 * lz + Math.sin(a.t * 2.2 + o) * 0.08 - air * 0.6 + a.flinch * 0.3 - Math.sin(ph * 2) * 0.12 * sp;
-    t.t1.rotation.z = -(rig.helmet ? 0.75 : 0.4) * t.s + Math.sin(a.t * 1.7 + o) * 0.06 + lx * 0.25 * sp * t.s;
+    t.t1.rotation.z = -0.5 * t.s + Math.sin(a.t * 1.7 + o) * 0.06 + lx * 0.25 * sp * t.s;
     t.t2.rotation.x = -sp * 0.3 * lz + Math.sin(a.t * 2.6 + o + 0.8) * 0.14 - air * 0.3;
     t.t3.rotation.x = -sp * 0.25 * lz + Math.sin(a.t * 3.1 + o + 1.6) * 0.18;
   }
@@ -319,8 +379,14 @@ export function animateRig(rig, dt, s) {
     rig.aR.elbow.rotation.set(-0.5, 0, 0); rig.aL.elbow.rotation.set(-0.3, 0, 0);
   }
 
-  // hit flash
-  if (rig.flash > 0) {
+  // cyber-angel extras: floating halo, wings, long hair
+  if (rig.halo) { rig.halo.position.y = 0.44 + Math.sin(a.t * 1.8) * 0.012; rig.halo.rotation.y += dt * 0.9; }
+  if (rig.wings) { const sprd = 0.2 + sp * 0.22 + air * 0.35 + Math.sin(a.t * 1.7) * 0.035 + a.dead * 0.3; rig.wings.L.rotation.z = sprd; rig.wings.R.rotation.z = -sprd; rig.wings.L.rotation.x = rig.wings.R.rotation.x = -sp * 0.2 * lz + Math.sin(a.t * 1.3) * 0.03; }
+  if (rig.backHair) { rig.backHair.rotation.x = -sp * 0.4 * lz + Math.sin(a.t * 1.9) * 0.05 - air * 0.35 + a.flinch * 0.2; rig.bh2.rotation.x = -sp * 0.3 * lz + Math.sin(a.t * 2.5 + 1) * 0.09; rig.backHair.rotation.z = lx * 0.2 * sp; }
+  rig.setCamo(s.camo || 0);
+  // hit flash / power-up glow
+  if (rig.flash <= 0 && s.boost) { const e = 0.28 + Math.sin(a.t * 6) * 0.1; rig.mats.body.emissive.setRGB(e, e * 0.4, 0.02); }
+  else if (rig.flash > 0) {
     rig.flash = Math.max(0, rig.flash - dt * 6);
     const e = rig.flash * 1.4;
     rig.mats.body.emissive.setRGB(e * 0.8, e * 0.8, e * 0.8);

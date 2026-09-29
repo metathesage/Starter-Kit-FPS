@@ -1,13 +1,19 @@
-// Map data, collision, raycasts, nav graph and meshes.
-// Layout is symmetric under a 180 degree turn about the origin: Red holds -X, Blue holds +X.
+// Maps: data, collision, raycasts, nav graph and visuals. Two symmetric maps, selectable at runtime.
 import * as THREE from 'three';
 import { clamp, lerp } from './util.js';
 import { mergeStatic } from './merge.js';
 
 export const STEP = 0.42;
 export const solids = [];
-export const BOUNDS = { x: 30, z: 27 };
-export const KILL_Y = -12;
+export let BOUNDS = { x: 30, z: 27 };
+export let KILL_Y = -12;
+export let SPAWNS = { red: [], blue: [] };
+export let PICKUPS = [];
+export let MAP = null;
+export const MAP_LIST = [
+  { id: 'lockout', name: 'LOCKOUT', tag: 'Cold storage. Glass deck, drum towers, elbow bridge, void below.' },
+  { id: 'cryostat', name: 'CRYOSTAT', tag: 'Night snow station. Twin snipe towers, reactor core, power-ups everywhere.' },
+];
 
 const add = (o) => { solids.push(o); return o; };
 const box = (x0, x1, z0, z1, y0, y1, mat = 'wall', extra = {}) => add({ x0, x1, z0, z1, y0, y1, ramp: null, mat, ...extra });
@@ -22,37 +28,124 @@ const pRamp = (x0, x1, z0, z1, y0, axis, a, b, ya, yb, mat = 'ramp') => {
   ramp(-x1, -x0, -z1, -z0, y0, axis, -a, -b, ya, yb, { side: -1, mat });
 };
 const T = 0.6;
+const mirrorPickups = (half, extra = []) => [...half, ...half.map((p) => ({ ...p, x: -p.x, z: -p.z })), ...extra];
+const spawnsFrom = (red, y) => ({
+  red: red.map(([x, z]) => ({ x, y, z, yaw: -Math.PI / 2 })),
+  blue: red.map(([x, z]) => ({ x: -x, y, z: -z, yaw: Math.PI / 2 })),
+});
 
-// ---- level: a Forerunner outpost hanging over a snowy void ---------------------------------
-// Rotationally symmetric about the origin. Blue holds +X, Red holds -X. There is NO floor: fall and you die.
-// Levels: L0 bottom deck y=0 | L1 mid corridor + bases y=4 | L2 top-mid deck + tower decks y=8 | L3 sniper ledges y=12
-box(-29, 29, -7, 7, -T, 0, 'deck');                                   // L0 bottom deck (bottom rooms + bottom mid)
-box(-8, 8, -5.5, 5.5, 4 - T, 4, 'deck');                              // L1 under-glass corridor
-pBox(8, 16, -2, 5.5, 4 - T, 4, 'deck');                               // L1 with the ramp hole cut out
-pBox(16, 29, -5.5, 5.5, 4 - T, 4, 'deck');
-pBox(19, 29, -6.4, 6.4, 4 - T, 4, 'base');                            // base slab (spawn)
-pBox(28.4, 29, -6.4, 6.4, 4, 8.5, 'wall');                            // base back wall
-pBox(19, 22.4, 6, 6.4, 4, 6.4, 'wall'); pBox(25.6, 29, 6, 6.4, 4, 6.4, 'wall');       // base side walls (south door for the elbow)
-pBox(19, 29, -6.4, -6, 4, 6.4, 'wall');
-pBox(26.4, 28.2, -5.6, -4.4, 4, 5.2, 'post'); pBox(26.4, 28.2, 4.4, 5.6, 4, 5.2, 'post');      // base cover
-pRamp(8, 16, -5.5, -2, -T, 'x', 8, 16, 0, 4);                         // bottom -> mid ramp
-pRamp(12, 20, -2, 2, 4, 'x', 20, 12, 4, 8);                           // mid -> top-mid ramp
-// top-mid deck with crenellated cover posts (the glass panel is drawn in buildWorld)
-box(-12, 12, -6.5, 6.5, 8 - T, 8, 'deck');
-for (const x of [-9, -4.5, 0, 4.5, 9]) { box(x - 0.45, x + 0.45, -6.4, -5.6, 8, 9.5, 'post'); box(x - 0.45, x + 0.45, 5.6, 6.4, 8, 9.5, 'post'); }
-// tower bridge, tower deck, snipe ramp, sniper ledge
-pBox(12, 21, -10, -4.5, 8 - T, 8, 'deck');
-pBox(21, 29, -17, -7, 0, 8, 'tower');
-pBox(22.2, 23, -16.6, -15.8, 8, 9.4, 'post'); pBox(27.6, 28.4, -16.6, -15.8, 8, 9.4, 'post');
-pRamp(24.5, 27.5, -16, -8, 8, 'z', -8, -16, 8, 12, 'ramp');
-pBox(22, 29, -21, -16, 12 - T, 12, 'deck');
-pBox(29, 29.6, -21, -16, 12, 14.4, 'wall');
-pBox(22, 22.6, -20.9, -20.3, 12, 15, 'post'); pBox(28.4, 29, -20.9, -20.3, 12, 15, 'post'); pBox(22, 22.6, -16.4, -15.8, 12, 15, 'post'); pBox(28.4, 29, -16.4, -15.8, 12, 15, 'post');
-// elbow: long railed ramp from the base door down to the bottom, then an L-shaped landing back to the bottom deck
-pRamp(22.4, 25.6, 6.4, 15, -T, 'z', 6.4, 15, 4, 0);
-pRamp(22.4, 22.8, 6.4, 15, -T, 'z', 6.4, 15, 5, 1, 'rail'); pRamp(25.2, 25.6, 6.4, 15, -T, 'z', 6.4, 15, 5, 1, 'rail');
-pBox(12, 26, 15, 19, -T, 0, 'deck'); pBox(12, 15, 7, 15, -T, 0, 'deck');
-pBox(12, 26, 18.6, 19, 0, 0.9, 'rail'); pBox(25.6, 26, 15, 19, 0, 0.9, 'rail'); pBox(12, 22.4, 15, 15.4, 0, 0.9, 'rail'); pBox(12, 12.4, 7.4, 15, 0, 0.9, 'rail'); pBox(14.6, 15, 7.4, 15, 0, 0.9, 'rail');
+// ================= LOCKOUT: a Forerunner outpost hanging over a snowy void =================
+// Rotationally symmetric. Blue +X, Red -X. NO floor: fall and you die.
+// L0 bottom deck y=0 | L1 mid corridor + bases y=4 | L2 top-mid deck + tower decks y=8 | L3 sniper ledges y=12
+function defineLockout() {
+  BOUNDS = { x: 30, z: 27 }; KILL_Y = -12;
+  box(-29, 29, -7, 7, -T, 0, 'deck');
+  box(-8, 8, -5.5, 5.5, 4 - T, 4, 'deck');
+  pBox(8, 16, -2, 5.5, 4 - T, 4, 'deck');
+  pBox(16, 29, -5.5, 5.5, 4 - T, 4, 'deck');
+  pBox(19, 29, -6.4, 6.4, 4 - T, 4, 'base');
+  pBox(28.4, 29, -6.4, 6.4, 4, 8.5, 'wall');
+  pBox(19, 22.4, 6, 6.4, 4, 6.4, 'wall'); pBox(25.6, 29, 6, 6.4, 4, 6.4, 'wall');
+  pBox(19, 25.6, -6.4, -6, 4, 6.4, 'wall');                                   // north wall, open at x 25.6..29 for the tower ramp
+  pBox(20, 21.6, -5.6, -4.4, 4, 5.2, 'post'); pBox(20, 21.6, 4.4, 5.6, 4, 5.2, 'post');
+  pRamp(8, 16, -5.5, -2, -T, 'x', 8, 16, 0, 4);                               // bottom -> mid
+  pRamp(12, 20, -2, 2, 4, 'x', 20, 12, 4, 8);                                 // mid -> top-mid
+  // top-mid deck, crenellated posts, glass-frame walls
+  box(-12, 12, -6.5, 6.5, 8 - T, 8, 'deck');
+  for (const x of [-9, -4.5, 0, 4.5, 9]) { box(x - 0.45, x + 0.45, -6.4, -5.6, 8, 9.5, 'post'); box(x - 0.45, x + 0.45, 5.6, 6.4, 8, 9.5, 'post'); }
+  pBox(-3.2, 3.2, -2.5, -2.1, 8, 8.9, 'rail');
+  // tower bridge + tower: north strip, west deck, base->deck ramp on the east side, snipe ramp, sniper ledge
+  pBox(12, 21, -10, -4.5, 8 - T, 8, 'deck');
+  pBox(21, 29, -17, -14, 0, 8, 'tower'); pBox(21, 25.6, -14, -7, 0, 8, 'tower');
+  pRamp(25.6, 29, -14, -6.4, 4, 'z', -6.4, -14, 4, 8);                        // base slab -> tower deck
+  pBox(21.2, 21.9, -16.6, -15.9, 8, 9.4, 'post'); pBox(27, 28.6, -16.6, -15.4, 8, 9.2, 'crate');
+  pRamp(22, 25, -16, -8, 8, 'z', -8, -16, 8, 12, 'ramp');                     // tower deck -> sniper ledge
+  pBox(22, 29, -21, -16, 12 - T, 12, 'deck');
+  pBox(29, 29.6, -21, -16, 12, 14.4, 'wall');
+  pBox(22, 22.6, -20.9, -20.3, 12, 15, 'post'); pBox(28.4, 29, -20.9, -20.3, 12, 15, 'post'); pBox(22, 22.6, -16.4, -15.8, 12, 15, 'post'); pBox(28.4, 29, -16.4, -15.8, 12, 15, 'post');
+  pBox(26.4, 27.8, -19.2, -17.8, 12, 13.1, 'crate');
+  // elbow: railed ramp down to the bottom, L-shaped landing back to the bottom deck
+  pRamp(22.4, 25.6, 6.4, 15, -T, 'z', 6.4, 15, 4, 0);
+  pRamp(22.4, 22.8, 6.4, 15, -T, 'z', 6.4, 15, 5, 1, 'rail'); pRamp(25.2, 25.6, 6.4, 15, -T, 'z', 6.4, 15, 5, 1, 'rail');
+  pBox(12, 26, 15, 19, -T, 0, 'deck'); pBox(12, 15, 7, 15, -T, 0, 'deck');
+  pBox(12, 26, 18.6, 19, 0, 0.9, 'rail'); pBox(25.6, 26, 15, 19, 0, 0.9, 'rail'); pBox(12, 22.4, 15, 15.4, 0, 0.9, 'rail'); pBox(12, 12.4, 7.4, 15, 0, 0.9, 'rail'); pBox(14.6, 15, 7.4, 15, 0, 0.9, 'rail');
+  // ---- cover everywhere ----
+  pBox(10, 11.6, 3, 4.6, 0, 1.1, 'crate'); pBox(-3, -1.4, -4.6, -3, 0, 1.1, 'crate'); pBox(4, 8, 5.6, 6.2, 0, 1.3, 'rail'); pBox(4, 5.3, -1.6, 1.6, 0, 1.4, 'crate');   // bottom mid
+  pBox(23, 25, 1.5, 2.4, 0, 1.2, 'crate'); pBox(23, 25, -2.4, -1.5, 0, 1.2, 'crate'); pBox(20.5, 21.3, -5, -2.5, 0, 1.6, 'rail');                                       // bottom room
+  pBox(2, 2.7, -5.4, -4.7, 4, 7.4, 'post'); pBox(6, 6.7, -5.4, -4.7, 4, 7.4, 'post'); pBox(2, 2.7, 4.7, 5.4, 4, 7.4, 'post'); pBox(6, 6.7, 4.7, 5.4, 4, 7.4, 'post');   // mid corridor columns
+  pBox(-1.5, 1.5, -3.6, -3.2, 4, 5.1, 'rail'); pBox(9.5, 11, 0, 1.2, 4, 5.1, 'crate');                                                                                  // under-glass + mid cover
+  pBox(21.5, 23, -2.5, -1, 4, 5.2, 'crate'); pBox(21.5, 23, 1, 2.5, 4, 5.2, 'crate'); pBox(27, 28.2, -1, 1, 4, 5.6, 'crate');                                            // base cover
+  SPAWNS = spawnsFrom([[-27, -4], [-25.6, 0.2], [-27, 4], [-24.5, -2.5], [-24.5, 2.5], [-21, -3.5], [-21, 3.5], [-25, 5.3]], 4);
+  PICKUPS = mirrorPickups([
+    { id: 'br', x: 26, y: 4, z: 4.6, t: 25 }, { id: 'br', x: 26, y: 4, z: -4.6, t: 25 },
+    { id: 'magnum', x: 25, y: 0, z: 0, t: 30 }, { id: 'smg', x: 6, y: 4, z: 3, t: 30 },
+    { id: 'shotgun', x: 8, y: 8, z: -3, t: 55 }, { id: 'sniper', x: 25.5, y: 12, z: -18.5, t: 70 },
+    { id: 'rocket', x: 19, y: 0, z: 17, t: 90 }, { id: 'carbine', x: 23.5, y: 8, z: -7.6, t: 45 },
+    { id: 'needler', x: 7, y: 8, z: 4.4, t: 45 }, { id: 'plasmarifle', x: 14, y: 0, z: 4.6, t: 40 },
+  ], [{ id: 'sword', x: 0, y: 8, z: 0, t: 90 }, { id: 'overshield', x: 0, y: 4, z: 0, t: 120 }, { id: 'hammer', x: 0, y: 0, z: 0, t: 100 }, { id: 'camo', x: 0, y: 8, z: 4.2, t: 120 }]);
+  MAP = { id: 'lockout', nav: { x0: -30, x1: 30, z0: -26, z1: 26 } };
+}
+
+// ================= CRYOSTAT: night snow research station on a frozen plateau =================
+// Rotationally symmetric. Ground floor with a perimeter wall (no void), a reactor core with four ramps,
+// two sniper towers, raised bases, mid pods, side ramps, and plenty of cover.
+function defineCryostat() {
+  BOUNDS = { x: 36, z: 26 }; KILL_Y = -60;
+  box(-37, 37, -27, 27, -T, 0, 'snow');
+  box(-37, 37, 26, 27, 0, 8, 'wall'); box(-37, 37, -27, -26, 0, 8, 'wall'); box(36, 37, -27, 27, 0, 8, 'wall'); box(-37, -36, -27, 27, 0, 8, 'wall');
+  // reactor core: deck y=6, four ramps, glowing pillar, corner cover
+  box(-7, 7, -7, 7, 0, 6, 'tower');
+  pRamp(7, 19, -2, 2, 0, 'x', 19, 7, 0, 6);
+  pRamp(-2, 2, 7, 19, 0, 'z', 19, 7, 0, 6);
+  box(-1.6, 1.6, -1.6, 1.6, 6, 13, 'pillar');
+  pBox(4, 7, 4, 7, 6, 7.2, 'post'); pBox(4, 7, -7, -4, 6, 7.2, 'post');
+  pBox(-5.6, -4.6, 2, 3.2, 6, 7.2, 'crate');
+  // sniper towers (top y=7): ground ramp, skybridge from the core, parapets, cover
+  pBox(24, 32, -16, -8, 0, 7, 'tower');
+  pRamp(10, 24, -15.5, -12.5, 0, 'x', 10, 24, 0, 7);
+  pRamp(7, 24, -10, -5, 5.4, 'x', 7, 24, 6, 7);
+  pBox(24, 32, -16.4, -16, 7, 7.9, 'rail'); pBox(31.6, 32, -16, -8, 7, 7.9, 'rail'); pBox(24, 32, -8, -7.6, 7, 7.9, 'rail');
+  pBox(25.5, 27, -15.6, -14.4, 7, 8.2, 'crate'); pBox(29, 30.5, -9.6, -8.4, 7, 8.2, 'crate'); pBox(30.6, 31.4, -13, -11, 7, 8.4, 'post');
+  // bases: raised pad y=3 with two ramps
+  pBox(24, 35, -3, 9, 0, 3, 'base');
+  pRamp(16, 24, 3.5, 7.5, 0, 'x', 16, 24, 0, 3);
+  pRamp(27, 31, 9, 17, 0, 'z', 17, 9, 0, 3);
+  pBox(24, 35, -3, -2.6, 3, 3.9, 'rail'); pBox(24, 27, 8.6, 9, 3, 3.9, 'rail'); pBox(31, 35, 8.6, 9, 3, 3.9, 'rail');
+  pBox(24, 24.4, -3, 3.5, 3, 3.9, 'rail'); pBox(24, 24.4, 7.5, 9, 3, 3.9, 'rail');
+  pBox(27, 28.4, 0, 2, 3, 4.2, 'crate'); pBox(31, 33, -2, -0.8, 3, 4.2, 'crate'); pBox(29.5, 30.7, 5.5, 7, 3, 4.6, 'post');
+  // mid pods (top y=3.5): two ramps each
+  pBox(13, 19, 8, 14, 0, 3.5, 'base');
+  pRamp(7, 13, 9.5, 12.5, 0, 'x', 7, 13, 0, 3.5);
+  pRamp(14.5, 17.5, 14, 22, 0, 'z', 22, 14, 0, 3.5);
+  pBox(13, 19, 8, 8.4, 3.5, 4.4, 'rail'); pBox(18.6, 19, 8, 14, 3.5, 4.4, 'rail'); pBox(14.2, 15.8, 11.2, 12.6, 3.5, 4.7, 'crate');
+  // ground cover
+  pBox(11, 11.8, -9, -3, 0, 2.4, 'ice'); pBox(20, 21, -7.5, -4.5, 0, 2.2, 'ice');
+  pBox(12, 14, 3.5, 5.5, 0, 1.1, 'crate'); pBox(-1, 1, -12.5, -10.5, 0, 1.1, 'crate'); pBox(2, 3.6, 15.5, 17, 0, 1.2, 'crate'); pBox(26, 28, -22, -20, 0, 1.2, 'crate');
+  pBox(4, 5.4, 10, 11.4, 0, 3.2, 'pillar'); pBox(9, 10.4, -5, -3.6, 0, 3.2, 'pillar'); pBox(21, 22.4, 12, 13.4, 0, 3.2, 'pillar'); pBox(33, 34.4, -13, -11.6, 0, 3.2, 'pillar');
+  pBox(20, 26, -24.5, -22.5, 0, 1.0, 'snow'); pBox(5, 11, 20, 22, 0, 1.0, 'snow'); pBox(28, 33, 19, 21, 0, 1.0, 'snow'); pBox(-9, -4, 8.6, 10, 0, 1.0, 'snow');
+  pBox(15, 16, -22, -17.5, 0, 2.2, 'ice'); pBox(-12, -10, 16, 16.8, 0, 1.6, 'ice');
+  SPAWNS = { red: [], blue: [] };
+  const bluePad = [[26, -1.5], [26, 3.5], [26, 7], [29, 3.5], [32.5, 7], [32.5, 3.5], [30, -1.2], [34, 2]];
+  SPAWNS.blue = bluePad.map(([x, z]) => ({ x, y: 3, z, yaw: Math.PI / 2 }));
+  SPAWNS.red = bluePad.map(([x, z]) => ({ x: -x, y: 3, z: -z, yaw: -Math.PI / 2 }));
+  PICKUPS = mirrorPickups([
+    { id: 'br', x: 27.8, y: 3, z: 6.6, t: 25 }, { id: 'br', x: 27.5, y: 3, z: -1.8, t: 25 },
+    { id: 'magnum', x: 33, y: 3, z: 3, t: 30 },
+    { id: 'smg', x: 14, y: 0, z: -4.6, t: 30 }, { id: 'smg', x: 22, y: 0, z: -9.8, t: 30 },
+    { id: 'carbine', x: 16.5, y: 3.5, z: 9.4, t: 45 }, { id: 'plasmarifle', x: 22, y: 0, z: 9.6, t: 40 },
+    { id: 'needler', x: 3.4, y: 6, z: 5.6, t: 45 }, { id: 'shotgun', x: 9, y: 0, z: -8, t: 55 },
+    { id: 'rocket', x: 20, y: 0, z: -18, t: 90 }, { id: 'sniper', x: 28, y: 7, z: -12, t: 70 },
+    { id: 'sword', x: 4.6, y: 6, z: 0, t: 90 }, { id: 'hammer', x: 0, y: 0, z: 21, t: 100 },
+    { id: 'overshield', x: 34, y: 3, z: -1.6, t: 120 }, { id: 'camo', x: 17.6, y: 3.5, z: 13, t: 120 },
+    { id: 'boost', x: 7, y: 0, z: -22.5, t: 120 },
+  ]);
+  MAP = { id: 'cryostat', nav: { x0: -34, x1: 34, z0: -24, z1: 24 } };
+}
+
+export function defineMap(id) {
+  solids.length = 0; nav.nodes.length = 0; nav.built = false;
+  if (id === 'cryostat') defineCryostat(); else defineLockout();
+}
 
 // ---- collision --------------------------------------------------------------
 export function topAt(s, x, z) {
@@ -137,8 +230,9 @@ export const nav = { nodes: [], built: false };
 export function buildNav() {
   const N = nav.nodes; N.length = 0;
   const G = 2;
-  for (let x = -30; x <= 30; x += G) {
-    for (let z = -26; z <= 26; z += G) {
+  const nb = MAP.nav;
+  for (let x = nb.x0; x <= nb.x1; x += G) {
+    for (let z = nb.z0; z <= nb.z1; z += G) {
       const ys = new Set();
       for (const s of solids) if (x >= s.x0 && x <= s.x1 && z >= s.z0 && z <= s.z1) ys.add(Math.round(topAt(s, x, z) * 100) / 100);
       for (const y of ys) {
@@ -217,24 +311,6 @@ export function findPath(from, to) {
   return [];
 }
 
-// ---- spawn + pickup data ------------------------------------------------------
-const RED = [[-27, -4], [-27, 0], [-27, 4], [-24.5, -2.5], [-24.5, 2.5], [-22, -4], [-22, 4], [-22, 0]];
-export const SPAWNS = {
-  red: RED.map(([x, z]) => ({ x, y: 4, z, yaw: -Math.PI / 2 })),
-  blue: RED.map(([x, z]) => ({ x: -x, y: 4, z: -z, yaw: Math.PI / 2 })),
-};
-
-// t = respawn seconds; 0 = never comes back once taken. Listed for Blue; mirrored for Red unless single.
-const half = [
-  { id: 'br', x: 26, y: 4, z: 4.6, t: 25 }, { id: 'br', x: 26, y: 4, z: -4.6, t: 25 },
-  { id: 'magnum', x: 25, y: 0, z: 0, t: 30 },
-  { id: 'smg', x: 6, y: 4, z: 3, t: 30 },
-  { id: 'shotgun', x: 8, y: 8, z: -3, t: 55 },
-  { id: 'sniper', x: 25.5, y: 12, z: -18.5, t: 70 },
-  { id: 'rocket', x: 19, y: 0, z: 17, t: 90 },
-];
-export const PICKUPS = [...half, ...half.map((p) => ({ ...p, x: -p.x, z: -p.z })),
-  { id: 'sword', x: 0, y: 8, z: 0, t: 90 }, { id: 'overshield', x: 0, y: 4, z: 0, t: 120 }];
 
 // ---- rendering -----------------------------------------------------------------
 function canvasTex(size, draw, rep = 1) {
@@ -293,7 +369,9 @@ function prismGeo(s, tile) {
   return g;
 }
 
-export async function buildWorld(scene, renderer, onProgress = () => {}) {
+
+async function buildLockoutVisuals(scene, renderer, onProgress) {
+  const root = new THREE.Group(); scene.add(root);
   const tex = makeTextures();
   await onProgress(0.1, 'Forging surfaces');
   const M = (map, o = {}) => new THREE.MeshStandardMaterial({ map, roughness: 0.88, metalness: 0.04, ...o });
@@ -301,8 +379,7 @@ export async function buildWorld(scene, renderer, onProgress = () => {}) {
     deck: M(tex.deck), base: M(tex.base), wall: M(tex.wall), tower: M(tex.tower), post: M(tex.post),
     ramp: M(tex.ramp, { side: THREE.DoubleSide }), rail: M(tex.wall, { color: 0xb4bfd2 }),
   };
-  const world = new THREE.Group();
-  scene.add(world);
+  const world = new THREE.Group(); root.add(world);
   for (const s of solids) {
     const m = new THREE.Mesh(s.ramp ? prismGeo(s, 5) : boxGeo(s, 5), mats[s.mat] || mats.wall);
     if (!s.ramp) m.position.set((s.x0 + s.x1) / 2, (s.y0 + s.y1) / 2, (s.z0 + s.z1) / 2);
@@ -344,16 +421,16 @@ export async function buildWorld(scene, renderer, onProgress = () => {}) {
 
   // the glass panel in the top-mid deck + drum canopies over each sniper ledge + cables
   const glass = new THREE.Mesh(new THREE.BoxGeometry(5, 0.06, 3.6), new THREE.MeshStandardMaterial({ color: 0xa8e8ff, transparent: true, opacity: 0.5, emissive: 0x3aa8d8, emissiveIntensity: 0.6, roughness: 0.1, metalness: 0.2 }));
-  glass.position.set(0, 8.04, 0); scene.add(glass);
+  glass.position.set(0, 8.04, 0); root.add(glass);
   const drumMat = new THREE.MeshStandardMaterial({ map: tex.tower, color: 0xb9c4d6, roughness: 0.8, flatShading: true });
   for (const sg of [1, -1]) {
     const cx = sg * 25.5, cz = sg * -18.5;
-    const drum = new THREE.Mesh(new THREE.CylinderGeometry(3.3, 3.5, 3.4, 12), drumMat); drum.position.set(cx, 16.5, cz); drum.castShadow = true; scene.add(drum);
-    const cap = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 3.3, 0.7, 12), drumMat); cap.position.set(cx, 18.5, cz); scene.add(cap);
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(3.45, 0.07, 4, 24), sg === 1 ? blue : red); ring.rotation.x = Math.PI / 2; ring.position.set(cx, 15.2, cz); scene.add(ring);
+    const drum = new THREE.Mesh(new THREE.CylinderGeometry(3.3, 3.5, 3.4, 12), drumMat); drum.position.set(cx, 16.5, cz); drum.castShadow = true; root.add(drum);
+    const cap = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 3.3, 0.7, 12), drumMat); cap.position.set(cx, 18.5, cz); root.add(cap);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(3.45, 0.07, 4, 24), sg === 1 ? blue : red); ring.rotation.x = Math.PI / 2; ring.position.set(cx, 15.2, cz); root.add(ring);
     const pts = [new THREE.Vector3(cx, 18.6, cz), new THREE.Vector3(cx * 0.55, 13, cz * 0.4), new THREE.Vector3(sg * 4, 10.5, sg * -5)];
     const cable = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 24, 0.05, 4), new THREE.MeshStandardMaterial({ color: 0x1b222e, roughness: 0.6 }));
-    scene.add(cable);
+    root.add(cable);
   }
   await onProgress(0.62, 'Hanging cables');
 
@@ -373,16 +450,16 @@ export async function buildWorld(scene, renderer, onProgress = () => {}) {
     const a = (i / 14) * Math.PI * 2, m = new THREE.Mesh(new THREE.IcosahedronGeometry(1, 1), rockMat);
     m.scale.set(22, 9, 22); m.position.set(Math.cos(a) * 28, 40 + rnd() * 6, Math.sin(a) * 22); rocks.add(m);
   }
-  scene.add(mergeStatic(rocks));
+  root.add(mergeStatic(rocks));
   const mist = new THREE.Mesh(new THREE.PlaneGeometry(600, 600).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: mistCol, fog: false }));
-  mist.position.y = -26; scene.add(mist);
+  mist.position.y = -26; root.add(mist);
   const skyGeo = new THREE.SphereGeometry(300, 16, 12);
   const col = [], pp = skyGeo.attributes.position, c = new THREE.Color();
   const top = new THREE.Color(0x56667e), mid = new THREE.Color(0xa9bbd2), low = new THREE.Color(0xe8f0fa);
   for (let i = 0; i < pp.count; i++) { const y = pp.getY(i) / 300; c.copy(y > 0 ? mid.clone().lerp(top, clamp(y * 1.6, 0, 1)) : low); col.push(c.r, c.g, c.b); }
   skyGeo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
   const sky = new THREE.Mesh(skyGeo, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, fog: false, depthWrite: false }));
-  sky.renderOrder = -10; scene.add(sky);
+  sky.renderOrder = -10; root.add(sky);
   {
     const envScene = new THREE.Scene();
     envScene.add(new THREE.Mesh(skyGeo, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide })));
@@ -393,11 +470,11 @@ export async function buildWorld(scene, renderer, onProgress = () => {}) {
   }
   scene.fog = new THREE.Fog(mistCol, 28, 150);
   scene.background = new THREE.Color(mistCol);
-  const hemi = new THREE.HemisphereLight(0xdbe8ff, 0x8a97ac, 1.2); scene.add(hemi);
+  const hemi = new THREE.HemisphereLight(0xdbe8ff, 0x8a97ac, 1.2); root.add(hemi);
   const dir = new THREE.DirectionalLight(0xe6efff, 2.3);
   dir.position.set(-26, 60, 26); dir.castShadow = true; dir.shadow.mapSize.set(2048, 2048);
   Object.assign(dir.shadow.camera, { left: -42, right: 42, top: 36, bottom: -36, near: 10, far: 150 });
-  dir.shadow.bias = -0.0006; dir.shadow.normalBias = 0.04; scene.add(dir);
+  dir.shadow.bias = -0.0006; dir.shadow.normalBias = 0.04; root.add(dir);
   await onProgress(0.85, 'Letting it snow');
 
   // snowfall: a drifting point field that follows the camera
@@ -405,7 +482,7 @@ export async function buildWorld(scene, renderer, onProgress = () => {}) {
   for (let i = 0; i < N; i++) { sp[i * 3] = (Math.random() - 0.5) * 60; sp[i * 3 + 1] = Math.random() * 30; sp[i * 3 + 2] = (Math.random() - 0.5) * 60; sv[i] = 0.6 + Math.random() * 1.2; }
   const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.BufferAttribute(sp, 3));
   const snowPts = new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xffffff, size: 0.13, transparent: true, opacity: 0.85, depthWrite: false, fog: true }));
-  snowPts.frustumCulled = false; scene.add(snowPts);
+  snowPts.frustumCulled = false; root.add(snowPts);
   const snow = {
     update(dt, cam, t) {
       const p = sg.attributes.position.array;
@@ -418,5 +495,177 @@ export async function buildWorld(scene, renderer, onProgress = () => {}) {
     },
   };
   await onProgress(1, 'Ready');
-  return { sky, dir, hemi, mats, glow, snow };
+  return { root, sky, dir, hemi, mats, glow, snow };
+}
+
+function makeNightTextures() {
+  const snow = canvasTex(256, (g, s) => {
+    g.fillStyle = '#d4e2f2'; g.fillRect(0, 0, s, s);
+    for (let i = 0; i < 900; i++) { g.fillStyle = `rgba(${Math.random() < 0.5 ? '255,255,255' : '150,180,220'},${Math.random() * 0.35})`; g.fillRect(Math.random() * s, Math.random() * s, 2 + Math.random() * 5, 2 + Math.random() * 3); }
+    for (let i = 0; i < 40; i++) { g.fillStyle = 'rgba(255,255,255,.95)'; g.fillRect(Math.random() * s, Math.random() * s, 2, 2); }
+  });
+  const plate = canvasTex(256, (g, s) => {
+    g.fillStyle = '#58647c'; g.fillRect(0, 0, s, s); speck(g, s, 600, 0.09);
+    g.strokeStyle = 'rgba(8,14,28,.7)'; g.lineWidth = 4; g.strokeRect(2, 2, s - 4, s - 4);
+    g.strokeStyle = 'rgba(8,14,28,.35)'; g.lineWidth = 2; g.strokeRect(22, 22, s - 44, s - 44);
+    g.fillStyle = 'rgba(127,230,255,.5)'; g.fillRect(s / 2 - 2, 30, 4, s - 60); g.fillRect(18, s / 2 - 1, 12, 2);
+  });
+  const crate = canvasTex(128, (g, s) => {
+    g.fillStyle = '#6e7890'; g.fillRect(0, 0, s, s); speck(g, s, 200, 0.1);
+    g.strokeStyle = 'rgba(10,16,30,.75)'; g.lineWidth = 6; g.strokeRect(3, 3, s - 6, s - 6); g.lineWidth = 4; g.beginPath(); g.moveTo(6, 6); g.lineTo(s - 6, s - 6); g.moveTo(s - 6, 6); g.lineTo(6, s - 6); g.stroke();
+  });
+  const rampT = canvasTex(256, (g, s) => {
+    g.fillStyle = '#8a99b4'; g.fillRect(0, 0, s, s); speck(g, s, 400, 0.08); g.fillStyle = 'rgba(20,32,56,.22)';
+    for (let i = -s; i < s * 2; i += 64) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i + 32, 0); g.lineTo(i + 32 - s, s); g.lineTo(i - s, s); g.fill(); }
+  });
+  return { snow, plate, crate, ramp: rampT };
+}
+
+function haloTex() {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const g = c.getContext('2d'), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.25, 'rgba(255,255,255,.55)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+
+function makeSnow(root, N, spread, height, size) {
+  const sp = new Float32Array(N * 3), sv = new Float32Array(N);
+  for (let i = 0; i < N; i++) { sp[i * 3] = (Math.random() - 0.5) * spread; sp[i * 3 + 1] = Math.random() * height; sp[i * 3 + 2] = (Math.random() - 0.5) * spread; sv[i] = 0.6 + Math.random() * 1.4; }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(sp, 3));
+  const pts = new THREE.Points(g, new THREE.PointsMaterial({ color: 0xffffff, size, transparent: true, opacity: 0.85, depthWrite: false }));
+  pts.frustumCulled = false; root.add(pts);
+  return {
+    pts, extra: null,
+    update(dt, cam, t) {
+      const p = g.attributes.position.array;
+      for (let i = 0; i < N; i++) { p[i * 3] += Math.sin(t * 0.7 + i) * 0.25 * dt + 0.5 * dt; p[i * 3 + 1] -= sv[i] * dt; if (p[i * 3 + 1] < -2) p[i * 3 + 1] = height - 2; }
+      g.attributes.position.needsUpdate = true;
+      pts.position.set(Math.round(cam.x / (spread / 2)) * (spread / 2), cam.y - height * 0.4, Math.round(cam.z / (spread / 2)) * (spread / 2));
+      if (this.extra) this.extra(dt, t);
+    },
+  };
+}
+
+async function buildCryostatVisuals(scene, renderer, onProgress) {
+  const root = new THREE.Group(); scene.add(root);
+  const tex = makeNightTextures();
+  await onProgress(0.1, 'Freezing the ground');
+  const M = (map, o = {}) => new THREE.MeshStandardMaterial({ map, roughness: 0.85, metalness: 0.08, ...o });
+  const mats = {
+    snow: M(tex.snow, { roughness: 0.95, metalness: 0 }), deck: M(tex.plate, { color: 0xa8b6ce }), base: M(tex.plate, { color: 0x8f9db8 }), wall: M(tex.plate, { color: 0x7784a0 }),
+    tower: M(tex.plate, { color: 0x8896b2 }), post: M(tex.plate, { color: 0xa0aec6 }), pillar: M(tex.plate, { color: 0x66728c }), rail: M(tex.plate, { color: 0xb6c2d8 }),
+    ramp: M(tex.ramp, { side: THREE.DoubleSide }), crate: M(tex.crate),
+    ice: new THREE.MeshStandardMaterial({ color: 0xa6dcff, roughness: 0.12, metalness: 0.15, transparent: true, opacity: 0.8 }),
+  };
+  const world = new THREE.Group(); root.add(world);
+  for (const s of solids) {
+    const m = new THREE.Mesh(s.ramp ? prismGeo(s, 5) : boxGeo(s, s.mat === 'snow' ? 8 : 5), mats[s.mat] || mats.wall);
+    if (!s.ramp) m.position.set((s.x0 + s.x1) / 2, (s.y0 + s.y1) / 2, (s.z0 + s.z1) / 2);
+    m.castShadow = true; m.receiveShadow = true; world.add(m);
+  }
+  await onProgress(0.3, 'Raising the station');
+  const glow = (c, i = 2.4) => new THREE.MeshStandardMaterial({ color: 0x050505, emissive: c, emissiveIntensity: i, roughness: 0.4 });
+  const cy = glow(0x7fe6ff, 2.2), red = glow(0xff3b4a, 2.8), blue = glow(0x3b8dff, 2.8), amber = glow(0xffc27a, 2.4);
+  const strip = (m, x, y, z, w, h, d) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(x, y, z); world.add(b); return b; };
+  for (const sg of [1, -1]) {
+    const tm = sg === 1 ? blue : red;
+    strip(tm, sg * 29.5, 3.96, sg * -2.8, 11, 0.05, 0.1); strip(tm, sg * 24.2, 3.96, sg * 3, 0.1, 0.05, 8); strip(tm, sg * 29.5, 3.96, sg * 8.8, 8, 0.05, 0.1);   // base pad edges
+    strip(tm, sg * 35.9, 4.5, sg * 3, 0.1, 1.5, 9);
+    strip(cy, sg * 28, 7.92, sg * -16.2, 8, 0.05, 0.1); strip(cy, sg * 31.8, 7.92, sg * -12, 0.1, 0.05, 8);                                                        // tower parapets
+    strip(tm, sg * 28, 4.5, sg * -7.9, 8, 0.1, 0.1);
+    strip(amber, sg * 16, 4.44, sg * 8.1, 6, 0.05, 0.08);                                                                                                          // pod edge
+  }
+  for (const [x, z, w, d] of [[0, 7.05, 14, 0.1], [0, -7.05, 14, 0.1], [7.05, 0, 0.1, 14], [-7.05, 0, 0.1, 14]]) strip(cy, x, 6.03, z, w, 0.05, d);                // core deck edge
+  strip(cy, 0, 8.6, 36, 74, 0.2, 0.2); strip(cy, 0, 8.6, -36, 74, 0.2, 0.2);
+  for (const s of solids) if (s.ramp && s.mat === 'ramp') {
+    const rr = s.ramp, len = Math.hypot(rr.b - rr.a, rr.yb - rr.ya);
+    for (const off of rr.axis === 'x' ? [s.z0, s.z1] : [s.x0, s.x1]) {
+      const b = new THREE.Mesh(new THREE.BoxGeometry(rr.axis === 'x' ? len : 0.1, 0.05, rr.axis === 'x' ? 0.1 : len), cy);
+      const cx = (s.x0 + s.x1) / 2, cz = (s.z0 + s.z1) / 2, cyy = (rr.ya + rr.yb) / 2 + 0.03;
+      const ang = Math.atan2(rr.yb - rr.ya, Math.abs(rr.b - rr.a)) * Math.sign(rr.b - rr.a);
+      if (rr.axis === 'x') { b.position.set(cx, cyy, off); b.rotation.z = ang; } else { b.position.set(off, cyy, cz); b.rotation.x = -ang; }
+      world.add(b);
+    }
+  }
+  mergeStatic(world);
+  await onProgress(0.5, 'Igniting the reactor');
+  // reactor: glowing shell + rings above the core deck
+  const reactor = new THREE.Mesh(new THREE.CylinderGeometry(1.75, 1.75, 7.2, 10, 1, true), new THREE.MeshBasicMaterial({ color: 0x7fe6ff, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
+  reactor.position.set(0, 9.6, 0); root.add(reactor);
+  const rings = [];
+  for (const y of [7.5, 9.6, 11.7]) { const r = new THREE.Mesh(new THREE.TorusGeometry(2, 0.09, 5, 20), cy); r.rotation.x = Math.PI / 2; r.position.set(0, y, 0); root.add(r); rings.push(r); }
+  const core = new THREE.Mesh(new THREE.IcosahedronGeometry(0.9, 0), new THREE.MeshBasicMaterial({ color: 0xbff4ff, fog: false })); core.position.set(0, 9.6, 0); root.add(core);
+  // lamps: pole + bulb + halo sprite (no dynamic lights)
+  const halo = haloTex(), poleM = new THREE.MeshStandardMaterial({ color: 0x1b2333, roughness: 0.6 });
+  const lamp = (x, y, z, col = 0xbfe4ff, h = 4.2) => {
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.09, h, 5), poleM); pole.position.set(x, y + h / 2, z); root.add(pole);
+    const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.16, 6, 5), new THREE.MeshBasicMaterial({ color: col, fog: false })); bulb.position.set(x, y + h + 0.1, z); root.add(bulb);
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: halo, color: col, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })); sp.scale.setScalar(3.4); sp.position.copy(bulb.position); root.add(sp);
+  };
+  for (const [x, y, z] of [[12, 0, -7], [20, 0, -20], [22, 0, 6], [10, 0, 16], [31, 0, 22], [7, 0, -22], [26, 3, 0.5], [34, 3, 8], [4, 0, 2.4]]) { lamp(x, y, z); lamp(-x, y, -z); }
+  await onProgress(0.65, 'Lighting the lamps');
+  // sky: night gradient, moon, stars, aurora
+  const skyGeo = new THREE.SphereGeometry(320, 18, 12), col = [], pp = skyGeo.attributes.position, c = new THREE.Color();
+  const top = new THREE.Color(0x02040c), mid = new THREE.Color(0x0d1a36), low = new THREE.Color(0x24406a);
+  for (let i = 0; i < pp.count; i++) { const y = pp.getY(i) / 320; c.copy(y > 0 ? low.clone().lerp(mid, clamp(y * 2.4, 0, 1)).lerp(top, clamp((y - 0.3) * 1.6, 0, 1)) : low); col.push(c.r, c.g, c.b); }
+  skyGeo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  const sky = new THREE.Mesh(skyGeo, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, fog: false, depthWrite: false })); sky.renderOrder = -10; root.add(sky);
+  const moon = new THREE.Mesh(new THREE.SphereGeometry(13, 14, 10), new THREE.MeshBasicMaterial({ color: 0xeaf0ff, fog: false })); moon.position.set(-170, 120, -190); root.add(moon);
+  const mh = new THREE.Sprite(new THREE.SpriteMaterial({ map: halo, color: 0x9db8ff, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })); mh.scale.setScalar(150); mh.position.copy(moon.position); root.add(mh);
+  const sN = 800, sPos = new Float32Array(sN * 3);
+  for (let i = 0; i < sN; i++) { const u = Math.random() * 2 - 1, a = Math.random() * 6.283, r = Math.sqrt(1 - u * u); const y = Math.abs(u) * 0.9 + 0.1; sPos[i * 3] = Math.cos(a) * r * 300; sPos[i * 3 + 1] = y * 300; sPos[i * 3 + 2] = Math.sin(a) * r * 300; }
+  const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.BufferAttribute(sPos, 3));
+  root.add(new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xffffff, size: 1.8, sizeAttenuation: false, fog: false, transparent: true, opacity: 0.9, depthWrite: false })));
+  const auroras = [];
+  for (const [ax, az, ry, hue] of [[0, -230, 0, 0x36ffb0], [-160, -120, 0.7, 0x5b8cff], [150, -150, -0.6, 0xb45bff]]) {
+    const g = new THREE.PlaneGeometry(240, 70, 30, 1), pa = g.attributes.position, cc = [];
+    for (let i = 0; i < pa.count; i++) { pa.setZ(i, Math.sin(pa.getX(i) * 0.04) * 14); const top_ = pa.getY(i) > 0, k = new THREE.Color(hue); if (top_) k.multiplyScalar(0.02); cc.push(k.r, k.g, k.b); }
+    g.setAttribute('color', new THREE.Float32BufferAttribute(cc, 3));
+    const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
+    m.position.set(ax, 110, az); m.rotation.y = ry; root.add(m); auroras.push(m);
+  }
+  await onProgress(0.8, 'Painting the aurora');
+  // pines + distant peaks + outer snowfield
+  const outer = new THREE.Mesh(new THREE.PlaneGeometry(900, 900).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xa9bbd6, roughness: 1 })); outer.position.y = -0.7; outer.receiveShadow = true; root.add(outer);
+  const treeM = new THREE.MeshStandardMaterial({ color: 0x142a3d, flatShading: true, roughness: 1 }), capM = new THREE.MeshStandardMaterial({ color: 0xc8d8ee, flatShading: true, roughness: 1 });
+  const trees = new THREE.Group(); let seed = 5; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  for (let i = 0; i < 90; i++) {
+    let x, z; do { x = (rnd() - 0.5) * 210; z = (rnd() - 0.5) * 170; } while (Math.abs(x) < 42 && Math.abs(z) < 32);
+    const h = 5 + rnd() * 7;
+    for (let k = 0; k < 3; k++) { const cn = new THREE.Mesh(new THREE.ConeGeometry(2.6 - k * 0.55, h * (0.5 - k * 0.1), 6), k === 2 ? capM : treeM); cn.position.set(x, h * 0.28 + k * h * 0.22, z); trees.add(cn); }
+  }
+  root.add(mergeStatic(trees));
+  const peakM = new THREE.MeshStandardMaterial({ color: 0x0f1c30, flatShading: true, roughness: 1 });
+  for (let i = 0; i < 26; i++) { const a = rnd() * 6.283, r = 150 + rnd() * 90, h = 30 + rnd() * 60, cn = new THREE.Mesh(new THREE.ConeGeometry(26 + rnd() * 30, h, 5), peakM); cn.position.set(Math.cos(a) * r, h / 2 - 4, Math.sin(a) * r); root.add(cn); }
+  {
+    const envScene = new THREE.Scene();
+    envScene.add(new THREE.Mesh(skyGeo, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide })));
+    const pm = new THREE.PMREMGenerator(renderer); scene.environment = pm.fromScene(envScene, 0.03).texture; scene.environmentIntensity = 1.1; pm.dispose();
+  }
+  scene.fog = new THREE.Fog(0x14264a, 26, 160); scene.background = new THREE.Color(0x0a1530);
+  const hemi = new THREE.HemisphereLight(0x8fa8de, 0x2a3650, 2.1); root.add(hemi);
+  const dir = new THREE.DirectionalLight(0xc4d8ff, 2.6); dir.position.set(-30, 60, -26); dir.castShadow = true; dir.shadow.mapSize.set(2048, 2048);
+  Object.assign(dir.shadow.camera, { left: -46, right: 46, top: 34, bottom: -34, near: 10, far: 150 }); dir.shadow.bias = -0.0006; dir.shadow.normalBias = 0.04; root.add(dir);
+  const snow = makeSnow(root, 1800, 70, 30, 0.16);
+  snow.extra = (dt, t) => { auroras.forEach((m, i) => { m.material.opacity = 0.42 + Math.sin(t * 0.4 + i * 2) * 0.16; m.position.x += Math.sin(t * 0.1 + i) * 0.01; }); reactor.material.opacity = 0.3 + Math.sin(t * 2) * 0.08; core.scale.setScalar(1 + Math.sin(t * 3) * 0.08); rings.forEach((r, i) => { r.rotation.z = t * (0.4 + i * 0.15); }); };
+  await onProgress(1, 'Ready');
+  return { root, sky, dir, hemi, mats, glow, snow };
+}
+
+let current = null;
+export function disposeMap(scene) {
+  if (!current) return;
+  scene.remove(current.root);
+  current.root.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
+  if (scene.environment) { scene.environment.dispose(); scene.environment = null; }
+  current = null;
+}
+
+// Load (or reload) a map: data, nav graph, then meshes/lights/sky. Returns the visual handle used by the game loop.
+export async function loadMap(scene, renderer, id, onProgress = () => {}) {
+  disposeMap(scene);
+  defineMap(id); buildNav();
+  current = id === 'cryostat' ? await buildCryostatVisuals(scene, renderer, onProgress) : await buildLockoutVisuals(scene, renderer, onProgress);
+  return current;
 }

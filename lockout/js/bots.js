@@ -3,7 +3,7 @@ import * as W from './world.js';
 import { WEAPONS } from './weapons.js';
 import { clamp, rand, chance, angDiff, forward, pick } from './util.js';
 
-const RANGE = { br: 85, magnum: 55, smg: 34, shotgun: 12, sniper: 120, rocket: 50, sword: 3 };
+const RANGE = { br: 85, magnum: 55, smg: 34, shotgun: 12, sniper: 120, rocket: 50, sword: 3, hammer: 3.2, carbine: 90, plasmarifle: 38, needler: 42 };
 
 export class Brain {
   constructor(actor, match, diff) { this.a = actor; this.m = match; this.d = diff; this.reset(); }
@@ -29,6 +29,10 @@ export class Brain {
   score(id, dist) {
     switch (id) {
       case 'sword': return dist < 9 ? 9 : 0;
+      case 'hammer': return dist < 6 ? 9 : 0;
+      case 'carbine': return dist > 25 ? 6.5 : 5;
+      case 'plasmarifle': return dist < 30 ? 5.5 : 2;
+      case 'needler': return dist < 30 ? 5.8 : 2;
       case 'shotgun': return dist < 10 ? 8 : dist < 16 ? 2 : 0;
       case 'sniper': return dist > 32 ? 9 : dist > 20 ? 3 : 0.5;
       case 'rocket': return dist > 8 && dist < 45 ? 7 : dist >= 45 ? 3 : 1;
@@ -49,6 +53,7 @@ export class Brain {
       if (m.time - o.lastFireT < 0.6 && dist < 38) { this.hear = { x: o.x, y: o.y, z: o.z }; this.hearAt = m.time; }
       const cos = (dx * f.x + dz * f.z) / (dist || 1);
       if (cos < 0.25 && dist > 6) continue;
+      if (o.camoT > 0 && dist > 9 && o.lastMoveSpeed < 3.5) continue;   // camo hides a still target
       if (!W.los(a.x, a.eye, a.z, o.x, o.chest, o.z)) continue;
       if (dist < bd) { bd = dist; best = o; }
     }

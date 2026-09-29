@@ -11,6 +11,8 @@ export const EYE_STAND = 1.62, EYE_CROUCH = 1.15, H_STAND = 1.78, H_CROUCH = 1.3
 const RUN = 5.4, CROUCH_SPEED = 2.6, GRAV = 21, JUMP = 7.4;
 const SHIELD_MAX = 100, HEALTH_MAX = 45, RECHARGE_DELAY = 4.6, RECHARGE_RATE = 30;
 const _f = { x: 0, y: 0, z: 0 };
+const dead0 = (v) => v.health <= 0;
+export const POWER = new Set(['overshield', 'camo', 'boost']);
 
 const V3 = () => new THREE.Vector3();
 const _mz = V3();
@@ -26,7 +28,7 @@ let _uid = 1;
 export class Actor {
   constructor(match, { name, team, style, isPlayer = false, id = null, remote = null, helmet }) {
     this.m = match; this.id = id ?? _uid++; if (id !== null && id >= _uid) _uid = id + 1; this.remote = remote; this.netT = null; this.spawnSeq = 0; this.name = name; this.team = team; this.isPlayer = isPlayer; this.style = style;
-    this.rig = buildWaifu({ team, hair: style.hair, eye: style.eye, helmet: helmet ?? (isPlayer ? match.cfg.helmet !== false : true) });
+    this.rig = buildWaifu({ team, hair: style.hair, eye: style.eye, helmet: helmet ?? (isPlayer ? match.cfg.helmet === true : false) });
     this.rig.root.visible = false;
     match.scene.add(this.rig.root);
     this.cmd = { mx: 0, mz: 0, fire: false, fireEdge: false, zoom: false, jump: false, crouch: false, melee: false, grenade: false, reload: false, swap: false, use: false, gswitch: false };
@@ -35,7 +37,7 @@ export class Actor {
     this.x = 0; this.y = 0; this.z = 0; this.vx = 0; this.vy = 0; this.vz = 0; this.yaw = 0; this.pitch = 0;
     this.grounded = true; this.crouch = 0; this.h = H_STAND;
     this.weapons = []; this.cur = 0; this.gren = { frag: 2, plasma: 2 }; this.gtype = 'frag';
-    this.shield = SHIELD_MAX; this.health = HEALTH_MAX; this.over = 0; this.overT = 0;
+    this.shield = SHIELD_MAX; this.health = HEALTH_MAX; this.over = 0; this.overT = 0; this.camoT = 0; this.boostT = 0; this.nd = 0; this.ndT = -9;
     this.dmgBy = new Map(); this.brain = null; this.kick = 0; this.stepD = 0; this.lastFireT = -9; this.lastMoveSpeed = 0;
     this.resetTimers();
   }
@@ -53,7 +55,7 @@ export class Actor {
     this.x = pt.x; this.y = pt.y; this.z = pt.z; this.yaw = pt.yaw; this.pitch = 0;
     this.vx = this.vy = this.vz = 0; this.grounded = true; this.crouch = 0; this.h = H_STAND;
     this.alive = true; this.deadT = 0;
-    this.shield = SHIELD_MAX; this.health = HEALTH_MAX; this.over = 0; this.overT = 0;
+    this.shield = SHIELD_MAX; this.health = HEALTH_MAX; this.over = 0; this.overT = 0; this.camoT = 0; this.boostT = 0;
     this.weapons = [{ id: 'br', mag: WEAPONS.br.mag, res: WEAPONS.br.reserve }]; this.cur = 0;
     this.gren = { frag: 2, plasma: 2 }; this.gtype = 'frag';
     this.resetTimers(); this.spawnProt = 2.2; this.dmgBy.clear();
@@ -110,6 +112,8 @@ export class Actor {
       this.overT -= dt;
       if (this.overT <= 0) { this.over = 0; }
     }
+    if (this.camoT > 0) this.camoT = Math.max(0, this.camoT - dt);
+    if (this.boostT > 0) this.boostT = Math.max(0, this.boostT - dt);
     const shieldCap = SHIELD_MAX + this.over;
     if (this.shield > SHIELD_MAX && this.over <= 0) this.shield = Math.max(SHIELD_MAX, this.shield - 22 * dt);
     if (this.lastHit > RECHARGE_DELAY && this.shield < shieldCap) {
@@ -333,7 +337,7 @@ export class Actor {
       }
     }
     m.sfx('swing', this, 0.9);
-    this.pend = { t: 0.16, dmg: 999, range: 2.9, kind: 'sword' };
+    this.pend = { t: def.id === 'hammer' ? 0.34 : 0.16, dmg: 999, range: def.id === 'hammer' ? 3.2 : 2.9, kind: def.id === 'hammer' ? 'hammer' : 'sword', knock: def.knock || 0 };
   }
 
   lungeStep(dt) {
@@ -359,11 +363,11 @@ export class Actor {
       // hit from behind = one-hit kill
       const of = forward(o.yaw, 0, { x: 0, y: 0, z: 0 });
       const back = d > 0.1 && (-dx / d) * of.x + (-dz / d) * of.z < -0.35;
-      m.damage(o, back ? 999 : p.dmg, { attacker: this, weapon: p.kind === 'sword' ? 'sword' : 'melee', kind: p.kind, back, dir: { x: f.x, y: 0.2, z: f.z }, point: { x: o.x, y: o.chest, z: o.z } });
-      o.vx += f.x * 5; o.vz += f.z * 5;
+      m.damage(o, back ? 999 : p.dmg, { attacker: this, weapon: p.kind === 'sword' ? 'sword' : p.kind === 'hammer' ? 'hammer' : 'melee', kind: p.kind, back, dir: { x: f.x, y: 0.2, z: f.z }, point: { x: o.x, y: o.chest, z: o.z } });
+      const kb = p.knock || 5; o.vx += f.x * kb; o.vz += f.z * kb; if (p.knock) { o.vy = 6; o.grounded = false; }
       hit = true;
     }
-    m.sfx(hit ? 'melee' : 'swing', this, hit ? 1 : 0.5);
+    m.sfx(hit ? (p.kind === 'hammer' ? 'thump' : 'melee') : 'swing', this, hit ? 1 : 0.5);
     if (hit && this.isPlayer) Sound.play('melee', { vol: 0.5 });
   }
 
@@ -375,7 +379,7 @@ export class Actor {
     animateRig(this.rig, dt, {
       speed, lx, lz, grounded: this.grounded, crouch: this.crouch, pitch: this.pitch, dead: !this.alive,
       weaponId: w ? w.id : null, firing: this.kick, melee: this.meleeT > 0 ? 1 - this.meleeT / 0.5 : 0,
-      throwT: this.throwT > 0 ? 1 - this.throwT / 0.55 : 0, reloading: this.reloadT > 0,
+      throwT: this.throwT > 0 ? 1 - this.throwT / 0.55 : 0, reloading: this.reloadT > 0, camo: this.camoT > 0 && !this.isPlayer ? 1 : this.camoT > 0 ? 0.5 : 0, boost: this.boostT > 0,
     });
     this.rig.root.position.set(this.x, this.y, this.z);
     this.rig.root.rotation.y = yaw;
@@ -459,16 +463,16 @@ export class Match {
 
   // ---- pickups --------------------------------------------------------------
   addPickup(p) {
-    const isPower = p.id === 'overshield';
+    const isPower = POWER.has(p.id);
     const g = new THREE.Group();
     const tier = isPower ? 4 : WEAPONS[p.id].power;
-    const col = [0xffffff, 0xffffff, 0xffb347, 0x6ab8ff, 0xb28cff][tier] || 0xffffff;
+    const col = isPower ? ({ overshield: 0xb28cff, camo: 0x7fe6ff, boost: 0xff8a3a })[p.id] : ([0xffffff, 0xffffff, 0xffb347, 0x6ab8ff, 0xb28cff][tier] || 0xffffff);
     const ring = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.03, 5, 20), new THREE.MeshStandardMaterial({ color: 0x111111, emissive: col, emissiveIntensity: 2.4 }));
     ring.rotation.x = Math.PI / 2; ring.position.y = 0.06; g.add(ring);
     const disc = new THREE.Mesh(new THREE.CircleGeometry(0.6, 20), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, depthWrite: false }));
     disc.rotation.x = -Math.PI / 2; disc.position.y = 0.05; g.add(disc);
     let obj;
-    if (isPower) { obj = new THREE.Mesh(new THREE.OctahedronGeometry(0.35, 0), new THREE.MeshStandardMaterial({ color: 0x220a44, emissive: 0xb28cff, emissiveIntensity: 2.6, flatShading: true })); }
+    if (isPower) { obj = new THREE.Mesh(p.id === 'camo' ? new THREE.IcosahedronGeometry(0.34, 0) : p.id === 'boost' ? new THREE.TetrahedronGeometry(0.42, 0) : new THREE.OctahedronGeometry(0.35, 0), new THREE.MeshStandardMaterial({ color: 0x111111, emissive: col, emissiveIntensity: 2.6, flatShading: true })); }
     else { obj = makeWeaponMesh(p.id); obj.scale.setScalar(1.5); }
     obj.position.y = 0.95; g.add(obj);
     g.position.set(p.x, p.y, p.z);
@@ -511,8 +515,11 @@ export class Match {
   takePickup(a, p) {
     if (!p.active) return false;
     if (p.isPower) {
-      a.over = 200; a.overT = 30; a.shield = SHIELD_MAX + 200; a.lastHit = 99;
-      this.sfx('power', a, 0.9); this.bus.emit('announce', a.isPlayer ? 'OVERSHIELD' : `${a.name} HAS OVERSHIELD`, a.team);
+      if (p.id === 'overshield') { a.over = 200; a.overT = 30; a.shield = SHIELD_MAX + 200; a.lastHit = 99; }
+      else if (p.id === 'camo') a.camoT = 30;
+      else a.boostT = 30;
+      const label = { overshield: 'OVERSHIELD', camo: 'ACTIVE CAMO', boost: 'DAMAGE BOOST' }[p.id];
+      this.sfx('power', a, 0.9); this.bus.emit('announce', a.isPlayer ? label : `${a.name} HAS ${label}`, a.team);
     } else {
       const def = WEAPONS[p.id];
       const idx = a.weapons.findIndex((w) => w.id === p.id);
@@ -711,12 +718,14 @@ export class Match {
     const a = info.attacker;
     if (a && a !== v && a.team === v.team) return 0;
     if (a && a.brain && v.isPlayer && !info.explosion) amt *= this.diff.dmgIn;
+    if (a && a !== v && a.boostT > 0) amt *= 2;
     const wasShield = v.shield > 0;
     v.lastHit = 0;
     let rem = amt;
     if (v.shield > 0) { const ab = Math.min(v.shield, amt); v.shield -= ab; rem = amt - ab; }
     if (rem > 0) v.health -= rem;
     if (a && a !== v) v.dmgBy.set(a.id, this.time);
+    if (info.weapon === 'needler' && !info.explosion && a && !dead0(v)) { v.nd = (this.time - v.ndT < 2.4 ? v.nd : 0) + 1; v.ndT = this.time; if (v.nd >= 7) { v.nd = 0; this.explode(v.x, v.chest, v.z, 2.6, 60, a, 'needler'); } }
     v.rig.flash = 1;
     const pos = info.point || { x: v.x, y: v.chest, z: v.z };
     if (info.kind === 'bullet') {
@@ -773,6 +782,7 @@ export class Match {
     if (info.back) M('ASSASSINATION', 'blade');
     else if (info.kind === 'punch') M('BEATDOWN', 'fist');
     if (wid === 'sword') M('SWORD KILL', 'blade');
+    if (wid === 'hammer') M('HAMMER TIME', 'fist');
     if (wid === 'frag' || wid === 'plasma') M('GRENADE KILL', 'grenade');
     if (wid === 'sniper') M('SNIPER KILL', 'crosshair');
     if (wid === 'rocket') M('ROCKET KILL', 'rocket');
@@ -926,7 +936,7 @@ export class Match {
         i: a.id, x: r2(a.x), y: r2(a.y), z: r2(a.z), yw: r2(a.yaw), pt: r2(a.pitch), vx: r2(a.vx), vz: r2(a.vz), al: a.alive ? 1 : 0, cr: r2(a.crouch), g: a.grounded ? 1 : 0,
         sh: Math.round(a.shield), hp: Math.round(a.health), ov: Math.round(a.over), cu: a.cur, w: a.weapons.map((w) => [w.id, w.mag, w.res]),
         g1: a.gren.frag, g2: a.gren.plasma, gt: a.gtype === 'frag' ? 0 : 1, k: a.kills, d: a.deaths, as: a.assists, st: a.streak,
-        mt: r2(a.meleeT), tt: r2(a.throwT), rt: r2(a.reloadT), sw: r2(a.swapT), zl: a.zoomLevel, sq: a.spawnSeq, ra: r2(Math.max(0, a.respawnAt - this.time)), lm: r2(a.lastMoveSpeed), lf: r2(this.time - a.lastFireT),
+        mt: r2(a.meleeT), tt: r2(a.throwT), rt: r2(a.reloadT), sw: r2(a.swapT), zl: a.zoomLevel, sq: a.spawnSeq, ra: r2(Math.max(0, a.respawnAt - this.time)), lm: r2(a.lastMoveSpeed), lf: r2(this.time - a.lastFireT), ot: r2(a.overT), cm: r2(a.camoT), bt: r2(a.boostT),
       })),
       pk: this.pickups.slice(0, this.nStatic || W.PICKUPS.length).map((p) => (p.active ? 1 : 0)),
       dr: this.pickups.filter((p) => p.dropped).map((p) => ({ u: p.uid, id: p.id, x: r2(p.mesh.position.x), y: r2(p.mesh.position.y), z: r2(p.mesh.position.z), a: p.ammo })),
@@ -954,7 +964,7 @@ export class Match {
       a.alive = !!o.al; a.shield = o.sh; a.health = o.hp; a.over = o.ov; a.cur = o.cu; a.weapons = o.w.map(([id, mag, res]) => ({ id, mag, res }));
       a.gren.frag = o.g1; a.gren.plasma = o.g2; a.gtype = o.gt ? 'plasma' : 'frag';
       a.kills = o.k; a.deaths = o.d; a.assists = o.as; a.streak = o.st;
-      a.meleeT = o.mt; a.throwT = o.tt; a.reloadT = o.rt; a.swapT = o.sw; a.respawnAt = this.time + o.ra; a.lastMoveSpeed = o.lm; a.lastFireT = this.time - o.lf;
+      a.meleeT = o.mt; a.throwT = o.tt; a.reloadT = o.rt; a.swapT = o.sw; a.respawnAt = this.time + o.ra; a.lastMoveSpeed = o.lm; a.lastFireT = this.time - o.lf; a.camoT = o.cm; a.boostT = o.bt; a.overT = o.ot;
       if (a === this.player) {
         if (o.sq !== a.spawnSeq || (!wasAlive && a.alive)) {
           a.spawnSeq = o.sq; a.x = o.x; a.y = o.y; a.z = o.z; a.yaw = o.yw; a.pitch = 0; a.vx = a.vz = a.vy = 0; a.grounded = true; a.deadT = 0; a.first = false;

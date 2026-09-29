@@ -9,6 +9,10 @@ export const WEAPONS = {
   shotgun: { name: 'M90 Shotgun', short: 'SHOTGUN', mag: 6, reserve: 24, reload: 2.3, cycle: 0.95, burst: 1, gap: 0, pellets: 10, dmg: 15.5, head: 1.0, spread: 0.06, range: 22, falloff: [4, 14], zoom: [1.2], kick: 0.06, snd: 'shotgun', tracer: 0xffc070, ret: 'ring', slot: 0, power: 2 },
   sniper: { name: 'SRS99 Sniper Rifle', short: 'SNIPER', mag: 4, reserve: 12, reload: 3.4, cycle: 1.45, burst: 1, gap: 0, dmg: 78, head: 3.2, spread: 0.0005, spreadHip: 0.03, range: 220, zoom: [3.5, 9], kick: 0.05, snd: 'sniper', tracer: 0xbfe8ff, ret: 'dot', slot: 0, power: 3 },
   rocket: { name: 'M41 Rocket Launcher', short: 'ROCKETS', mag: 2, reserve: 4, reload: 3.2, cycle: 1.3, burst: 1, gap: 0, dmg: 135, radius: 5.5, speed: 34, spread: 0.002, range: 200, zoom: [1.8], kick: 0.05, snd: 'rocket', proj: 'rocket', ret: 'ring', slot: 0, power: 3 },
+  carbine: { name: 'Type-51 Carbine', short: 'CARBINE', mag: 18, reserve: 72, reload: 1.9, cycle: 0.21, burst: 1, gap: 0, dmg: 17, head: 2.2, spread: 0.003, range: 140, zoom: [3], kick: 0.014, snd: 'carbine', tracer: 0x9dffb0, ret: 'dot', slot: 0, power: 1 },
+  plasmarifle: { name: 'Type-25 Plasma Rifle', short: 'PLASMA RIFLE', mag: 100, reserve: 100, reload: 2.0, cycle: 0.075, burst: 1, gap: 0, auto: true, dmg: 5.8, head: 1.3, spread: 0.022, range: 60, zoom: [1.2], kick: 0.004, snd: 'plasmar', tracer: 0x6ab8ff, ret: 'ring', slot: 0, power: 1 },
+  needler: { name: 'Type-33 Needler', short: 'NEEDLER', mag: 20, reserve: 80, reload: 1.8, cycle: 0.12, burst: 1, gap: 0, auto: true, dmg: 5.4, head: 1.2, spread: 0.018, range: 70, zoom: [1.2], kick: 0.003, snd: 'needler', tracer: 0xff5bd0, ret: 'ring', slot: 0, power: 1 },
+  hammer: { name: 'Gravity Hammer', short: 'GRAVITY HAMMER', mag: 100, reserve: 0, reload: 0, cycle: 1.1, burst: 1, gap: 0, dmg: 999, range: 3.0, lungeRange: 0, knock: 16, melee: true, kick: 0, snd: 'swing', ret: 'none', slot: 0, power: 3 },
   sword: { name: 'Energy Sword', short: 'ENERGY SWORD', mag: 100, reserve: 0, reload: 0, cycle: 0.6, burst: 1, gap: 0, dmg: 150, range: 2.6, lungeRange: 7.5, melee: true, kick: 0, snd: 'swing', ret: 'none', slot: 0, power: 3 },
 };
 
@@ -25,7 +29,14 @@ export const ICONS = {
   sword: 'M4 20l4-4 M8 16l2 2 M9 15L20 4v3L11 16',
   frag: 'M12 6a6 6 0 1 0 0 12 6 6 0 0 0 0-12z M10 3h4v3h-4z M9 12h6',
   plasma: 'M12 5l2 4 4 1-3 3 1 4-4-2-4 2 1-4-3-3 4-1z',
+  carbine: 'M1 13h9l2-2h11v2h-9l-2 2H8l-1 3H5l1-3H1z M14 8v3',
+  plasmarifle: 'M2 12c3-3 8-4 14-4h6v3h-6c-4 0-7 1-9 3l-2 3H4l1-4z M16 8v-3',
+  needler: 'M2 13h5l2-3h9l3 2v3h-8l-1 4H9l1-4H2z M11 7l3-3 3 3',
+  hammer: 'M12 22V8 M6 3h12v6H6z',
+  camo: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z M12 3v18 M3 12h18 M6 6l12 12',
+  boost: 'M13 2L5 14h6l-1 8 8-12h-6z',
   overshield: 'M12 2l8 3v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5z M12 7v10 M8 11h8',
+  skull: 'M12 3a7 7 0 0 0-7 7c0 3 1 4 3 5v4h8v-4c2-1 3-2 3-5a7 7 0 0 0-7-7z M9 11h2 M13 11h2 M11 16v2 M13 16v2',
 };
 
 const _mats = {};
@@ -92,6 +103,37 @@ const BUILD = {
     g.userData.muzzle = new THREE.Vector3(0, 0.03, -0.85);
     g.userData.grip = [0, -0.1, 0.05]; g.userData.fore = [0, -0.09, -0.36];
   },
+  // Type-51 carbine: slim Covenant rifle, tall top fin, green sights
+  carbine(g) {
+    const cov = mat('cov', { color: 0x6d5f8c, metalness: 0.5, roughness: 0.35 }), gr = glow(0x9dffb0);
+    g.add(B(0.055, 0.09, 0.42, cov, 0, 0.02, -0.1), B(0.04, 0.05, 0.3, dark(), 0, 0.02, -0.42), tube(0.016, 0.22, steel(), 0, 0.025, -0.68), B(0.02, 0.16, 0.14, cov, 0, 0.13, -0.16), B(0.014, 0.05, 0.08, gr, 0, 0.19, -0.16), B(0.012, 0.012, 0.3, gr, 0.03, 0.02, -0.38), B(0.012, 0.012, 0.3, gr, -0.03, 0.02, -0.38));
+    g.add(B(0.05, 0.13, 0.05, dark(), 0, -0.1, 0.06, -0.3), B(0.055, 0.1, 0.16, cov, 0, 0.0, 0.2), B(0.05, 0.16, 0.05, cov, 0, -0.06, 0.29, -0.4), B(0.04, 0.11, 0.06, cov, 0, -0.1, -0.12));
+    g.userData.muzzle = new THREE.Vector3(0, 0.025, -0.8);
+    g.userData.grip = [0, -0.08, 0.06]; g.userData.fore = [0, -0.04, -0.4];
+  },
+  // Type-25 plasma rifle: crescent body, twin prongs around a glowing channel
+  plasmarifle(g) {
+    const cov = mat('cov', { color: 0x6d5f8c, metalness: 0.5, roughness: 0.35 }), bl = glow(0x6ab8ff);
+    g.add(B(0.07, 0.1, 0.4, cov, 0, 0.02, -0.08), B(0.02, 0.05, 0.4, cov, 0.045, 0.06, -0.36), B(0.02, 0.05, 0.4, cov, -0.045, 0.06, -0.36), B(0.02, 0.02, 0.4, cov, 0.03, -0.02, -0.4), B(0.02, 0.02, 0.4, cov, -0.03, -0.02, -0.4), B(0.03, 0.025, 0.42, bl, 0, 0.02, -0.4), B(0.04, 0.03, 0.14, bl, 0, 0.09, -0.06));
+    g.add(B(0.05, 0.13, 0.05, dark(), 0, -0.1, 0.05, -0.3), B(0.04, 0.08, 0.18, cov, 0, 0.0, 0.2), B(0.09, 0.03, 0.1, cov, 0, 0.09, -0.2));
+    g.userData.muzzle = new THREE.Vector3(0, 0.02, -0.6);
+    g.userData.grip = [0, -0.08, 0.05]; g.userData.fore = [0, -0.02, -0.28];
+  },
+  // Type-33 needler: pink crystal magazine on a purple body
+  needler(g) {
+    const cov = mat('cov', { color: 0x6d5f8c, metalness: 0.5, roughness: 0.35 }), pk = glow(0xff5bd0);
+    g.add(B(0.07, 0.1, 0.32, cov, 0, 0.02, -0.06), B(0.06, 0.07, 0.22, cov, 0, 0.0, -0.3), B(0.03, 0.03, 0.2, dark(), 0, 0.0, -0.5), B(0.05, 0.05, 0.24, pk, 0, 0.09, -0.12), B(0.03, 0.05, 0.18, pk, 0, 0.13, -0.12, 0.0), B(0.045, 0.045, 0.14, pk, 0, 0.0, -0.32));
+    g.add(B(0.05, 0.12, 0.05, dark(), 0, -0.1, 0.04, -0.3), B(0.05, 0.09, 0.14, cov, 0, 0.0, 0.16));
+    g.userData.muzzle = new THREE.Vector3(0, 0.0, -0.62);
+    g.userData.grip = [0, -0.08, 0.04]; g.userData.fore = [0, -0.04, -0.3];
+  },
+  // gravity hammer: long shaft, massive head with glowing seam
+  hammer(g) {
+    const hd = mat('hammerhead', { color: 0x3a3340, metalness: 0.7, roughness: 0.4 }), og = glow(0xff7a3a);
+    g.add(tube(0.03, 1.1, hd, 0, 0, -0.45), B(0.34, 0.3, 0.26, hd, 0, 0, -1.05), B(0.36, 0.06, 0.28, og, 0, 0.0, -1.05), B(0.05, 0.05, 0.05, og, 0, 0, 0.12), B(0.1, 0.1, 0.06, hd, 0, 0, 0.14));
+    g.userData.muzzle = new THREE.Vector3(0, 0, -1.2);
+    g.userData.grip = [0, 0, 0.02]; g.userData.fore = [0, 0, -0.32];
+  },
   // Type-1 energy sword: curved dark hilt with twin prongs, wide tapered plasma blade
   sword(g) {
     const bl = glow(0x6ab8ff), core = glow(0xdff4ff), hil = mat('hilt', { color: 0x4a3f5c, metalness: 0.7, roughness: 0.35 });
@@ -104,7 +146,7 @@ const BUILD = {
 
 // ---- optional real models: drop .glb files in models/weapons (or git-ignored models/private) ----
 const MODELS = {};
-const DEFAULT_LEN = { br: 0.95, magnum: 0.32, smg: 0.55, shotgun: 0.9, sniper: 1.25, rocket: 1.05, sword: 1.2 };
+const DEFAULT_LEN = { carbine: 0.95, plasmarifle: 0.7, needler: 0.65, hammer: 1.4, br: 0.95, magnum: 0.32, smg: 0.55, shotgun: 0.9, sniper: 1.25, rocket: 1.05, sword: 1.2 };
 export async function loadWeaponModels(onStatus = () => {}) {
   let loader = null;
   for (const dir of ['models/private/', 'models/weapons/']) {

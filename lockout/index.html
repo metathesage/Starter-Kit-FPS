@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>LOCKOUT — Team Slayer, Waifu Edition</title>
 <meta name="description" content="A low-poly arena shooter tribute: 4v4 Team Slayer on a symmetrical Forerunner yard, armored waifus, energy swords, sniper towers. Runs in your browser. Xbox controller ready.">
-<meta name="theme-color" content="#070b14">
+<meta name="theme-color" content="#040404">
 <meta property="og:title" content="LOCKOUT — Team Slayer, Waifu Edition">
 <meta property="og:description" content="4v4 arena shooter in your browser. Low-poly armored waifus, sniper tower, energy swords. Full Xbox controller support.">
 <meta property="og:type" content="website">
@@ -13,7 +13,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23070b14'/%3E%3Cpath d='M16 3l11 6.5v13L16 29 5 22.5v-13z' fill='none' stroke='%23ffd48a' stroke-width='2'/%3E%3Cpath d='M11 11v10h10' fill='none' stroke='%2362e4ff' stroke-width='3'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,400;0,500;0,600;0,700;1,600;1,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=JetBrains+Mono:wght@400;500;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 <script type="importmap">{"imports":{"three":"./vendor/three.module.js"}}</script>
 </head>
@@ -23,40 +23,31 @@
 
 <!-- SPLASH -->
 <section id="splash" class="screen active" data-screen="splash">
-  <svg class="hexmark" viewBox="0 0 120 120" aria-hidden="true">
-    <path class="hx1" d="M60 6l46 27v54L60 114 14 87V33z"/>
-    <path class="hx2" d="M60 22l32 19v38L60 98 28 79V41z"/>
-    <path class="hx3" d="M44 44v34h34"/>
-  </svg>
-  <div class="splash-word"><span>M</span><span>E</span><span>T</span><span>A</span><span class="dot">/</span><span>T</span><span>H</span><span>E</span><span>S</span><span>A</span><span>G</span><span>E</span></div>
-  <div class="splash-sub">STUDIO PRESENTS</div>
+  <div class="sp-line"></div>
+  <div class="sp-studio">METATHESAGE</div>
+  <h1 class="sp-title">LOCKOUT</h1>
   <div class="press" id="splashPress">PRESS ANY BUTTON</div>
 </section>
 
 <!-- LOADING -->
 <section id="loading" class="screen" data-screen="loading">
-  <div class="load-grid"></div>
-  <svg class="load-emblem" viewBox="0 0 200 200" aria-hidden="true">
-    <circle class="r1" cx="100" cy="100" r="92"/><circle class="r2" cx="100" cy="100" r="76"/><circle class="r3" cx="100" cy="100" r="58"/>
-    <path class="core" d="M100 62l33 19v38l-33 19-33-19V81z"/><path class="core2" d="M88 84v32h30"/>
-  </svg>
-  <div class="load-pct"><span id="loadPct">000</span><small>%</small></div>
-  <div class="load-stage" id="loadStage">Booting</div>
-  <div class="load-tip" id="loadTip"></div>
-  <div class="load-bar"><i id="loadBar"></i></div>
+  <div class="ld-top"><span>LOCKOUT</span><span id="loadStage">Booting</span></div>
+  <div class="ld-pct"><span id="loadPct">000</span><small>%</small></div>
+  <div class="ld-tip" id="loadTip"></div>
+  <div class="ld-bar"><i id="loadBar"></i></div>
 </section>
 
 <!-- TITLE -->
 <section id="title" class="screen" data-screen="title">
   <header class="title-top">
-    <div class="tag">SEASON 00 <b>/</b> COLD STORAGE</div>
+    <div class="tag">COLD STORAGE <b>/</b> NIGHT SNOW</div>
     <div class="top-actions">
       <button class="chip" id="btnFull" aria-label="Fullscreen"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
       <button class="chip" id="btnMute" aria-label="Mute"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z M17 9c1.5 1.5 1.5 4.500 0 6"/></svg></button>
     </div>
   </header>
   <div class="title-main">
-    <div class="eyebrow">TEAM SLAYER <b>·</b> 4 v 4 <b>·</b> WAIFU EDITION</div>
+    <div class="eyebrow">TEAM SLAYER <b>/</b> 4 v 4 <b>/</b> WAIFU EDITION</div>
     <h1 class="logo" aria-label="Lockout"><span class="l1">LOCK</span><span class="l2">OUT</span></h1>
     <nav class="menu" id="titleMenu"></nav>
   </div>
@@ -74,6 +65,7 @@
     <div class="panel-head"><span class="idx">01</span><h2>DEPLOYMENT</h2><span class="sub">Pick your operator. Bots fill the rest.</span></div>
     <div class="cards" id="waifuCards"></div>
     <div class="opts" id="setupOpts"></div>
+    <div class="map-tag" id="mapTag"></div>
     <div class="panel-foot"><button class="btn primary" id="btnDrop"><span>DROP IN</span><i></i></button></div>
   </div>
   <footer class="prompts" id="setupPrompts"></footer>

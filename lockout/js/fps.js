@@ -89,7 +89,7 @@ export class Viewmodel {
 
   render(renderer, fov, aspect, envMap) {
     this.cam.fov = fov; this.cam.aspect = aspect; this.cam.updateProjectionMatrix();
-    if (envMap && !this.scene.environment) { this.scene.environment = envMap; this.scene.environmentIntensity = 1.2; }
+    if (envMap && this.scene.environment !== envMap) { this.scene.environment = envMap; this.scene.environmentIntensity = 1.2; }
     renderer.clearDepth();
     renderer.render(this.scene, this.cam);
   }

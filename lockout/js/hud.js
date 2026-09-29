@@ -16,7 +16,7 @@ export const MEDAL_ICONS = {
   skull: 'M12 3a7 7 0 0 0-7 7c0 3 1 4 3 5v4h8v-4c2-1 3-2 3-5a7 7 0 0 0-7-7zM9 11h2M13 11h2',
   flame: 'M12 2c1 4 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-4-1-6 1-9z',
 };
-const WEAPON_ICON = { br: ICONS.br, magnum: ICONS.magnum, smg: ICONS.smg, shotgun: ICONS.shotgun, sniper: ICONS.sniper, rocket: ICONS.rocket, sword: ICONS.sword, frag: ICONS.frag, plasma: ICONS.plasma, melee: MEDAL_ICONS.fist, explosion: ICONS.frag };
+const WEAPON_ICON = { br: ICONS.br, magnum: ICONS.magnum, smg: ICONS.smg, shotgun: ICONS.shotgun, sniper: ICONS.sniper, rocket: ICONS.rocket, sword: ICONS.sword, carbine: ICONS.carbine, plasmarifle: ICONS.plasmarifle, needler: ICONS.needler, hammer: ICONS.hammer, frag: ICONS.frag, plasma: ICONS.plasma, melee: MEDAL_ICONS.fist, explosion: ICONS.frag, fall: ICONS.skull };
 export const wIcon = (id) => svg(WEAPON_ICON[id] || MEDAL_ICONS.skull);
 
 export function glyph(action) {
@@ -45,6 +45,7 @@ export class HUD {
         <div class="compass"><div class="cmp-track"></div><b class="cmp-hd">000</b><i class="cmp-tick"></i></div>
         <div class="trap"><div class="trap-in"><div class="sh-ghost"></div><div class="sh-fill"></div><div class="sh-over"></div></div></div>
         <div class="hp-row"></div>
+        <div class="pu-row"></div>
       </div>
       <div class="h-weapon">
         <div class="wp-top"><div class="wp-icon"></div><div class="wp-mag">36</div><div class="wp-res">/ 144</div></div>
@@ -61,6 +62,7 @@ export class HUD {
       <div class="h-reticle"><svg viewBox="-40 -40 80 80"></svg></div>
       <div class="h-hit"><svg viewBox="-20 -20 40 40"><path d="M-14-14L-6-6M14-14L6-6M-14 14L-6 6M14 14L6 6"/></svg></div>
       <div class="h-announce"></div><div class="h-count"></div><div class="h-mode"></div>
+      <div class="h-elim"></div><div class="h-skull"></div>
       <div class="h-medals"></div><div class="h-prompt"></div>
       <div class="h-cam"></div>
       <div class="h-death"><div class="dd"><div class="k">ELIMINATED BY</div><div class="nm"></div><div class="rs"></div></div></div>
@@ -79,7 +81,7 @@ export class HUD {
       wIcon: q('.wp-icon'), wName: q('.wp-name'), wMag: q('.wp-mag'), wRes: q('.wp-res'), wRel: q('.wp-reload'), ret: q('.h-reticle'), retSvg: q('.h-reticle svg'),
       hit: q('.h-hit'), ann: q('.h-announce'), count: q('.h-count'), modeBig: q('.h-mode'), medals: q('.h-medals'), prompt: q('.h-prompt'), cam: q('.h-cam'),
       death: q('.h-death'), dName: q('.dd .nm'), dRes: q('.dd .rs'), board: q('.h-board'), fps: q('.h-fps'), flash: q('.h-flash'), dmg: q('.h-dmg'), scope: q('.h-scope'), zt: q('.h-scope .zt'),
-      cmpTrack: cmp, cmpHd: q('.cmp-hd'), markers: q('.h-markers'), weaponBox: q('.h-weapon') };
+      elim: q('.h-elim'), skull: q('.h-skull'), pu: q('.pu-row'), cmpTrack: cmp, cmpHd: q('.cmp-hd'), markers: q('.h-markers'), weaponBox: q('.h-weapon') };
     this.el.hp.innerHTML = '<i></i>'.repeat(5);
     this.rctx = this.el.radar.getContext('2d');
     this.ghost = 1; this.retId = null; this.alarmT = 0; this.subs = [];
@@ -94,6 +96,7 @@ export class HUD {
     B('hit', (a, v, head, dead) => {
       if (a !== this.p) return;
       const h = this.el.hit; h.classList.remove('on', 'head', 'kill'); void h.offsetWidth;
+      h.innerHTML = head ? svg(ICONS.skull) : '<svg viewBox="-20 -20 40 40"><path d="M-14-14L-6-6M14-14L6-6M-14 14L-6 6M14 14L6 6"/></svg>';
       h.classList.add('on'); if (head) h.classList.add('head'); if (dead) h.classList.add('kill');
       Sound.play(head ? 'headshot' : 'hit', { vol: 0.8 });
     });
@@ -107,7 +110,7 @@ export class HUD {
       }
       Input.rumble(0.6, 0.8, 140);
     });
-    B('kill', (r) => this.feed(r));
+    B('kill', (r) => { this.feed(r); if (r.killer === this.p && !r.suicide) this.elim(r); });
     B('medal', (a, name, icon) => { if (a === this.p) this.medal(name, icon); });
     B('announce', (t, team) => this.announce(t, team));
     B('count', (n) => { const c = this.el.count; c.textContent = n > 0 ? n : 'GO'; c.classList.remove('on'); void c.offsetWidth; c.classList.add('on'); if (n === 3) this.modeIntro(); });
@@ -141,9 +144,18 @@ export class HUD {
     d.className = 'feed-item' + (mine ? ' me' : '');
     d.style.setProperty('--tc', TEAM[(r.killer || r.victim).team].css);
     if (r.suicide) d.innerHTML = `<span class="${r.victim.team}">${r.victim.name}</span>${svg(MEDAL_ICONS.skull)}`;
-    else d.innerHTML = `<span class="${r.killer.team}">${r.killer.name}</span>${wIcon(r.kind === 'punch' ? 'melee' : r.weapon)}<span class="${r.victim.team}">${r.victim.name}</span>`;
+    else d.innerHTML = `<span class="${r.killer.team}">${r.killer.name}</span>${wIcon(r.kind === 'punch' ? 'melee' : r.weapon)}${r.head ? svg(ICONS.skull, 'sk') : ''}<span class="${r.victim.team}">${r.victim.name}</span>`;
     this.el.feed.appendChild(d); setTimeout(() => d.remove(), 5600);
     while (this.el.feed.children.length > 5) this.el.feed.firstChild.remove();
+  }
+
+  // noir elimination banner + headshot skull
+  elim(r) {
+    const e = this.el.elim, w = WEAPONS[r.weapon];
+    const sub = [w ? w.short : r.kind === 'punch' ? 'MELEE' : 'GRENADE', r.head ? 'HEADSHOT' : '', this.p.streak > 1 ? `STREAK ${this.p.streak}` : ''].filter(Boolean).join('  /  ');
+    e.innerHTML = `<div class="eb"><div class="eb-line"></div><div class="eb-k">ELIMINATED</div><div class="eb-n">${wIcon(r.kind === 'punch' ? 'melee' : r.weapon)}<span>${r.victim.name}</span>${r.head ? svg(ICONS.skull, 'sk') : ''}</div><div class="eb-m">${sub}</div><div class="eb-line"></div></div>`;
+    e.classList.remove('on'); void e.offsetWidth; e.classList.add('on');
+    if (r.head) { const k = this.el.skull; k.innerHTML = svg(ICONS.skull); k.classList.remove('on'); void k.offsetWidth; k.classList.add('on'); }
   }
 
   showBoard(on) {
@@ -174,6 +186,13 @@ export class HUD {
     document.body.classList.toggle('low-shield', low);
     document.body.classList.toggle('overshield', p.alive && p.over > 0);
     if (low) { this.alarmT -= dt; if (this.alarmT <= 0) { Sound.play('alarm', { vol: 0.7 }); this.alarmT = 0.85; } }
+    // active power-ups
+    const pus = [];
+    if (p.alive && p.over > 0 && p.overT > 0) pus.push(['overshield', p.overT]);
+    if (p.alive && p.camoT > 0) pus.push(['camo', p.camoT]);
+    if (p.alive && p.boostT > 0) pus.push(['boost', p.boostT]);
+    const puKey = pus.map((x) => x[0] + Math.ceil(x[1])).join();
+    if (puKey !== this.puKey) { this.puKey = puKey; E.pu.innerHTML = pus.map(([id, t]) => `<div class="pu">${svg(ICONS[id])}<span>${Math.ceil(t)}</span></div>`).join(''); }
     // grenades
     E.frag.querySelector('b').textContent = p.gren.frag; E.plasma.querySelector('b').textContent = p.gren.plasma;
     E.frag.classList.toggle('on', p.gtype === 'frag'); E.plasma.classList.toggle('on', p.gtype === 'plasma');
@@ -257,7 +276,7 @@ export class HUD {
         if (!pk.isPower && (!def || def.power < 3)) continue;
         const d = Math.hypot(pk.mesh.position.x - p.x, pk.mesh.position.z - p.z);
         if (d > 45) continue;
-        put('p' + i + pk.id, pk.mesh.position.x, pk.mesh.position.y + 1.7, pk.mesh.position.z, `<i></i><span>${pk.isPower ? 'OVERSHIELD' : def.short}</span>`, 'pick', clamp(1.3 - d / 45, 0.35, 1));
+        put('p' + i + pk.id, pk.mesh.position.x, pk.mesh.position.y + 1.7, pk.mesh.position.z, `<i></i><span>${pk.isPower ? { overshield: 'OVERSHIELD', camo: 'ACTIVE CAMO', boost: 'DAMAGE BOOST' }[pk.id] : def.short}</span>`, 'pick', clamp(1.3 - d / 45, 0.35, 1));
       }
     }
     for (const [k, el] of this.mk) if (!live.has(k)) { el.remove(); this.mk.delete(k); }
@@ -276,7 +295,7 @@ export class HUD {
       if (o === p || !o.alive) continue;
       const friend = o.team === p.team;
       const moving = o.lastMoveSpeed > 1.6 || m.time - o.lastFireT < 1.2;
-      if (!friend && !moving) continue;
+      if (!friend && (!moving || o.camoT > 0)) continue;
       const dx = o.x - p.x, dz = o.z - p.z;
       // rotate so player's forward is up
       let rx = dx * cs - dz * sn, ry = dx * sn + dz * cs;

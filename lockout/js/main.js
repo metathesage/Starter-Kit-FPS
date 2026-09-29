@@ -16,9 +16,17 @@ import { initTouch } from './touch.js';
 
 const Q = new URLSearchParams(location.search);
 const settings = Object.assign({ sens: 1, padSens: 1, invertY: false, fov: 66, master: 0.8, sfx: 1, music: 0.5, shadows: true }, store('settings', {}));
-const loadout = Object.assign({ waifu: 0, team: 'blue', diff: 'normal', limit: 25, helmet: true }, store('loadout', {}));
+const loadout = Object.assign({ waifu: 0, team: 'blue', diff: 'normal', limit: 25, helmet: false, map: 'lockout' }, store('loadout', {}));
+if (Q.get('map')) loadout.map = Q.get('map');
+if (!['lockout', 'cryostat'].includes(loadout.map)) loadout.map = 'lockout';
 const persist = () => { save('settings', settings); save('loadout', loadout); };
 
+const EXPOSURE = { lockout: 1.05, cryostat: 1.3 };
+// title-screen framing per map: operator position, camera position, look-at
+const MENU = {
+  lockout: { show: [-24.6, 4, 2.6], cam: [-27.3, 5.2, 4.7], look: [-22.4, 5.0, -0.2] },
+  cryostat: { show: [-29.4, 3, -2.2], cam: [-33.6, 4.5, 2.4], look: [-24.4, 4.3, -4.4] },
+};
 const TIPS = [
   'Shields recharge after a few seconds out of fire. Break line of sight, then re-peek.',
   'The sniper spawns on the center tower. Whoever holds the tower holds the yard.',
@@ -82,8 +90,7 @@ async function boot() {
   ['pointerdown', 'keydown', 'touchstart'].forEach((e) => addEventListener(e, unlock, { passive: true }));
   document.addEventListener('visibilitychange', () => { if (document.hidden && state === 'playing') pauseGame(); });
   addEventListener('blur', () => { if (state === 'playing') pauseGame(); });
-  $$('.splash-word span').forEach((s, i) => s.style.setProperty('--i', i));
-  requestAnimationFrame(loop);
+    requestAnimationFrame(loop);
   UI.show('splash');
   if (!fast) {
     const t0 = performance.now();
@@ -94,9 +101,9 @@ async function boot() {
   $('#loadTip').textContent = TIPS[(Math.random() * TIPS.length) | 0];
   const tipTimer = setInterval(() => { $('#loadTip').textContent = TIPS[(Math.random() * TIPS.length) | 0]; }, 3200);
   await setProg(0.02, 'Igniting renderer');
-  world = await World.buildWorld(scene, renderer, (p, l) => setProg(0.02 + p * 0.5, l));
+  world = await World.loadMap(scene, renderer, loadout.map, (p, l) => setProg(0.02 + p * 0.5, l));
+  renderer.toneMappingExposure = EXPOSURE[loadout.map] || 1.05;
   await setProg(0.55, 'Charting nav mesh');
-  World.buildNav();
   await setProg(0.62, 'Checking weapon models');
   try { const got = await loadWeaponModels((l) => setProg(0.64, l)); if (got.length) console.info('custom weapon models:', got.join(', ')); } catch (e) { console.warn(e); }
   await setProg(0.7, 'Rigging operators');
@@ -105,7 +112,7 @@ async function boot() {
   hud = new HUD($('#hud'));
   rebuildShowcase();
   await setProg(0.86, 'Compiling shaders');
-  camera.position.set(-28.2, 5.55, 5.0); camera.lookAt(-20.6, 5.3, -1.6);
+  { const mc = MENU[loadout.map]; camera.position.set(...mc.cam); camera.lookAt(...mc.look); }
   try { await renderer.compileAsync(scene, camera); } catch { renderer.compile(scene, camera); }
   renderer.render(scene, camera);
   await setProg(1, 'Ready');
@@ -140,7 +147,7 @@ function rebuildShowcase() {
   if (showcase) { scene.remove(showcase.root); disposeRig(showcase); }
   const w = WAIFUS[loadout.waifu];
   showcase = buildWaifu({ team: loadout.team, hair: w.hair, eye: w.eye, helmet: loadout.helmet });
-  showcase.root.position.set(-24.6, 4, 2.6); showcase.root.rotation.y = 1.75; scene.add(showcase.root);
+  showcase.root.position.set(...MENU[loadout.map].show); showcase.root.rotation.y = 1.75; scene.add(showcase.root);
 }
 
 function setHero() {
@@ -148,7 +155,7 @@ function setHero() {
   $('#hcRole').textContent = w.role; $('#hcName').textContent = w.name; $('#hcBlurb').textContent = w.blurb;
   const c = '#' + new THREE.Color(w.hair).getHexString();
   $('#hcName').style.textShadow = `0 0 40px ${c}88, 0 6px 24px rgba(0,0,0,.5)`;
-  if (showcase) { showcase.setStyle(w.hair, w.eye); if (fx) fx.sparks(showcase.root.position.x, 6.4, showcase.root.position.z, 0, 1, 0, 14, [(w.hair >> 16 & 255) / 255, (w.hair >> 8 & 255) / 255, (w.hair & 255) / 255], 4); }
+  if (showcase) { if (fx) fx.sparks(showcase.root.position.x, 6.4, showcase.root.position.z, 0, 1, 0, 14, [(w.hair >> 16 & 255) / 255, (w.hair >> 8 & 255) / 255, (w.hair & 255) / 255], 4); }
 }
 
 function showTitle() {
@@ -199,17 +206,19 @@ function showSetup() {
     c.onclick = (e) => { e.stopPropagation(); select(i); Sound.unlock(); Sound.play('menuMove', { vol: 0.6 }); };
     cards.appendChild(c); return c;
   });
-  const select = (i) => { loadout.waifu = (i + WAIFUS.length) % WAIFUS.length; cardEls.forEach((c, k) => c.classList.toggle('sel', k === loadout.waifu)); setHero(); persist(); };
+  const select = (i) => { const prev = loadout.waifu; loadout.waifu = (i + WAIFUS.length) % WAIFUS.length; cardEls.forEach((c, k) => c.classList.toggle('sel', k === loadout.waifu)); if (prev !== loadout.waifu) rebuildShowcase(); setHero(); persist(); };
   const box = $('#setupOpts'); box.innerHTML = '';
   cardsRow = document.createElement('div'); cardsRow.className = 'opt cardsrow'; cardsRow.appendChild(cards); box.appendChild(cardsRow);
   cardsRow._adj = (d) => select(loadout.waifu + d);
   select(loadout.waifu);
   const rows = [cardsRow];
+  rows.push(UI.choice(box, 'Map', World.MAP_LIST.map((m) => ({ label: m.name, value: m.id })), World.MAP_LIST.findIndex((m) => m.id === loadout.map), (v) => { loadout.map = v; persist(); $('#mapTag').textContent = World.MAP_LIST.find((m) => m.id === v).tag; }));
   rows.push(UI.choice(box, 'Team', [{ label: 'BLUE', value: 'blue' }, { label: 'RED', value: 'red' }], loadout.team === 'blue' ? 0 : 1, (v) => { loadout.team = v; rebuildShowcase(); persist(); }));
   rows.push(UI.choice(box, 'Armor', [{ label: 'SPARTAN HELM', value: true }, { label: 'BARE FACE', value: false }], loadout.helmet ? 0 : 1, (v) => { loadout.helmet = v; rebuildShowcase(); setHero(); persist(); }));
   const dk = Object.keys(DIFFICULTY);
   rows.push(UI.choice(box, 'Bot difficulty', dk.map((k) => ({ label: DIFFICULTY[k].name, value: k })), dk.indexOf(loadout.diff), (v) => { loadout.diff = v; persist(); }));
   rows.push(UI.choice(box, 'Score to win', [15, 25, 50].map((n) => ({ label: n + ' KILLS', value: n })), [15, 25, 50].indexOf(loadout.limit), (v) => { loadout.limit = v; persist(); }));
+  $('#mapTag').textContent = (World.MAP_LIST.find((m) => m.id === loadout.map) || World.MAP_LIST[0]).tag;
   const drop = $('#btnDrop'); UI.button(drop, () => startMatch()); rows.push(drop);
   UI.show('setup', { rows, onBack: () => showTitle(), focus: rows.length - 1 });
   refreshPrompts();
@@ -288,6 +297,7 @@ function showLobby(host) {
   const leave = document.createElement('button'); leave.className = 'btn'; leave.innerHTML = '<span>LEAVE</span><i></i>';
   UI.button(leave, () => leaveOnline());
   if (host) {
+    rows.push(UI.choice(opts, 'Map', World.MAP_LIST.map((m) => ({ label: m.name, value: m.id })), World.MAP_LIST.findIndex((m) => m.id === loadout.map), (v) => { loadout.map = v; persist(); }));
     rows.push(UI.choice(opts, 'Friends join', [{ label: 'MY TEAM', value: true }, { label: 'OTHER TEAM', value: false }], lobby.sameTeam ? 0 : 1, (v) => { lobby.sameTeam = v; pushLobby(); }));
     const dk = Object.keys(DIFFICULTY);
     rows.push(UI.choice(opts, 'Bot difficulty', dk.map((k) => ({ label: DIFFICULTY[k].name, value: k })), dk.indexOf(loadout.diff), (v) => { loadout.diff = v; persist(); }));
@@ -300,7 +310,8 @@ function showLobby(host) {
   renderLobby(host ? lobbyList() : []);
 }
 
-function startOnlineHost() {
+async function startOnlineHost() {
+  await ensureMap(loadout.map);
   const other = loadout.team === 'blue' ? 'red' : 'blue';
   const humans = [...lobby.players].map(([peer, p]) => ({ peer, name: p.name, waifu: WAIFUS[p.waifu] || WAIFUS[0], team: lobby.sameTeam ? loadout.team : other, helmet: p.helmet }));
   const w = WAIFUS[loadout.waifu];
@@ -308,11 +319,12 @@ function startOnlineHost() {
   beginMatch(m, w);
   m.enableHost();
   const roster = m.actors.map((a) => ({ id: a.id, name: a.name, team: a.team, hair: a.style.hair, eye: a.style.eye, helmet: a.rig.helmet }));
-  for (const h of humans) { const a = m.actors.find((x) => x.remote === h.peer); if (a) Net.sendTo(h.peer, { t: 'start', roster, you: a.id, limit: m.limit, minutes: 12 }); }
+  for (const h of humans) { const a = m.actors.find((x) => x.remote === h.peer); if (a) Net.sendTo(h.peer, { t: 'start', roster, you: a.id, limit: m.limit, minutes: 12, map: loadout.map }); }
   m.bus.emit('count', 3);
 }
 
-function startReplica(msg) {
+async function startReplica(msg) {
+  await ensureMap(msg.map || 'lockout');
   beginMatch(new Match(scene, fx, { replica: true, roster: msg.roster, you: msg.you, limit: msg.limit, minutes: msg.minutes }));
 }
 
@@ -353,7 +365,18 @@ function netTick(dt) {
 }
 
 // ---- match lifecycle --------------------------------------------------------------------------
-function startMatch() {
+async function ensureMap(id) {
+  if (World.MAP && World.MAP.id === id && world) return;
+  state = 'loading'; UI.show('loading'); $('#loadTip').textContent = TIPS[(Math.random() * TIPS.length) | 0];
+  await setProg(0.02, 'Loading ' + id.toUpperCase());
+  world = await World.loadMap(scene, renderer, id, (p, l) => setProg(0.02 + p * 0.96, l));
+  applySettings(); renderer.toneMappingExposure = EXPOSURE[id] || 1.05;
+  if (showcase) showcase.root.position.set(...MENU[id].show);
+  await setProg(1, 'Ready');
+}
+
+async function startMatch() {
+  await ensureMap(loadout.map);
   const w = WAIFUS[loadout.waifu];
   beginMatch(new Match(scene, fx, { waifu: w, name: w.name, team: loadout.team, helmet: loadout.helmet, difficulty: loadout.diff, limit: loadout.limit, autoPlayer: Q.has('bot') }), w);
 }
@@ -554,11 +577,12 @@ function menuFrame(dt) {
   menuT += dt;
   const px = Input.last === 'kbm' ? 0 : 0;
   camera.fov = 44; camera.updateProjectionMatrix();
-  camera.position.set(-28.2 + Math.sin(menuT * 0.23) * 0.3 + px, 5.55 + Math.sin(menuT * 0.31) * 0.08, 5.0 + Math.cos(menuT * 0.19) * 0.2);
-  camera.up.set(0, 1, 0); camera.lookAt(-20.6, 5.3, -1.6);
+  const mc = MENU[World.MAP ? World.MAP.id : 'lockout'];
+  camera.position.set(mc.cam[0] + Math.sin(menuT * 0.23) * 0.3 + px, mc.cam[1] + Math.sin(menuT * 0.31) * 0.08, mc.cam[2] + Math.cos(menuT * 0.19) * 0.2);
+  camera.up.set(0, 1, 0); camera.lookAt(...mc.look);
   if (showcase) {
     showcase.root.rotation.y = 2.05 + Math.sin(menuT * 0.4) * 0.12;
-    animateRig(showcase, dt, { speed: 0, lx: 0, lz: 1, weaponId: 'br', grounded: true, pitch: Math.sin(menuT * 0.5) * 0.05 });
+    animateRig(showcase, dt, { speed: 0, lx: 0, lz: 1, weaponId: null, grounded: true, pitch: Math.sin(menuT * 0.5) * 0.05 });
   }
   fx && fx.update(dt); world && world.snow.update(dt, camera.position, menuT);
   fx && fx.setScale(H * renderer.getPixelRatio(), 44);
