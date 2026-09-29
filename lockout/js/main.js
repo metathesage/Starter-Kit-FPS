@@ -8,6 +8,8 @@ import { WAIFUS, TEAM, buildWaifu, animateRig, disposeRig } from './rig.js';
 import { WEAPONS, loadWeaponModels } from './weapons.js';
 import { loadAngel } from './angel.js';
 import { Profile, rollCallsign } from './profile.js';
+import { Hub } from './hub.js';
+import * as MS from './missions.js';
 import { MODES } from './modes.js';
 import { showArmory, showRecord, emblemHtml, titleText } from './armory.js';
 import * as C from './catalog.js';
@@ -45,6 +47,7 @@ const MENU = {
   cryostat: { show: [-29.4, 3, -2.2], cam: [-33.6, 4.5, 2.4], look: [-24.4, 4.3, -4.4] },
   mesa: { show: [-29.6, 3, 1.4], cam: [-32.3, 4.2, 3.5], look: [-27.4, 4.0, -1.4] },
   warsat: { show: [-31, 2.6, 1.6], cam: [-33.4, 3.9, 4.2], look: [-28, 3.7, -1.0] },
+  sanctum: { show: [0, 0, 30], cam: [0, 4, 40], look: [0, 3, 10] },
   overgrowth: { show: [-30, 2.6, 1.6], cam: [-32.8, 3.8, 3.7], look: [-27.8, 3.7, -1.2] },
 };
 const TIPS = [
@@ -82,11 +85,12 @@ function resize() {
 addEventListener('resize', resize);
 
 // ---- state ----------------------------------------------------------------------------
+let hub = null, missionActive = null;
 let state = 'splash', world = null, fx = null, viewmodel = null, hud = null, match = null, showcase = null;
 let trauma = 0, camKick = 0, fovCur = 62, menuT = 0, last = performance.now(), padCrouch = false, fpsAcc = 0, fpsN = 0, showFps = Q.has('fps'), muted = false;
 let hitstop = 0, showWeapon = null, mstats = null, lastDevice = 'kbm', endShown = false, quick = Q.has('quick'), fast = Q.has('fast') || Q.has('quick'), netAcc = 0, netEdges = 0;
 const shakeN = { t: 0 };
-window.__game = { Net, hostLobby: () => hostLobby(), joinLobby: (c) => joinLobby(c), startOnlineHost: () => startOnlineHost(), renderer, get fx() { return fx; }, get match() { return match; }, get state() { return state; }, get scene() { return scene; }, get camera() { return camera; }, start: () => startMatch(), Input, THREE };
+window.__game = { get hub() { return hub; }, ensureMap: (id) => ensureMap(id), World, get world() { return world; }, render: () => render(false), Net, hostLobby: () => hostLobby(), joinLobby: (c) => joinLobby(c), startOnlineHost: () => startOnlineHost(), renderer, get fx() { return fx; }, get match() { return match; }, get state() { return state; }, get scene() { return scene; }, get camera() { return camera; }, start: () => startMatch(), Input, THREE };
 
 function applySettings() {
   Input.sens = settings.sens; Input.padSens = settings.padSens; Input.invertY = settings.invertY;
@@ -111,7 +115,7 @@ async function boot() {
   if (touchDevice) { if (store('settings', {}).shadows === undefined) settings.shadows = false; resScale = 0.75; }
   resize(); applySettings();
   Input.init(canvas);
-  Input.onLockChange = (locked) => { if (!locked && state === 'playing' && !Input.fallback) pauseGame(); };
+  Input.onLockChange = (locked) => { if (!locked && state === 'playing' && !Input.fallback) pauseGame(); else if (!locked && state === 'hub' && !Input.fallback) openHubPause(); };
   Input.onPadLost = () => { if (state === 'playing') pauseGame(); };
   const unlock = () => Sound.unlock();
   ['pointerdown', 'keydown', 'touchstart'].forEach((e) => addEventListener(e, unlock, { passive: true }));
@@ -192,13 +196,14 @@ function showTitle() {
   hud.root.classList.add('hidden');
   const menu = $('#titleMenu'); menu.innerHTML = '';
   const rows = [
-    UI.item(menu, 'Quick Play', '01', () => quickPlay()),
-    UI.item(menu, 'Custom Game', '02', () => showSetup()),
-    UI.item(menu, 'Play Online', '03', () => openOnline()),
-    UI.item(menu, 'Armory', '04', () => openArmory()),
-    UI.item(menu, 'Service Record', '05', () => openRecord()),
-    UI.item(menu, 'Controls', '06', () => showControls('title')),
-    UI.item(menu, 'Settings', '07', () => showSettings(() => showTitle())),
+    UI.item(menu, 'Enter Sanctum', '01', () => enterHub()),
+    UI.item(menu, 'Quick Play', '02', () => quickPlay()),
+    UI.item(menu, 'Custom Game', '03', () => showSetup()),
+    UI.item(menu, 'Play Online', '04', () => openOnline()),
+    UI.item(menu, 'Armory', '05', () => openArmory()),
+    UI.item(menu, 'Service Record', '06', () => openRecord()),
+    UI.item(menu, 'Controls', '07', () => showControls('title')),
+    UI.item(menu, 'Settings', '08', () => showSettings(() => showTitle())),
   ];
   renderPCard();
   UI.show('title', { rows });
@@ -234,7 +239,7 @@ function openRecord() { showRecord({ back: () => showTitle(), onChange: () => re
 
 function showControls(from) {
   const b = $('#btnCtrlBack'); UI.button(b, () => back());
-  const back = () => (from === 'pause' ? pauseMenu() : showTitle());
+  const back = () => (from === 'pause' ? pauseMenu() : from === 'hub' ? openHubPauseAgain() : showTitle());
   UI.show('controls', { rows: [b], onBack: back });
 }
 
@@ -546,6 +551,8 @@ function showResults() {
   const ranked = m.ranking();
   $('#resTable').innerHTML = `<table class="tbl">${head}${m.ffa ? rows(ranked) : order.map((t) => rows(ranked.filter((a) => a.team === t))).join('')}</table>`;
   award(m, p, won, win === 'tie');
+  const mres = missionActive ? MS.resolve(missionActive, won, mstats, Object.values(mstats.medals).reduce((a, b) => a + b, 0)) : null;
+  if (mres) $('#resXp').insertAdjacentHTML('afterbegin', `<div class="ms-res ${mres.cleared ? 'ok' : 'no'}"><em>MISSION</em><b>${missionActive.name}</b><span>${mres.cleared ? (mres.first ? 'CLEARED' : 'REPEAT CLEAR') : 'FAILED'}</span>${mres.cleared ? `<i>+${mres.credits} CR${mres.bonusHit ? '  ·  BONUS: ' + missionActive.bonus.text.toUpperCase() : ''}</i>` : '<i>Win the match to clear it.</i>'}</div>`);
   const med = Object.entries(p.medals);
   $('#resMedals').innerHTML = med.length ? med.map(([n, c]) => `<span class="rm">${svg(MEDAL_ICONS.star)}${n}${c > 1 ? ' x' + c : ''}</span>`).join('') : '<span class="rm" style="opacity:.5">NO MEDALS</span>';
   const btns = $('#resBtns'); btns.innerHTML = '';
@@ -559,8 +566,14 @@ function showResults() {
     UI.button(b3, () => leaveOnline());
     UI.show('results', { rows: Net.isHost ? [b1, b3] : [b3], onBack: null });
   } else {
+    if (missionActive) {
+      const mm = missionActive; b2.remove(); b3.querySelector('span').textContent = 'RETURN TO SANCTUM';
+      UI.button(b1, () => startMission(mm)); UI.button(b3, () => { endMatchToMenu(); enterHub(); });
+      UI.show('results', { rows: [b1, b3], onBack: null });
+    } else {
     UI.button(b1, () => startMatch()); UI.button(b2, () => { endMatchToMenu(); showSetup(); }); UI.button(b3, () => { endMatchToMenu(); showTitle(); });
     UI.show('results', { rows: [b1, b2, b3], onBack: null });
+    }
   }
   Sound.music('menu');
 }
@@ -591,7 +604,80 @@ function award(m, p, won, tie) {
   if (res.levels.length) Sound.play('win', { vol: 0.6 });
 }
 
+// ---- sanctum hub --------------------------------------------------------------------------------
+function getHub() {
+  if (hub) return hub;
+  hub = new Hub({
+    scene, camera, fx, haloHex, skinHex, height: () => H, pixelRatio: () => renderer.getPixelRatio(),
+    openMissions: () => hubScreen(() => showMissions(resumeHub)),
+    openArmory: () => hubScreen(() => showArmory({ back: () => { hub.refreshAvatar(); resumeHub(); }, preview: (p) => { if (p.reset) hub.refreshAvatar(); else if (p.skin || p.halo) hub.refreshAvatar(p); }, onEquip: (cat, id) => { if (cat === 'operator') { loadout.waifu = Math.max(0, WAIFUS.findIndex((w) => w.id === id)); persist(); hub.loadout = loadout; hub.buildAvatar(); } } })),
+    openRecord: () => hubScreen(() => showRecord({ back: resumeHub, onChange: () => hub.refreshMedals() })),
+    openSave: () => hubScreen(() => showSaveData(resumeHub)),
+    deployMap: (id) => { hub.exit(); Input.unlock(); loadout.map = id; persist(); startMatch(); },
+    onEquip: (cat, id) => { if (cat === 'operator') { loadout.waifu = Math.max(0, WAIFUS.findIndex((w) => w.id === id)); persist(); } },
+  });
+  return hub;
+}
+async function enterHub() {
+  missionActive = null;
+  if (match) { match.dispose(); match = null; }
+  if (World.MAP && World.MAP.id === 'sanctum') world = null;   // reload fresh: doors reset
+  await ensureMap('sanctum');
+  const h = getHub(); h.setWorld(world); await h.enter(loadout);
+  $$('.screen').forEach((s) => s.classList.remove('active')); UI.cur = null; UI.rows = [];
+  if (showcase) showcase.root.visible = false; hud.root.classList.add('hidden');
+  state = 'hub'; document.body.classList.add('playing'); Input.lock();
+}
+function hubScreen(fn) { state = 'hubmenu'; hub.busy = true; hub.closeCard(); hub.show(false); document.body.classList.remove('playing'); Input.unlock(); fn(); }
+function resumeHub() { UI.hide(UI.cur); hub.show(true); hub.busy = false; state = 'hub'; document.body.classList.add('playing'); hub.q('#hhPrompt').dataset.k = ''; Input.lock(); }
+function openHubPause() {
+  if (state !== 'hub') return;
+  state = 'hubmenu'; hub.busy = true; hub.closeCard(); hub.show(false); Input.unlock(); document.body.classList.remove('playing');
+  const menu = $('#pauseMenu'); menu.innerHTML = ''; $('#pauseSub').textContent = `SANCTUM · ${hub.discCount()}/${hub.discTotal()} DISCOVERIES · ${Profile.callsign}`;
+  const resume = () => { UI.hide('pause'); hub.show(true); hub.busy = false; state = 'hub'; document.body.classList.add('playing'); Input.lock(); };
+  const rows = [
+    UI.item(menu, 'Return to the garden', 'I', resume),
+    UI.item(menu, 'Controls', 'II', () => showControls('hub')),
+    UI.item(menu, 'Settings', 'III', () => showSettings(() => openHubPauseAgain())),
+    UI.item(menu, 'Save data', 'IV', () => showSaveData(() => openHubPauseAgain())),
+    UI.item(menu, 'Leave the Sanctum', 'V', () => { UI.hide('pause'); hub.exit(); showTitle(); }),
+  ];
+  UI.show('pause', { rows, onBack: resume });
+}
+function openHubPauseAgain() { state = 'hub'; openHubPause(); }
+function hubFrame(dt) {
+  if (Input.pressed.pause) { if (hub.card) hub.closeCard(); else { openHubPause(); return; } }
+  hub.update(dt); render(false);
+}
+function showMissions(back) {
+  const box = $('#missionList'); box.innerHTML = '';
+  const cleared = MS.clearedCount(), daily = MS.dailyMission(), all = [daily, ...MS.MISSIONS], rows = [];
+  $('#msProgress').textContent = `${cleared}/${MS.MISSIONS.length} CLEARED`;
+  const mapName = (id) => (World.MAP_LIST.find((m) => m.id === id) || { name: id }).name;
+  const diffN = (d) => (DIFFICULTY[d] || { name: d.toUpperCase() }).name;
+  for (const m of all) {
+    const st = MS.missionState(m.id), open = MS.unlocked(m), b = document.createElement('button'); b.className = 'mcard' + (open ? '' : ' locked') + (st.clears ? ' done' : '') + (m.daily ? ' daily' : '');
+    const vn = m.variant !== 'standard' ? ' · ' + (VARIANTS.find((v) => v[0] === m.variant) || [0, m.variant])[1] : '';
+    b.innerHTML = `<div class="mc-top"><em>${m.daily ? 'TODAY' : 'MISSION ' + String(all.indexOf(m)).padStart(2, '0')}</em><b>${m.name}</b><span class="mc-st">${!open ? 'LOCKED' : st.clears ? (st.bonus ? 'CLEARED · BONUS' : 'CLEARED') : 'NEW'}</span></div>
+      <p>${m.brief}</p><div class="mc-tags"><span>${MODES[m.mode].name}</span><span>${mapName(m.map)}${vn}</span><span>${diffN(m.diff)}</span>${m.mode === 'hunt' ? `<span>${m.team === 'red' ? 'WARLOCK' : 'SPARTAN'}</span>` : ''}</div>
+      <div class="mc-rw"><span>${st.clears ? '+' + Math.round(m.reward.credits * 0.2) : '+' + m.reward.credits} CR</span><span>${st.clears ? '+' + Math.round(m.reward.xp * 0.2) : '+' + m.reward.xp} XP</span><span class="${st.bonus ? 'got' : ''}">BONUS ${m.bonus.text.toUpperCase()} +${m.bonus.credits}</span></div>`;
+    UI.button(b, () => { if (!open) { UI.toast(`CLEAR ${m.req} MISSION${m.req > 1 ? 'S' : ''} TO UNLOCK`, 2200); return; } startMission(m); });
+    box.appendChild(b); rows.push(b);
+  }
+  const bb = $('#btnMsBack'); UI.button(bb, back); rows.push(bb);
+  UI.show('missions', { rows, onBack: back, focus: Math.min(rows.length - 2, Math.max(0, MS.MISSIONS.findIndex((m) => MS.unlocked(m) && !MS.missionState(m.id).clears) + 1)) });
+}
+function startMission(m) {
+  const keep = { mode: loadout.mode, map: loadout.map, variant: loadout.variant, diff: loadout.diff, team: loadout.team, limits: { ...loadout.limits } };
+  if (hub && hub.group) { hub.exit(); }
+  Input.unlock();
+  Object.assign(loadout, { mode: m.mode, map: m.map, variant: m.variant, diff: m.diff, team: m.team }); loadout.limits = { ...loadout.limits, [m.mode]: m.limit };
+  UI.toast(`MISSION  ${m.name}`, 2200);
+  startMatch().then(() => { missionActive = m; Object.assign(loadout, keep); });
+}
+
 function endMatchToMenu() {
+  missionActive = null;
   if (match) { match.dispose(); match = null; }
   showcase.root.visible = true; renderPCard();
   UI.hide('pause'); UI.hide('results');
@@ -615,7 +701,8 @@ function pauseMenu() {
     ...(Net.online ? [] : [UI.item(menu, 'Restart match', 'II', () => startMatch())]),
     UI.item(menu, 'Controls', 'III', () => showControls('pause')),
     UI.item(menu, 'Settings', 'IV', () => showSettings(() => pauseMenu())),
-    UI.item(menu, Net.online ? 'Leave match' : 'Quit to menu', 'V', () => { if (Net.online) leaveOnline(); else { endMatchToMenu(); showTitle(); } }),
+    ...(missionActive && !Net.online ? [UI.item(menu, 'Abandon mission', 'V', () => { endMatchToMenu(); enterHub(); })] : []),
+    UI.item(menu, Net.online ? 'Leave match' : 'Quit to menu', missionActive ? 'VI' : 'V', () => { if (Net.online) leaveOnline(); else { endMatchToMenu(); showTitle(); } }),
   ];
   UI.show('pause', { rows, onBack: resume });
 }
@@ -789,6 +876,8 @@ function frame(now, dt, lastNow0) {
   if (state === 'menu') { UI.tick(); menuFrame(dt); }
   else if (state === 'results') { UI.tick(); if (match) { updateCamera(dt); fx.update(dt); } render(false); }
   else if (state === 'paused') { UI.tick(); if (Net.online && match) idleOnline(dt); else render(false); }
+  else if (state === 'hub') { hubFrame(dt); adaptRes((now - lastNow0) / 1000); }
+  else if (state === 'hubmenu') { UI.tick(); hub.update(dt); render(false); }
   else if (state === 'playing') { let sdt = dt; if (hitstop > 0) { hitstop -= dt; sdt = dt * 0.12; } play(sdt); adaptRes((now - lastNow0) / 1000); }
   else if (state === 'splash' || state === 'loading') { UI.tick(); }
 }

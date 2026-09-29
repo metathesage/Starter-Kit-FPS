@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { clamp, lerp } from './util.js';
 import { mergeStatic } from './merge.js';
+import { defineSanctum, buildSanctumVisuals } from './hubmap.js';
 import { bevelGeo, pylonGeo, concreteSet, quiltSet, floorSet, steelSet, barkSet, normalMap, tex, grassCard, frondCard, vineCard, tufts, vines, scaffold, mossRock, trunkGeo, glowSprite, wind, rnd, seedKit } from './mapkit.js';
 const rr = (a, b) => a + rnd() * (b - a);
 const TAU = Math.PI * 2;
@@ -279,8 +280,23 @@ function defineWarsat() {
   MAP = { id: 'warsat', nav: { x0: -34, x1: 34, z0: -24, z1: 24 }, obj: { flags: { blue: [34, 2.6, 0], red: [-34, 2.6, 0] }, ball: [0, 4, -8] } };
 }
 
+// solids of another map, copied out for the hub's dioramas; restores the current map afterwards
+export function peekMap(id) {
+  const keep = MAP && MAP.id, sv = { B: BOUNDS, K: KILL_Y, S: SPAWNS, P: PICKUPS, M: MAP, d: hubDoors, a: hubA }, copy = solids.slice();
+  defineMap(id); const out = { solids: solids.map((q) => ({ ...q })), bounds: { ...BOUNDS }, spawns: SPAWNS, pickups: PICKUPS };
+  solids.length = 0; for (const q of copy) solids.push(q); BOUNDS = sv.B; KILL_Y = sv.K; SPAWNS = sv.S; PICKUPS = sv.P; MAP = sv.M; hubDoors = sv.d; hubA = sv.a; void keep;
+  return out;
+}
+let hubA = null, hubDoors = null;
+const hubApi = () => ({ solids, box, ramp, prismGeo, boxGeo, haloTex, makeSnow, groundAt, blocked });
+// the two vault doors are solids that come out of the collision list when opened
+export function setHubDoor(which, open) {
+  const s = hubDoors && hubDoors[which]; if (!s) return;
+  const i = solids.indexOf(s); if (open && i >= 0) solids.splice(i, 1); else if (!open && i < 0) solids.push(s);
+}
 export function defineMap(id) {
   solids.length = 0; nav.nodes.length = 0; nav.built = false;
+  if (id === 'sanctum') { hubA = hubApi(); const r = defineSanctum(hubA); BOUNDS = r.bounds; KILL_Y = r.kill; SPAWNS = r.spawns; PICKUPS = r.pickups; MAP = r.map; hubDoors = r.doors; hubA.doors = r.doors; return; }
   if (id === 'cryostat') defineCryostat(); else if (id === 'mesa') defineMesa(); else if (id === 'overgrowth') defineOvergrowth(); else if (id === 'warsat') defineWarsat(); else defineLockout();
 }
 
@@ -1156,7 +1172,7 @@ export function disposeMap(scene) {
 // Load (or reload) a map: data, nav graph, then meshes/lights/sky. Returns the visual handle used by the game loop.
 export async function loadMap(scene, renderer, id, onProgress = () => {}) {
   disposeMap(scene);
-  defineMap(id); buildNav();
-  current = id === 'cryostat' ? await buildCryostatVisuals(scene, renderer, onProgress) : id === 'mesa' ? await buildMesaVisuals(scene, renderer, onProgress) : id === 'overgrowth' ? await buildOvergrowthVisuals(scene, renderer, onProgress) : id === 'warsat' ? await buildWarsatVisuals(scene, renderer, onProgress) : await buildLockoutVisuals(scene, renderer, onProgress);
+  defineMap(id); if (id !== 'sanctum') buildNav();
+  current = id === 'sanctum' ? await buildSanctumVisuals(hubA, scene, renderer, onProgress) : id === 'cryostat' ? await buildCryostatVisuals(scene, renderer, onProgress) : id === 'mesa' ? await buildMesaVisuals(scene, renderer, onProgress) : id === 'overgrowth' ? await buildOvergrowthVisuals(scene, renderer, onProgress) : id === 'warsat' ? await buildWarsatVisuals(scene, renderer, onProgress) : await buildLockoutVisuals(scene, renderer, onProgress);
   return current;
 }

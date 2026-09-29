@@ -41,6 +41,7 @@ export const HALOS = [
   { id: 'mint', name: 'VERDANT', color: 0x5df2be, lvl: 20, price: 500, blurb: 'Mint glow with a soft trail.' },
   { id: 'solar', name: 'SOLAR FLARE', color: 0xff9a3c, lvl: 28, price: 800, blurb: 'Hot orange. Burns through fog.' },
   { id: 'void', name: 'THE VOID', color: 0xffffff, lvl: 38, price: 1500, blurb: 'Pure white. Nothing else in the room is this bright.' },
+  { id: 'sakura', name: 'SAKURA', color: 0xffb7d0, stat: 'relic', n: 1, lvl: 1, price: 0, blurb: 'Soft pink. Claimed from the Sanctum relic in the deep vault.' },
 ];
 
 export const SKINS = [
@@ -70,7 +71,7 @@ export const TITLES = [
   { id: 'choir', text: 'SEVENTH CHOIR', lvl: 50 },
   { id: 'headhunter', text: 'HEADHUNTER', stat: 'headshots', n: 100, lvl: 1 }, { id: 'cleanhands', text: 'CLEAN HANDS', stat: 'perfects', n: 10, lvl: 1 },
   { id: 'flagrunner', text: 'FLAG RUNNER', stat: 'caps', n: 10, lvl: 1 }, { id: 'ballhog', text: 'BALL HOG', stat: 'ballTime', n: 600, lvl: 1 },
-  { id: 'sharp', text: 'SHARPSHOOTER', stat: 'sniper', n: 100, lvl: 1 },
+  { id: 'sharp', text: 'SHARPSHOOTER', stat: 'sniper', n: 100, lvl: 1 }, { id: 'keeper', text: 'KEEPER OF THE GARDEN', stat: 'relic', n: 1, lvl: 1 },
 ];
 
 export const BADGES = [

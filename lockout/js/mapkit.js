@@ -154,7 +154,7 @@ export function barkSet({ base = '#3c3226', ivy = ['#3f7a3a', '#5f9a44'], size =
 // ---------------------------------------------------------------- foliage
 export const wind = { value: 0 };
 function swayMat(map, { color = 0xffffff, sway = 0.08, alphaTest = 0.4 } = {}) {
-  const m = new THREE.MeshLambertMaterial({ map, color, alphaTest, side: THREE.DoubleSide });
+  const m = new THREE.MeshLambertMaterial({ map, color, alphaTest, side: THREE.DoubleSide, emissive: 0x1c2812 });
   m.onBeforeCompile = (sh) => {
     sh.uniforms.uTime = wind;
     sh.vertexShader = 'uniform float uTime;\n' + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
@@ -176,9 +176,9 @@ const crossGeo = (w = 1, h = 1) => {
   return mergeGeometries([a, b, c]);
 };
 // pts: [{x,y,z,s}]  returns InstancedMesh
-export function tufts(root, pts, card, { w = 0.9, h = 0.9, color = 0xffffff, tint = null, sway = 0.09 } = {}) {
+export function tufts(root, pts, card, { w = 0.9, h = 0.9, color = 0xffffff, tint = null, sway = 0.09, alphaTest = 0.4 } = {}) {
   if (!pts.length) return null;
-  const im = new THREE.InstancedMesh(crossGeo(w, h), swayMat(card, { color, sway }), pts.length), m = new THREE.Matrix4(), q = new THREE.Quaternion(), c = new THREE.Color();
+  const im = new THREE.InstancedMesh(crossGeo(w, h), swayMat(card, { color, sway, alphaTest }), pts.length), m = new THREE.Matrix4(), q = new THREE.Quaternion(), c = new THREE.Color();
   pts.forEach((p, i) => {
     q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), rnd() * TAU); const s = (p.s || 1) * rr(0.7, 1.35);
     m.compose(new THREE.Vector3(p.x, p.y - 0.02, p.z), q, new THREE.Vector3(s, s * rr(0.8, 1.25), s)); im.setMatrixAt(i, m);
@@ -224,7 +224,7 @@ export function scaffold(x, y, z, w, h, d, t = 0.14) {
 }
 // flat-shaded lump of rock with moss on top (vertex colors), for organic massing over hard architecture
 export function mossRock(x, y, z, sx, sy, sz, { rock = '#6f5a46', moss = ['#8c9230', '#a7a541'], detail = 3 } = {}) {
-  const g = new THREE.IcosahedronGeometry(1, detail).toNonIndexed(), p = g.attributes.position, col = new Float32Array(p.count * 3);
+  const g = new THREE.IcosahedronGeometry(1, detail), p = g.attributes.position, col = new Float32Array(p.count * 3);
   const ph = [rnd() * 9, rnd() * 9, rnd() * 9];
   const nz = (a, b, c) => Math.sin(a * 1.7 + ph[0]) * Math.cos(b * 1.3 + ph[1]) + Math.sin(c * 2.1 + ph[2] + a) * 0.5;
   const v = new THREE.Vector3(), c1 = new THREE.Color(rock), c2 = new THREE.Color(moss[0]), c3 = new THREE.Color(moss[1]), t = new THREE.Color();

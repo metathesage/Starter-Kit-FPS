@@ -68,6 +68,12 @@ const S = {
   novaCharge(o) { tone(o, { type: 'sawtooth', f0: 70, f1: 340, dur: 1.1, gain: 0.32, atk: 0.6, det: 9 }); tone(o, { type: 'sine', f0: 320, f1: 1900, dur: 1.1, gain: 0.16, atk: 0.7 }); noise(o, { dur: 1.1, f0: 300, f1: 6000, gain: 0.25, type: 'bandpass', q: 1.2, atk: 0.8 }); },
   novaLaunch(o) { tone(o, { type: 'sawtooth', f0: 520, f1: 60, dur: 0.6, gain: 0.4 }); noise(o, { dur: 0.5, f0: 6000, f1: 200, gain: 0.5, q: 0.6 }); },
   novaBoom(o) { tone(o, { type: 'sine', f0: 70, f1: 18, dur: 1.8, gain: 1 }); tone(o, { type: 'sawtooth', f0: 220, f1: 30, dur: 1.4, gain: 0.35, det: 14 }); noise(o, { dur: 1.7, f0: 3200, f1: 50, gain: 1, q: 0.4 }); tone(o, { type: 'sine', f0: 1200, f1: 2600, dur: 0.9, gain: 0.12, at: 0.05 }); },
+  bell(o) { tone(o, { type: 'sine', f0: 392, f1: 388, dur: 5, gain: 0.34, atk: 0.004 }); tone(o, { type: 'sine', f0: 588, f1: 584, dur: 4, gain: 0.16 }); tone(o, { type: 'sine', f0: 1046, f1: 1040, dur: 3, gain: 0.1 }); tone(o, { type: 'triangle', f0: 196, f1: 194, dur: 5, gain: 0.18 }); noise(o, { dur: 0.08, f0: 3000, f1: 900, gain: 0.2 }); },
+  splash(o) { noise(o, { dur: 0.35, f0: 2600, f1: 500, gain: 0.3, type: 'bandpass', q: 1.5 }); tone(o, { type: 'sine', f0: 700, f1: 200, dur: 0.18, gain: 0.12 }); },
+  rake(o) { noise(o, { dur: 0.7, f0: 3200, f1: 1800, gain: 0.16, type: 'highpass', atk: 0.12 }); },
+  vault(o) { noise(o, { dur: 2.4, f0: 500, f1: 80, gain: 0.5, q: 0.5, atk: 0.4 }); tone(o, { type: 'sawtooth', f0: 52, f1: 34, dur: 2.4, gain: 0.34, atk: 0.3 }); tone(o, { type: 'sine', f0: 900, f1: 300, dur: 1.2, gain: 0.05, at: 0.2 }); },
+  discover(o) { [523, 659, 784, 1046].forEach((f, i) => tone(o, { type: 'triangle', f0: f, dur: 0.6, gain: 0.11, at: i * 0.07 })); tone(o, { type: 'sine', f0: 1568, dur: 1.2, gain: 0.05, at: 0.3 }); },
+  koto(o, pitch = 1) { const f = 293.7 * pitch; tone(o, { type: 'triangle', f0: f, f1: f * 0.995, dur: 1.8, gain: 0.16, atk: 0.003 }); tone(o, { type: 'sine', f0: f * 2, dur: 1, gain: 0.05, atk: 0.003 }); noise(o, { dur: 0.03, f0: 4000, f1: 1500, gain: 0.05 }); },
   throw(o) { noise(o, { dur: 0.18, f0: 600, f1: 2500, gain: 0.25, type: 'bandpass', q: 1.5 }); },
   plasmaStick(o) { tone(o, { type: 'sine', f0: 1200, f1: 2600, dur: 0.12, gain: 0.25 }); },
   bounce(o) { tone(o, { type: 'triangle', f0: 320, f1: 140, dur: 0.09, gain: 0.25 }); noise(o, { dur: 0.05, f0: 3000, f1: 1000, gain: 0.15 }); },
@@ -105,6 +111,12 @@ const S = {
 const CHORDS = [[110, 165, 220, 261.6], [98, 146.8, 196, 233], [87.3, 130.8, 174.6, 220], [98, 146.8, 196, 246.9]];
 function musicStep() {
   if (!ctx || musicMode === 'off') return;
+  if (musicMode === 'zen') {   // slow pentatonic pad + sparse plucks
+    const pad = [[73.4, 110, 146.8, 220], [65.4, 98, 130.8, 196], [87.3, 130.8, 174.6, 261.6], [73.4, 110, 164.8, 220]][((beat / 16) | 0) % 4];
+    if (beat % 16 === 0) pad.forEach((f, i) => { tone(musBus, { type: 'sine', f0: f, dur: 9, gain: 0.07, atk: 2.2, det: i * 4 - 6 }); tone(musBus, { type: 'triangle', f0: f * 2, dur: 8, gain: 0.03, atk: 2.6 }); });
+    if (beat % 4 === 2 && Math.random() < 0.6) { const sc = [293.7, 349.2, 392, 440, 523.3, 587.3, 698.5]; tone(musBus, { type: 'triangle', f0: sc[(Math.random() * sc.length) | 0], dur: 2.4, gain: 0.05, atk: 0.006 }); }
+    beat++; return;
+  }
   const chord = CHORDS[((beat / 8) | 0) % CHORDS.length];
   const intense = musicMode === 'match';
   if (beat % 8 === 0) {
@@ -129,13 +141,14 @@ function buildAmbience(kind) {
   const bus = ctx.createGain(); bus.gain.value = 0; bus.connect(comp);
   const nodes = [];
   const src = ctx.createBufferSource(); src.buffer = noiseBuf; src.loop = true;
-  const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = kind === 'wind' ? 520 : 160; src.connect(lp);
-  const g1 = ctx.createGain(); g1.gain.value = kind === 'wind' ? 0.16 : 0.09; lp.connect(g1); g1.connect(bus);
-  const lfo = ctx.createOscillator(); lfo.frequency.value = kind === 'wind' ? 0.07 : 0.03; const lg = ctx.createGain(); lg.gain.value = kind === 'wind' ? 0.09 : 0.03; lfo.connect(lg); lg.connect(g1.gain); lfo.start();
+  const windy = kind === 'wind' || kind === 'garden', amt = kind === 'garden' ? 0.4 : 1;
+  const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = windy ? (kind === 'garden' ? 420 : 520) : 160; src.connect(lp);
+  const g1 = ctx.createGain(); g1.gain.value = windy ? 0.16 * amt : 0.09; lp.connect(g1); g1.connect(bus);
+  const lfo = ctx.createOscillator(); lfo.frequency.value = windy ? 0.07 : 0.03; const lg = ctx.createGain(); lg.gain.value = windy ? 0.09 * amt : 0.03; lfo.connect(lg); lg.connect(g1.gain); lfo.start();
   src.start(); nodes.push(src, lfo);
-  if (kind === 'wind') {
+  if (windy) {
     const s2 = ctx.createBufferSource(); s2.buffer = noiseBuf; s2.loop = true; s2.playbackRate.value = 0.7;
-    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1500; bp.Q.value = 7; const g2 = ctx.createGain(); g2.gain.value = 0.02;
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1500; bp.Q.value = 7; const g2 = ctx.createGain(); g2.gain.value = kind === 'garden' ? 0.012 : 0.02;
     s2.connect(bp); bp.connect(g2); g2.connect(bus);
     const l2 = ctx.createOscillator(); l2.frequency.value = 0.11; const lg2 = ctx.createGain(); lg2.gain.value = 0.018; l2.connect(lg2); lg2.connect(g2.gain); l2.start(); s2.start(); nodes.push(s2, l2);
   } else {
@@ -180,7 +193,15 @@ export const Sound = {
     if (ambTimer) { clearInterval(ambTimer); ambTimer = null; }
     ambKind = kind; if (!kind) return;
     amb = buildAmbience(kind);
-    ambTimer = setInterval(() => { if (ctx.state !== 'running' || Math.random() > 0.5) return; if (kind === 'wind') tone(sfxBus, { type: 'sine', f0: 240 + Math.random() * 200, f1: 180, dur: 2.4, gain: 0.02, atk: 1 }); else { tone(sfxBus, { type: 'triangle', f0: 90 + Math.random() * 40, f1: 60, dur: 1.4, gain: 0.05, atk: 0.4 }); noise(sfxBus, { dur: 0.5, f0: 900, f1: 200, gain: 0.05, type: 'bandpass', q: 5, at: 0.3 }); } }, 7000);
+    ambTimer = setInterval(() => {
+      if (kind === 'garden') {
+        if (ctx.state !== 'running') return;
+        const r = Math.random();
+        if (r < 0.45) { const sc = [1, 1.19, 1.34, 1.5, 1.78, 2, 2.38]; S.koto(sfxBus, sc[(Math.random() * sc.length) | 0] * (Math.random() < 0.3 ? 0.5 : 1)); if (Math.random() < 0.4) setTimeout(() => S.koto(sfxBus, sc[(Math.random() * sc.length) | 0]), 380); }
+        else if (r < 0.8) { const f = 2200 + Math.random() * 1400; [0, 0.11, 0.22].forEach((d, i) => { if (Math.random() < 0.8) tone(sfxBus, { type: 'sine', f0: f * (1 + i * 0.06), f1: f * (1.25 + i * 0.05), dur: 0.09, gain: 0.03, at: d }); }); }
+        return;
+      }
+      if (ctx.state !== 'running' || Math.random() > 0.5) return; if (kind === 'wind') tone(sfxBus, { type: 'sine', f0: 240 + Math.random() * 200, f1: 180, dur: 2.4, gain: 0.02, atk: 1 }); else { tone(sfxBus, { type: 'triangle', f0: 90 + Math.random() * 40, f1: 60, dur: 1.4, gain: 0.05, atk: 0.4 }); noise(sfxBus, { dur: 0.5, f0: 900, f1: 200, gain: 0.05, type: 'bandpass', q: 5, at: 0.3 }); } }, kind === 'garden' ? 2600 : 7000);
   },
   announcer: false, _sayT: 0,
   // optional announcer: the browser's own speech synth, pitched low and clipped. Off by default.
@@ -199,6 +220,6 @@ export const Sound = {
     if (musicTimer) { clearInterval(musicTimer); musicTimer = null; }
     if (mode === 'off' || !ctx) return;
     beat = 0;
-    musicTimer = setInterval(musicStep, 320);
+    musicTimer = setInterval(musicStep, mode === 'zen' ? 560 : 320);
   },
 };
