@@ -1028,7 +1028,7 @@ async function buildOvergrowthVisuals(scene, renderer, onProgress) {
     const pm = new THREE.PMREMGenerator(renderer); scene.environment = pm.fromScene(envScene, 0.03).texture; scene.environmentIntensity = 0.8; pm.dispose();
   }
   scene.fog = new THREE.Fog(0x4c6e62, 14, 120); scene.background = new THREE.Color(0x6f9484);
-  const hemi = new THREE.HemisphereLight(0xa8d0c0, 0x2a3a30, 1.7); root.add(hemi);
+  const hemi = new THREE.HemisphereLight(0xa8d0c0, 0x4a6a58, 2.3); root.add(hemi);
   const dir = new THREE.DirectionalLight(0xffcf94, 3.0); dir.position.set(30, 44, -34); dir.castShadow = true; dir.shadow.mapSize.set(2048, 2048);
   Object.assign(dir.shadow.camera, { left: -46, right: 46, top: 34, bottom: -34, near: 10, far: 160 }); dir.shadow.bias = -0.0006; dir.shadow.normalBias = 0.04; root.add(dir);
   const snow = makeSnow(root, 700, 70, 22, 0.09, 0xf0f0c0);
@@ -1051,8 +1051,8 @@ function jupiterTex() {
 async function buildWarsatVisuals(scene, renderer, onProgress) {
   const root = new THREE.Group(); scene.add(root); seedKit(53);
   await onProgress(0.1, 'Pouring the slab');
-  const slab = concreteSet({ base: '#524c44', trim: '#e0aa22', rows: 4, cols: 2 }), slab2 = concreteSet({ base: '#5e574d', trim: '#d9a521', rows: 3, cols: 3 }), dark = concreteSet({ base: '#34333a', rows: 2, cols: 4, groove: 'rgba(0,0,0,.75)' });
-  const quilt = quiltSet({ base: '#6a645a' }), floorS = floorSet({ base: '#5a544c', tiles: 2 }), yel = steelSet();
+  const slab = concreteSet({ base: '#8a8274', trim: '#e0aa22', rows: 4, cols: 2 }), slab2 = concreteSet({ base: '#948a7a', trim: '#d9a521', rows: 3, cols: 3 }), dark = concreteSet({ base: '#34333a', rows: 2, cols: 4, groove: 'rgba(0,0,0,.75)' });
+  const quilt = quiltSet({ base: '#8a8478' }), floorS = floorSet({ base: '#7a746a', tiles: 2 }), yel = steelSet();
   const S = (t, o = {}) => new THREE.MeshStandardMaterial({ map: t.map, ...(t.normalMap ? { normalMap: t.normalMap } : {}), roughness: 0.82, metalness: 0.08, ...o });
   quilt.map.repeat.set(1, 1);
   const mats = {
@@ -1151,8 +1151,8 @@ async function buildWarsatVisuals(scene, renderer, onProgress) {
     const pm = new THREE.PMREMGenerator(renderer); scene.environment = pm.fromScene(envScene, 0.03).texture; scene.environmentIntensity = 0.9; pm.dispose();
   }
   scene.fog = new THREE.Fog(0xd8cc9c, 30, 170); scene.background = new THREE.Color(0xe8d8a8);
-  const hemi = new THREE.HemisphereLight(0xdfe6ff, 0x8a7a50, 1.7); root.add(hemi);
-  const dir = new THREE.DirectionalLight(0xffe4a8, 3.4); dir.position.set(40, 40, 46); dir.castShadow = true; dir.shadow.mapSize.set(2048, 2048);
+  const hemi = new THREE.HemisphereLight(0xdfe6ff, 0xa08c60, 2.4); root.add(hemi);
+  const dir = new THREE.DirectionalLight(0xffe4a8, 3.6); dir.position.set(40, 40, 46); dir.castShadow = true; dir.shadow.mapSize.set(2048, 2048);
   Object.assign(dir.shadow.camera, { left: -46, right: 46, top: 34, bottom: -34, near: 10, far: 160 }); dir.shadow.bias = -0.0006; dir.shadow.normalBias = 0.04; root.add(dir);
   const snow = makeSnow(root, 800, 70, 22, 0.1, 0xfff4d0);
   snow.extra = (dt, t) => { wind.value = t; jup.rotation.y += dt * 0.004; };

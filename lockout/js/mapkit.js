@@ -23,11 +23,21 @@ export function boxUV(geo, tile = 4) {
   return geo;
 }
 
+// baked ambient occlusion: sides darken toward the floor they stand on, undersides are dark, tops stay clean
+function bakeAO(g, y0, y1) {
+  const p = g.attributes.position, n = g.attributes.normal, col = new Float32Array(p.count * 3), span = Math.min(2.6, Math.max(0.3, (y1 - y0) * 0.9));
+  for (let i = 0; i < p.count; i++) {
+    const ny = n.getY(i); let k;
+    if (ny > 0.6) k = 1; else if (ny < -0.6) k = 0.62; else { const t = Math.min(1, Math.max(0, (p.getY(i) - y0) / span)); k = 0.74 + 0.26 * t * t * (3 - 2 * t); }
+    col[i * 3] = k; col[i * 3 + 1] = k; col[i * 3 + 2] = Math.min(1, k + 0.04);
+  }
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3)); return g;
+}
 // chamfered box between world bounds; hard-surface look, faceted normals
 export function bevelGeo(x0, x1, y0, y1, z0, z1, r = 0.14, tile = 4, segs = 1) {
   const w = x1 - x0, h = y1 - y0, d = z1 - z0;
   r = Math.min(r, w / 2 - 0.01, h / 2 - 0.01, d / 2 - 0.01);
-  if (r < 0.02) { const g = new THREE.BoxGeometry(w, h, d); g.translate((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2); return boxUV(g, tile); }
+  if (r < 0.02) { const g = new THREE.BoxGeometry(w, h, d).toNonIndexed(); g.translate((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2); return bakeAO(boxUV(g, tile), y0, y1); }
   const iw = w - 2 * r, ih = h - 2 * r, c = Math.min(r * 0.9, iw / 2 - 0.001, ih / 2 - 0.001);
   const a = iw / 2, b = ih / 2, sh = new THREE.Shape();
   sh.moveTo(-a + c, -b); sh.lineTo(a - c, -b); sh.lineTo(a, -b + c); sh.lineTo(a, b - c); sh.lineTo(a - c, b); sh.lineTo(-a + c, b); sh.lineTo(-a, b - c); sh.lineTo(-a, -b + c); sh.closePath();
@@ -35,7 +45,7 @@ export function bevelGeo(x0, x1, y0, y1, z0, z1, r = 0.14, tile = 4, segs = 1) {
   const g = new THREE.ExtrudeGeometry(sh, { depth, bevelEnabled: true, bevelThickness: r, bevelSize: r, bevelSegments: segs, steps: 1, curveSegments: 1 });
   g.translate((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2 - depth / 2);
   g.computeVertexNormals();
-  return boxUV(g, tile);
+  return bakeAO(boxUV(g, tile), y0, y1);
 }
 
 // tapered 4/6-sided pylon, base at y0
