@@ -1,5 +1,6 @@
 // Weapon data + low-poly meshes. Meshes face -Z, origin at the grip.
 import * as THREE from 'three';
+import { toonify } from './toon.js';
 import { mergeStatic } from './merge.js';
 
 export const WEAPONS = {
@@ -184,7 +185,7 @@ function normalizeProp(scene, o) {
   scene.position.sub(c); root.scale.setScalar(k);
   const out = new THREE.Group(); out.add(root);
   out.traverse((m) => { if (!m.isMesh) return; m.frustumCulled = false; const mt = m.material; if (mt && mt.map) { mt.emissiveMap = mt.map; mt.emissive.setScalar(o.glow ?? 0.4); } if (mt && 'metalness' in mt) { mt.metalness = Math.min(mt.metalness, 0.3); mt.roughness = Math.max(mt.roughness, 0.6); } });
-  return out;
+  return toonify(out, { width: 0.004, glow: o.glow ?? 0.4, saturate: o.sat });
 }
 
 function normalizeModel(scene, id, o) {
@@ -219,7 +220,7 @@ function normalizeModel(scene, id, o) {
     if (mt.map) { mt.emissiveMap = mt.map; mt.emissive.setScalar(o.glow ?? 0.34); }   // baked textures read dark under scene lights: self-light a little
     if ('metalness' in mt) { mt.metalness = Math.min(mt.metalness, 0.3); mt.roughness = Math.max(mt.roughness, 0.62); }
   });
-  return out;
+  return toonify(out, { width: 0.0045, glow: o.glow ?? 0.34, saturate: o.sat });
 }
 
 const _cache = {};
@@ -228,7 +229,7 @@ export function applySkin(mesh, tint) {
   if (tint == null || !mesh) return mesh;
   const col = new THREE.Color(tint);
   mesh.traverse((o) => {
-    if (!o.isMesh || !o.material) return;
+    if (!o.isMesh || !o.material || o.userData.outline) return;
     if (!o.userData.skinned) { o.material = o.material.clone(); o.userData.skinned = true; }
     const m = o.material; if (m.color) m.color.copy(col);
     if (m.emissive && m.emissiveMap) m.emissive.setScalar(0.34).lerp(col, 0.25);

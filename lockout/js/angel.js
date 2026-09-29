@@ -2,6 +2,7 @@
 // The classic procedural body stays as the animation driver (and IK solver); this mesh replaces its visible parts.
 import * as THREE from 'three';
 import { GLTFLoader } from '../vendor/jsm/loaders/GLTFLoader.js';
+import { toonGradient, outlineSkinned } from './toon.js';
 
 const S = 1.78;                       // mesh height in rig units (same as the procedural body)
 const V = (x, y) => [x, y];
@@ -131,7 +132,7 @@ export function attachAngel(rig, { hair = 0xff86c2, tint = 0x4aa0ff } = {}) {
     if (b.parent) bones[b.parent].add(bone);
     bones[b.name] = bone; list.push(bone);
   }
-  const mat = new THREE.MeshStandardMaterial({ map: hairTexture(hair), roughness: 0.78, metalness: 0.05, side: THREE.DoubleSide, emissiveMap: null, emissive: new THREE.Color(0x000000) });
+  const mat = new THREE.MeshToonMaterial({ map: hairTexture(hair), gradientMap: toonGradient(), side: THREE.DoubleSide, emissive: new THREE.Color(0x000000) });
   mat.emissiveMap = mat.map; mat.emissive.setScalar(0.42);
   mat.color.set(0xffffff).lerp(new THREE.Color(tint), 0.3);
   const mesh = new THREE.SkinnedMesh(cache.geo, mat);
@@ -139,8 +140,9 @@ export function attachAngel(rig, { hair = 0xff86c2, tint = 0x4aa0ff } = {}) {
   mesh.add(bones.hips); mesh.updateMatrixWorld(true);
   mesh.bind(new THREE.Skeleton(list), new THREE.Matrix4());
   rig.model.add(mesh);
+  const ink = outlineSkinned(mesh);
   // hide classic body meshes (weapon isn't attached yet); keep the halo
-  rig.model.traverse((o) => { if (o.isMesh && o !== mesh) { let p = o, keep = false; while (p) { if (p === rig.halo) keep = true; p = p.parent; } if (!keep) o.visible = false; } });
+  rig.model.traverse((o) => { if (o.isMesh && o !== mesh && !o.userData.outline) { let p = o, keep = false; while (p) { if (p === rig.halo) keep = true; p = p.parent; } if (!keep) o.visible = false; } });
   // arm rest offsets: rotate the classic straight-down arm onto the scanned A-pose arm
   const rest = {};
   for (const s of ['L', 'R']) {
@@ -149,7 +151,7 @@ export function attachAngel(rig, { hair = 0xff86c2, tint = 0x4aa0ff } = {}) {
     bones['sh' + s].scale.setScalar(1.14);
   }
   rig.haloY = 0.335; rig.halo.scale.setScalar(0.78); rig.crown.position.y = 0.27;
-  rig.sam = { mesh, bones, mat, rest, hipsY: bones.hips.position.y, base: 0.42 };
+  rig.sam = { mesh, ink, bones, mat, rest, hipsY: bones.hips.position.y, base: 0.42 };
   return true;
 }
 
@@ -182,5 +184,5 @@ export function syncAngel(rig, s) {
 
 export function angelCamo(rig, k) {
   const m = rig.sam.mat; const on = k > 0;
-  m.transparent = on; m.opacity = on ? (k >= 1 ? 0.07 : 0.4) : 1; m.depthWrite = !on; m.needsUpdate = true;
+  rig.sam.ink.visible = !on; m.transparent = on; m.opacity = on ? (k >= 1 ? 0.07 : 0.4) : 1; m.depthWrite = !on; m.needsUpdate = true;
 }
