@@ -81,6 +81,22 @@ Matches award XP and credits. Levels 1-50 unlock operators, halo colours, emblem
 which is also a codex for every weapon, power-up, map and mode. **Service Record** shows rank, stats, service badges and medals.
 Everything is stored in your browser (localStorage).
 
+## Weapons and models
+
+All eleven weapons and both grenades are textured low-poly models (2k-7k triangles each). They were generated with GPT image concepts lifted to 3D with SAM 3D,
+then shrunk with `tools/optimize_glb.py` (textures to 768px JPEG). `models/weapons/manifest.json` sets orientation, length and grip per weapon.
+The same models drive the first-person view, the operator's hands, floor pickups and the Armory preview. The HUD ammo panel uses white silhouettes of the concept art.
+Weapon skins (tints) are unlocked with level and credits.
+
+## Variants and extras
+
+- **Variants:** Standard, Low Gravity, Fiesta (random weapon each spawn), Snipers, Swords + Magnums. Pick in Deployment or the lobby.
+- **Quick Play:** random mode and map.
+- **Challenges:** three daily and two weekly, in Service Record. They pay XP and credits.
+- **Match intro:** the camera orbits your operator during the countdown, then drops into first person.
+- **Feel:** bullet holes, shell casings, hitstop on kills, power-weapon spawn callouts, map ambience (wind / reactor hum), optional announcer voice.
+- **Settings:** render quality, HUD size, reticle colour, announcer.
+
 ## Maps
 
 Both are rotationally symmetric about the origin (Red -X, Blue +X) with mirrored spawns and pickups. Pick in Deployment -> Map (or `?map=lockout|cryostat`).
