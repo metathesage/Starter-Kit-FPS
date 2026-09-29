@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { TAU, clamp, damp, lerp } from './util.js';
 import { makeWeaponMesh } from './weapons.js';
+import { angelReady, attachAngel, syncAngel, angelCamo } from './angel.js';
 
 export const WAIFUS = [
   { id: 'aoi', name: 'AOI', role: 'VANGUARD', hair: 0xff86c2, eye: 0x5ce1ff, blurb: 'Fearless pusher. Lives on the ramps.' },
@@ -161,7 +162,7 @@ export function makeMats(team, hair, eye) {
 
 const rnd01 = (() => { let sd = 3; return () => ((sd = (sd * 16807) % 2147483647) / 2147483647); })();
 
-export function buildWaifu({ team = 'blue', hair = 0xff86c2, eye = 0x5ce1ff, scale = 1.04, helmet = false } = {}) {
+export function buildWaifu({ team = 'blue', hair = 0xff86c2, eye = 0x5ce1ff, scale = 1.04, helmet = false, angel = true } = {}) {
   const mats = makeMats(team, hair, eye);
   const root = new THREE.Group(); root.rotation.order = 'YXZ';
   const model = new THREE.Group(); model.scale.setScalar(scale); root.add(model);
@@ -283,9 +284,11 @@ export function buildWaifu({ team = 'blue', hair = 0xff86c2, eye = 0x5ce1ff, sca
   rig._camo = 0;
   rig.setCamo = (k) => {
     if (rig._camo === k) return; rig._camo = k;
+    if (rig.sam) angelCamo(rig, k);
     for (const key of ['body', 'skirt', 'visor', 'face', 'wing', 'halo']) { const m = mats[key]; if (!m) continue; m.transparent = k > 0 || key === 'face' || key === 'wing' || key === 'halo'; m.opacity = key === 'wing' ? (k > 0 ? 0.03 : 0.6) : key === 'halo' ? (k > 0 ? 0.04 : 0.95) : k > 0 ? (k >= 1 ? 0.07 : 0.4) : 1; m.depthWrite = k === 0 && key !== 'wing' && key !== 'halo'; m.needsUpdate = true; }
   };
   rig.setVisible = (v) => { root.visible = v; };
+  if (angel && !helmet && angelReady()) attachAngel(rig, { hair, team });
   return rig;
 }
 
@@ -380,7 +383,7 @@ export function animateRig(rig, dt, s) {
   }
 
   // cyber-angel extras: floating halo, wings, long hair
-  if (rig.halo) { rig.halo.position.y = 0.44 + Math.sin(a.t * 1.8) * 0.012; rig.halo.rotation.y += dt * 0.9; }
+  if (rig.halo) { rig.halo.position.y = (rig.haloY ?? 0.44) + Math.sin(a.t * 1.8) * 0.012; rig.halo.rotation.y += dt * 0.9; }
   if (rig.wings) { const sprd = 0.2 + sp * 0.22 + air * 0.35 + Math.sin(a.t * 1.7) * 0.035 + a.dead * 0.3; rig.wings.L.rotation.z = sprd; rig.wings.R.rotation.z = -sprd; rig.wings.L.rotation.x = rig.wings.R.rotation.x = -sp * 0.2 * lz + Math.sin(a.t * 1.3) * 0.03; }
   if (rig.backHair) { rig.backHair.rotation.x = -sp * 0.4 * lz + Math.sin(a.t * 1.9) * 0.05 - air * 0.35 + a.flinch * 0.2; rig.bh2.rotation.x = -sp * 0.3 * lz + Math.sin(a.t * 2.5 + 1) * 0.09; rig.backHair.rotation.z = lx * 0.2 * sp; }
   rig.setCamo(s.camo || 0);
@@ -391,9 +394,11 @@ export function animateRig(rig, dt, s) {
     const e = rig.flash * 1.4;
     rig.mats.body.emissive.setRGB(e * 0.8, e * 0.8, e * 0.8);
   } else if (rig.mats.body.emissive.r > 0) { rig.mats.body.emissive.setRGB(0, 0, 0); }
+  if (rig.sam) syncAngel(rig, s);
 }
 
 export function disposeRig(rig) {
-  rig.root.traverse((o) => { if (o.isMesh) o.geometry.dispose(); });
+  rig.root.traverse((o) => { if (o.isMesh && !o.geometry.userData.shared) o.geometry.dispose(); });
+  if (rig.sam) rig.sam.mat.dispose();
   Object.values(rig.mats).forEach((m) => m.dispose && m.dispose());
 }

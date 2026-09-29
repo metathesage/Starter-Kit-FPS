@@ -6,6 +6,7 @@ import { Sound } from './audio.js';
 import * as World from './world.js';
 import { WAIFUS, TEAM, buildWaifu, animateRig, disposeRig } from './rig.js';
 import { WEAPONS, loadWeaponModels } from './weapons.js';
+import { loadAngel } from './angel.js';
 import { FX } from './fx.js';
 import { Viewmodel } from './fps.js';
 import { Match, DIFFICULTY } from './match.js';
@@ -105,6 +106,7 @@ async function boot() {
   renderer.toneMappingExposure = EXPOSURE[loadout.map] || 1.05;
   await setProg(0.55, 'Charting nav mesh');
   await setProg(0.62, 'Checking weapon models');
+  try { setProg(0.6, 'Operators'); await loadAngel(); } catch (e) { console.warn('angel model unavailable, using classic body', e); }
   try { const got = await loadWeaponModels((l) => setProg(0.64, l)); if (got.length) console.info('custom weapon models:', got.join(', ')); } catch (e) { console.warn(e); }
   await setProg(0.7, 'Rigging operators');
   fx = new FX(scene);
@@ -214,7 +216,7 @@ function showSetup() {
   const rows = [cardsRow];
   rows.push(UI.choice(box, 'Map', World.MAP_LIST.map((m) => ({ label: m.name, value: m.id })), World.MAP_LIST.findIndex((m) => m.id === loadout.map), (v) => { loadout.map = v; persist(); $('#mapTag').textContent = World.MAP_LIST.find((m) => m.id === v).tag; }));
   rows.push(UI.choice(box, 'Team', [{ label: 'BLUE', value: 'blue' }, { label: 'RED', value: 'red' }], loadout.team === 'blue' ? 0 : 1, (v) => { loadout.team = v; rebuildShowcase(); persist(); }));
-  rows.push(UI.choice(box, 'Armor', [{ label: 'SPARTAN HELM', value: true }, { label: 'BARE FACE', value: false }], loadout.helmet ? 0 : 1, (v) => { loadout.helmet = v; rebuildShowcase(); setHero(); persist(); }));
+  rows.push(UI.choice(box, 'Armor', [{ label: 'SPARTAN HELM', value: true }, { label: 'ANGEL', value: false }], loadout.helmet ? 0 : 1, (v) => { loadout.helmet = v; rebuildShowcase(); setHero(); persist(); }));
   const dk = Object.keys(DIFFICULTY);
   rows.push(UI.choice(box, 'Bot difficulty', dk.map((k) => ({ label: DIFFICULTY[k].name, value: k })), dk.indexOf(loadout.diff), (v) => { loadout.diff = v; persist(); }));
   rows.push(UI.choice(box, 'Score to win', [15, 25, 50].map((n) => ({ label: n + ' KILLS', value: n })), [15, 25, 50].indexOf(loadout.limit), (v) => { loadout.limit = v; persist(); }));
