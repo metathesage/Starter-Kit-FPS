@@ -13,6 +13,8 @@ const ICON = {
   zoom: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-4-4M11 8v6M8 11h6',
   pause: 'M8 5v14M16 5v14',
   score: 'M4 6h16M4 12h16M4 18h10',
+  blink: 'M3 7l5 5-5 5M10 7l5 5-5 5M18 5v14',
+  nova: 'M12 2l2.200 6.600L21 12l-6.800 3.400L12 22l-2.200-6.600L3 12l6.800-3.400z',
 };
 
 export function initTouch() {
@@ -30,6 +32,8 @@ export function initTouch() {
     <button class="tb t-reload" data-a="use reload" aria-label="Reload or pick up">${I(ICON.reload)}</button>
     <button class="tb t-swap" data-a="swap" aria-label="Swap weapon">${I(ICON.swap)}</button>
     <button class="tb t-zoom" data-a="zoom" aria-label="Zoom">${I(ICON.zoom)}</button>
+    <button class="tb t-blink" data-a="blink" aria-label="Blink">${I(ICON.blink)}</button>
+    <button class="tb t-nova" data-a="nova" aria-label="Nova bomb">${I(ICON.nova)}</button>
     <button class="tb t-crouch" data-a="crouch" aria-label="Crouch">${I(ICON.crouch)}</button>
     <button class="tb t-pause" data-a="pause" aria-label="Pause">${I(ICON.pause)}</button>
     <button class="tb t-score" data-a="score" aria-label="Scoreboard">${I(ICON.score)}</button>`;

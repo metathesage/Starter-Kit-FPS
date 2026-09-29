@@ -22,7 +22,7 @@ export const MEDAL_ICONS = {
   shield: 'M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6z',
   crown: 'M3 8l4.500 4L12 5l4.500 7L21 8l-2 11H5z',
 };
-const WEAPON_ICON = { br: ICONS.br, magnum: ICONS.magnum, smg: ICONS.smg, shotgun: ICONS.shotgun, sniper: ICONS.sniper, rocket: ICONS.rocket, sword: ICONS.sword, carbine: ICONS.carbine, plasmarifle: ICONS.plasmarifle, needler: ICONS.needler, hammer: ICONS.hammer, frag: ICONS.frag, plasma: ICONS.plasma, melee: MEDAL_ICONS.fist, explosion: ICONS.frag, fall: ICONS.skull };
+const WEAPON_ICON = { br: ICONS.br, magnum: ICONS.magnum, smg: ICONS.smg, shotgun: ICONS.shotgun, sniper: ICONS.sniper, rocket: ICONS.rocket, sword: ICONS.sword, carbine: ICONS.carbine, plasmarifle: ICONS.plasmarifle, needler: ICONS.needler, hammer: ICONS.hammer, frag: ICONS.frag, plasma: ICONS.plasma, melee: MEDAL_ICONS.fist, explosion: ICONS.frag, fall: ICONS.skull, nova: ICONS.nova };
 export const wIcon = (id) => svg(WEAPON_ICON[id] || MEDAL_ICONS.skull);
 
 export function glyph(action) {
@@ -58,6 +58,10 @@ export class HUD {
         <div class="wp-name"></div><div class="wp-reload"></div>
         <div class="gr-row"><div class="gr frag on">${svg(ICONS.frag)}<b>2</b></div><div class="gr plasma">${svg(ICONS.plasma)}<b>2</b></div></div>
       </div>
+      <div class="h-abil">
+        <div class="ab nova"><svg class="ring" viewBox="0 0 64 64"><circle class="tr" cx="32" cy="32" r="28"/><circle class="pg" cx="32" cy="32" r="28" pathLength="100"/></svg>${svg(ICONS.nova, 'ic')}<span class="kd"></span><b class="pct">0%</b><em>NOVA BOMB</em></div>
+        <div class="ab blink">${svg(ICONS.blink, 'ic')}<span class="kd"></span><div class="pips"><i></i><i></i></div><em>BLINK</em></div>
+      </div>
       <div class="feed"></div>
       <div class="h-radar"><div class="rd-tilt"><canvas width="360" height="360"></canvas></div><div class="rd-place">LOCKOUT</div></div>
       <div class="h-score">
@@ -88,7 +92,7 @@ export class HUD {
       wIcon: q('.wp-icon'), wName: q('.wp-name'), wMag: q('.wp-mag'), wRes: q('.wp-res'), wRel: q('.wp-reload'), ret: q('.h-reticle'), retSvg: q('.h-reticle svg'),
       hit: q('.h-hit'), ann: q('.h-announce'), count: q('.h-count'), modeBig: q('.h-mode'), medals: q('.h-medals'), prompt: q('.h-prompt'), cam: q('.h-cam'),
       death: q('.h-death'), dName: q('.dd .nm'), dRes: q('.dd .rs'), board: q('.h-board'), fps: q('.h-fps'), flash: q('.h-flash'), dmg: q('.h-dmg'), scope: q('.h-scope'), zt: q('.h-scope .zt'), rg: q('.h-scope .rg b'), am: q('.h-scope .am b'),
-      tut: q('.h-tut'), obj: q('.h-obj'), lead: q('.sc-lead'), elim: q('.h-elim'), skull: q('.h-skull'), pu: q('.pu-row'), cmpTrack: cmp, cmpHd: q('.cmp-hd'), markers: q('.h-markers'), weaponBox: q('.h-weapon') };
+      tut: q('.h-tut'), obj: q('.h-obj'), lead: q('.sc-lead'), elim: q('.h-elim'), skull: q('.h-skull'), pu: q('.pu-row'), cmpTrack: cmp, cmpHd: q('.cmp-hd'), markers: q('.h-markers'), weaponBox: q('.h-weapon'), abil: q('.h-abil'), novaBox: q('.ab.nova'), novaPg: q('.ab.nova .pg'), novaPct: q('.ab.nova .pct'), novaKd: q('.ab.nova .kd'), blinkKd: q('.ab.blink .kd'), pips: root.querySelectorAll('.ab.blink .pips i'), grRow: q('.gr-row') };
     this.el.hp.innerHTML = '<i></i>'.repeat(5);
     this.rctx = this.el.radar.getContext('2d');
     this.ghost = 1; this.retId = null; this.alarmT = 0; this.subs = [];
@@ -130,16 +134,18 @@ export class HUD {
     this.rowA = ffa ? 'blue' : this.p.team; this.rowB = ffa ? 'red' : this.p.team === 'red' ? 'blue' : 'red';
     this.el.sc.blue.classList.toggle('mine', this.rowA === 'blue'); this.el.sc.red.classList.toggle('mine', this.rowA === 'red');
     this.el.mode.textContent = md.short + ' · ' + match.limit;
+    this.el.sc.red.querySelector('.sc-nm').textContent = TEAM.red.name; this.el.sc.blue.querySelector('.sc-nm').textContent = TEAM.blue.name;
     this.el.obj.innerHTML = ''; this.objKey = '';
     this.tut = !Profile.d.seen.tutorial;
     if (this.tut) {
-      const rows = [['fire', 'FIRE'], ['zoom', 'ZOOM'], ['jump', 'JUMP'], ['grenade', 'GRENADE'], ['melee', 'MELEE'], ['reload', 'RELOAD'], ['swap', 'SWAP WEAPON'], ['score', 'SCOREBOARD']];
+      const wl2 = this.p.cls === 'warlock';
+      const rows = [['fire', 'FIRE'], ['zoom', 'ZOOM'], ['jump', wl2 ? 'JUMP / HOLD TO GLIDE' : 'JUMP'], wl2 ? ['blink', 'BLINK'] : ['grenade', 'GRENADE'], ...(wl2 ? [['nova', 'NOVA BOMB']] : []), ['melee', 'MELEE'], ['reload', 'RELOAD'], ['swap', 'SWAP WEAPON'], ['score', 'SCOREBOARD']];
       this.el.tut.innerHTML = `<div class="tt-h">FIELD MANUAL</div>${rows.map(([a, t]) => `<div class="tt-r">${glyph(a)}<span>${t}</span></div>`).join('')}<div class="tt-f">Kill to score. Break line of sight to recharge shields.</div>`;
       this.el.tut.classList.add('on');
     } else this.el.tut.classList.remove('on');
     this.mk = new Map();
   }
-  unbind() { this.subs.forEach((u) => u()); this.subs = []; }
+  unbind() { this.subs.forEach((u) => u()); this.subs = []; document.body.classList.remove('is-warlock'); }
 
   modeIntro() {
     const md = MODES[this.match.mode], m = this.el.modeBig;
@@ -173,7 +179,7 @@ export class HUD {
   // noir elimination banner + headshot skull
   elim(r) {
     const e = this.el.elim, w = WEAPONS[r.weapon];
-    const sub = [w ? w.short : r.kind === 'punch' ? 'MELEE' : 'GRENADE', r.perfect ? 'PERFECT' : '', r.head ? 'HEADSHOT' : '', this.p.streak > 1 ? `STREAK ${this.p.streak}` : ''].filter(Boolean).join('  /  ');
+    const sub = [w ? w.short : r.weapon === 'nova' ? 'NOVA BOMB' : r.kind === 'punch' ? 'MELEE' : 'GRENADE', r.perfect ? 'PERFECT' : '', r.head ? 'HEADSHOT' : '', this.p.streak > 1 ? `STREAK ${this.p.streak}` : ''].filter(Boolean).join('  /  ');
     e.innerHTML = `<div class="eb"><div class="eb-line"></div><div class="eb-k">ELIMINATED</div><div class="eb-n">${wIcon(r.kind === 'punch' ? 'melee' : r.weapon)}<span>${r.victim.name}</span>${r.head ? svg(ICONS.skull, 'sk') : ''}</div><div class="eb-m">${sub}</div><div class="eb-line"></div></div>`;
     e.classList.remove('on'); void e.offsetWidth; e.classList.add('on');
     if (r.head) { const k = this.el.skull; k.innerHTML = svg(ICONS.skull); k.classList.remove('on'); void k.offsetWidth; k.classList.add('on'); }
@@ -258,6 +264,18 @@ export class HUD {
       E.wRel.textContent = p.reloadT > 0 ? 'RELOADING' : (!melee && w.mag === 0 && w.res === 0 ? 'NO AMMO' : (!melee && w.mag <= def.mag * 0.25 && w.res > 0 ? `${glyphText('reload')} RELOAD` : ''));
     }
     E.weaponBox.style.display = p.alive ? '' : 'none';
+    const wl = p.cls === 'warlock';
+    document.body.classList.toggle('is-warlock', wl);
+    E.grRow.style.display = wl ? 'none' : '';
+    E.abil.style.display = wl && p.alive ? '' : 'none';
+    if (wl && p.alive) {
+      const pct = Math.floor(p.sup * 100);
+      E.novaPg.style.strokeDashoffset = 100 - pct;
+      E.novaBox.classList.toggle('ready', p.sup >= 1); E.novaBox.classList.toggle('cast', p.novaT > 0);
+      E.novaPct.textContent = p.novaT > 0 ? 'CASTING' : p.sup >= 1 ? 'READY' : pct + '%';
+      const kn = Input.last + glyphText('nova'); if (this.kn !== kn) { this.kn = kn; E.novaKd.textContent = glyphText('nova'); E.blinkKd.textContent = glyphText('blink'); }
+      E.pips.forEach((el, i) => { const full = p.blinkCh > i, part = p.blinkCh === i ? Math.min(1, p.blinkT / 4.2) : 0; el.style.setProperty('--f', full ? 1 : part); el.classList.toggle('full', full); });
+    }
     // reticle
     const retId = def ? def.ret : 'none';
     const zoomScope = p.alive && def && def.id === 'sniper' && p.zoomLevel > 0;

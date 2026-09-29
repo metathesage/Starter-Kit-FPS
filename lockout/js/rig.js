@@ -1,7 +1,8 @@
 // Low-poly armored waifu: hierarchical rig, procedural animation, two-bone arm IK.
 import * as THREE from 'three';
 import { TAU, clamp, damp, lerp } from './util.js';
-import { makeWeaponMesh, applySkin } from './weapons.js';
+import { makeWeaponMesh, applySkin, makeNovaMesh } from './weapons.js';
+import { toonGradient } from './toon.js';
 import { angelReady, attachAngel, syncAngel, angelCamo } from './angel.js';
 
 export const WAIFUS = [
@@ -27,6 +28,12 @@ export const TEAM = {
   red: { name: 'RED', armor: 0xd93a48, armor2: 0x2a2f3a, glow: 0xff4a58, css: '#ff4a58' },
   blue: { name: 'BLUE', armor: 0x2f6df0, armor2: 0x2a2f3a, glow: 0x4aa0ff, css: '#4aa0ff' },
 };
+// Warlock Hunt: red becomes the Warlocks, blue the Spartans (restored when the match is disposed)
+const TEAM_BASE = { red: { ...TEAM.red }, blue: { ...TEAM.blue } };
+export function setHuntTeams(on) {
+  Object.assign(TEAM.red, on ? { name: 'WARLOCKS', armor: 0x4a26b8, armor2: 0x1a1230, glow: 0xb26bff, css: '#b98cff' } : TEAM_BASE.red);
+  Object.assign(TEAM.blue, on ? { name: 'SPARTANS' } : TEAM_BASE.blue);
+}
 // free-for-all slots: one hue each
 ['#4aa0ff', '#ff4a58', '#ffd84a', '#5df2be', '#c58cff', '#ff9a3c', '#ff7ac8', '#e8f0ff'].forEach((css, i) => {
   const c = parseInt(css.slice(1), 16);
@@ -180,7 +187,7 @@ function glowSoft() {
   _glowSoft = new THREE.CanvasTexture(c); _glowSoft.colorSpace = THREE.SRGBColorSpace; return _glowSoft;
 }
 
-export function buildWaifu({ skin = null, team = 'blue', hair = 0xff86c2, eye = 0x5ce1ff, scale = 1.04, helmet = false, angel = true, haloColor = null } = {}) {
+export function buildWaifu({ skin = null, team = 'blue', hair = 0xff86c2, eye = 0x5ce1ff, scale = 1.04, helmet = false, angel = true, haloColor = null, warlock = false } = {}) {
   const mats = makeMats(team, hair, eye);
   if (haloColor != null) mats.halo.color.setHex(haloColor);
   const root = new THREE.Group(); root.rotation.order = 'YXZ';
@@ -316,11 +323,13 @@ export function buildWaifu({ skin = null, team = 'blue', hair = 0xff86c2, eye = 
   rig.setCamo = (k) => {
     if (rig._camo === k) return; rig._camo = k;
     if (rig.sam) angelCamo(rig, k);
+    if (rig.warlock) { rig.warlock.pivot.visible = k === 0; rig.warlock.runes.visible = k === 0; rig.warlock.aura.visible = k === 0; }
     haloGlow.visible = k === 0;
     for (const key of ['body', 'skirt', 'visor', 'face', 'wing', 'halo']) { const m = mats[key]; if (!m) continue; m.transparent = k > 0 || key === 'face' || key === 'wing' || key === 'halo'; m.opacity = key === 'wing' ? (k > 0 ? 0.03 : 0.6) : key === 'halo' ? (k > 0 ? 0.04 : 0.95) : k > 0 ? (k >= 1 ? 0.07 : 0.4) : 1; m.depthWrite = k === 0 && key !== 'wing' && key !== 'halo'; m.needsUpdate = true; }
   };
   rig.setVisible = (v) => { root.visible = v; };
   if (angel && !helmet && angelReady()) attachAngel(rig, { hair, tint: (TEAM[team] || TEAM.blue).glow });
+  if (warlock) addWarlockGear(rig);
   return rig;
 }
 
@@ -328,6 +337,45 @@ const _tr = new THREE.Vector3(), _tl = new THREE.Vector3(), _g = new THREE.Vecto
 const POLE_R = new THREE.Vector3(0.6, -1, 0.3), POLE_L = new THREE.Vector3(-0.6, -1, 0.3);
 
 // s: { speed(m/s), lx, lz (unit move dir in facing frame), grounded, crouch(0..1), pitch, dead, firing(0..1), melee(0..1 progress or 0), throwT(0..1 or 0), reloading, weaponId, hit }
+// warlock silhouette: trailing void cloak, orbiting rune shards, hover-cast orb. Lives on top of whichever body is showing.
+function addWarlockGear(rig) {
+  const W = 0.62, Hh = 1.2, sx = 4, sy = 8;
+  const geo = new THREE.PlaneGeometry(W, Hh, sx, sy); geo.translate(0, -Hh / 2, 0);
+  const col = new Float32Array(geo.attributes.position.count * 3), p = geo.attributes.position, c1 = new THREE.Color(0x5a2fd0), c2 = new THREE.Color(0x120826), gold = new THREE.Color(0xe9cb7c), t = new THREE.Color();
+  for (let i = 0; i < p.count; i++) { const k = -p.getY(i) / Hh; t.copy(c1).lerp(c2, Math.min(1, k * 1.2)); if (k > 0.95) t.copy(gold); col.set([t.r, t.g, t.b], i * 3); }
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  const cape = new THREE.Mesh(geo, new THREE.MeshToonMaterial({ vertexColors: true, gradientMap: toonGradient(), side: THREE.DoubleSide, emissive: 0x2a1466, emissiveIntensity: 0.6 }));
+  cape.frustumCulled = false;
+  const pivot = new THREE.Group(); pivot.position.set(0, 0.27, 0.14); pivot.add(cape); rig.chest.add(pivot);
+  const base = geo.attributes.position.array.slice();
+  const runes = new THREE.Group(); runes.position.y = 1.55; rig.model.add(runes);
+  const rm = new THREE.MeshBasicMaterial({ color: 0xc9a6ff, fog: false });
+  const shards = [];
+  for (let i = 0; i < 3; i++) { const m = new THREE.Mesh(new THREE.OctahedronGeometry(0.075, 0), rm); m.scale.y = 1.9; runes.add(m); shards.push(m); }
+  const orb = makeNovaMesh(); orb.visible = false; orb.position.set(0, 1.9, 0); rig.root.add(orb);
+  const aura = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowSoft(), color: 0x9b6bff, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.32, fog: false }));
+  aura.scale.setScalar(2.1); aura.position.set(0, 1.15, 0.05); rig.model.add(aura);
+  rig.warlock = { aura, pivot, cape, geo, base, runes, shards, orb, t: Math.random() * 9 };
+}
+function animateWarlock(rig, dt, s) {
+  const w = rig.warlock; if (!w) return;
+  w.t += dt;
+  const sp = rig.a.speed, air = rig.a.air, cast = s.cast || 0;
+  w.pivot.rotation.x = 0.06 + sp * 0.35 + air * 0.55 + (s.glide ? 0.5 : 0) + Math.sin(w.t * 2.2) * 0.03;
+  const amp = 0.018 + sp * 0.05 + air * 0.04, pos = w.geo.attributes.position, b = w.base, HH = 1.2;
+  for (let i = 0; i < pos.count; i++) {
+    const y = b[i * 3 + 1], k = -y / HH;
+    pos.array[i * 3 + 2] = b[i * 3 + 2] + Math.sin(w.t * 7 + y * 6 + b[i * 3] * 4) * amp * k * 1.6 + k * k * (0.05 + sp * 0.25);
+  }
+  pos.needsUpdate = true;
+  w.runes.rotation.y += dt * (1.6 + cast * 9);
+  w.shards.forEach((m, i) => { const a = (i / 3) * TAU, r = 0.42 - cast * 0.2; m.position.set(Math.cos(a) * r, Math.sin(w.t * 2 + i * 2) * 0.08 + cast * 0.2, Math.sin(a) * r); m.rotation.y += dt * 3; });
+  // hover-cast: lift off the ground and grow the nova between the hands
+  rig.model.position.y = cast > 0 ? Math.sin(Math.min(1, cast * 1.6) * Math.PI / 2) * 0.45 : rig.model.position.y * 0.85;
+  w.orb.visible = cast > 0 && !s.dead;
+  if (w.orb.visible) { const k = 0.15 + cast * 0.85; w.orb.scale.setScalar(k * 0.62); w.orb.rotation.y += dt * 6; w.orb.rotation.z += dt * 4; w.orb.position.y = 1.55 + cast * 0.45; w.orb.position.z = -0.35; }
+}
+
 export function animateRig(rig, dt, s) {
   const a = rig.a;
   a.t += dt;
@@ -426,6 +474,7 @@ export function animateRig(rig, dt, s) {
     const e = rig.flash * 1.4;
     rig.mats.body.emissive.setRGB(e * 0.8, e * 0.8, e * 0.8);
   } else if (rig.mats.body.emissive.r > 0) { rig.mats.body.emissive.setRGB(0, 0, 0); }
+  if (rig.warlock) animateWarlock(rig, dt, s);
   if (rig.sam) syncAngel(rig, s);
 }
 

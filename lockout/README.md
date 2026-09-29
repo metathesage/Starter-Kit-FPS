@@ -62,6 +62,7 @@ Live URL: `https://<owner>.github.io/<repo>/`.
 | Team Slayer | 4 v 4 | Kills score for the team. First to 15 / 25 / 50. |
 | Rumble Pit | 8 free-for-all | Most kills. First to 15 / 25 / 40. The kill leader wears a crown and is marked for everyone. |
 | Capture the Flag | 4 v 4 | Steal the enemy flag, bring it to your base while yours is home. 3 / 5 / 8 captures. Dropped flags auto-return after 20 s. |
+| Warlock Hunt | 4 v 4 | Asymmetric. Warlocks (red) hold jump to glide, Blink (two charges, `X` / LB) and charge a homing Nova Bomb (`Z` / RB) from time, damage and kills. Spartans (blue) bring the numbers and the full arsenal. Shoot a caster for 55 damage to break the Nova (NOVA BREAKER). 20 / 30 / 50 kills. |
 | Oddball | 4 v 4 | Hold the ball to score one point per second. The carrier is unarmed. 60 / 100 / 150 seconds. |
 
 Pick the mode in Deployment (or the online lobby). Bots play the objectives: CTF bots split into attackers and defenders, Oddball bots escort or hunt the carrier.
@@ -143,6 +144,6 @@ Operators are armored angels (a 7k-triangle SAM 3D model, skinned in code so the
 Setup lets you switch to the classic Spartan-helm body. Real weapon models: see `models/README.md`.
 
 Debug: `?fast` skips splash delays, `?touch` forces touch controls, `?peerhost=localhost&peerport=9000&peerpath=/` uses a local PeerJS server, `?fps` shows an FPS counter (or F3), `?quick` skips splash and drops straight into a match,
-`?quick&bot` lets the AI play for you, `?mode=slayer|rumble|ctf|oddball` and `?map=lockout|cryostat` preselect.
+`?quick&bot` lets the AI play for you, `?mode=slayer|rumble|hunt|ctf|oddball` (`&team=red|blue`) and `?map=lockout|cryostat` preselect.
 
 A fan tribute. Not affiliated with or endorsed by any publisher.

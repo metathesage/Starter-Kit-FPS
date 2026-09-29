@@ -37,6 +37,8 @@ export const ICONS = {
   camo: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z M12 3v18 M3 12h18 M6 6l12 12',
   boost: 'M13 2L5 14h6l-1 8 8-12h-6z',
   overshield: 'M12 2l8 3v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5z M12 7v10 M8 11h8',
+  nova: 'M12 2l2.2 6.6L21 12l-6.800 3.400L12 22l-2.200-6.600L3 12l6.800-3.400z M12 8.500a3.500 3.500 0 1 0 0 7 3.500 3.500 0 0 0 0-7z',
+  blink: 'M3 7l5 5-5 5 M10 7l5 5-5 5 M18 5v14',
   skull: 'M12 3a7 7 0 0 0-7 7c0 3 1 4 3 5v4h8v-4c2-1 3-2 3-5a7 7 0 0 0-7-7z M9 11h2 M13 11h2 M11 16v2 M13 16v2',
 };
 
@@ -267,6 +269,26 @@ export function makeGrenadeMesh(kind) {
 export function makeRocketMesh() {
   const g = new THREE.Group();
   g.add(C(0.07, 0.07, 0.5, olive(), 0, 0, 0), C(0.0, 0.07, 0.16, dark(), 0, 0, -0.33), C(0.06, 0.05, 0.05, glow(0xff7a3a), 0, 0, 0.27));
+  return g;
+}
+// nova bomb projectile: white-violet core, two tilted rings, soft void shell
+let _novaGlow = null;
+export function makeNovaMesh() {
+  const g = new THREE.Group();
+  g.add(new THREE.Mesh(new THREE.IcosahedronGeometry(0.42, 2), new THREE.MeshBasicMaterial({ color: 0xf3e8ff })));
+  const shell = new THREE.Mesh(new THREE.IcosahedronGeometry(0.78, 2), new THREE.MeshBasicMaterial({ color: 0x8a4dff, transparent: true, opacity: 0.38, blending: THREE.AdditiveBlending, depthWrite: false }));
+  g.add(shell);
+  for (const [rx, rz] of [[1.2, 0], [0.3, 1.1]]) {
+    const r = new THREE.Mesh(new THREE.TorusGeometry(0.98, 0.035, 6, 36), new THREE.MeshBasicMaterial({ color: 0xc8a4ff, fog: false }));
+    r.rotation.set(rx, 0, rz); g.add(r);
+  }
+  if (!_novaGlow && typeof document !== 'undefined') {
+    const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d');
+    const gr = x.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.3, 'rgba(170,110,255,.55)'); gr.addColorStop(1, 'rgba(120,60,255,0)');
+    x.fillStyle = gr; x.fillRect(0, 0, 64, 64); _novaGlow = new THREE.CanvasTexture(c);
+  }
+  if (_novaGlow) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: _novaGlow, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, fog: false })); sp.scale.setScalar(4.2); g.add(sp); }
+  g.userData.shell = shell;
   return g;
 }
 void _cache;

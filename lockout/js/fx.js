@@ -53,6 +53,12 @@ export class FX {
       const m = new THREE.Mesh(new THREE.IcosahedronGeometry(1, 1), new THREE.MeshBasicMaterial({ color: 0xffb060, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }));
       m.visible = false; scene.add(m); this.boom.push({ m, t: 0, R: 1 });
     }
+    // void shells (nova bomb)
+    this.void = [];
+    for (let i = 0; i < 2; i++) {
+      const m = new THREE.Mesh(new THREE.IcosahedronGeometry(1, 2), new THREE.MeshBasicMaterial({ color: i ? 0xf0e0ff : 0x8a4dff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+      m.visible = false; m.frustumCulled = false; scene.add(m); this.void.push({ m, t: 0, R: 1, dur: i ? 0.7 : 1.1 });
+    }
     // muzzle sprites
     this.flashTex = glowTex();
     this.flashes = [];
@@ -128,6 +134,30 @@ export class FX {
     t.m.material.color.setHex(color); t.t = t.dur = dur; t.m.visible = true; t.m.material.opacity = 0.9;
   }
 
+  // nova bomb detonation: expanding void shells, an upward column, a ring of embers
+  nova(x, y, z, R = 8) {
+    for (const v of this.void) { v.m.position.set(x, y, z); v.t = 0.001; v.R = R; v.m.visible = true; }
+    for (let i = 0; i < 90; i++) {
+      const a = rand(0, 6.28), s = rand(4, R * 2.2);
+      this.emit(x, y + 0.3, z, Math.cos(a) * s, rand(0, 5), Math.sin(a) * s, rand(0.6, 1.5), rand(0.5, 1.4), 0.05, 0.62, 0.32, 1, 1, 1.5);
+    }
+    for (let i = 0; i < 40; i++) this.emit(x + rand(-1, 1), y + rand(0, 1), z + rand(-1, 1), rand(-1, 1), rand(4, 16), rand(-1, 1), rand(0.7, 1.6), rand(0.4, 1), 0.05, 0.9, 0.75, 1, 1, 0);
+    this.emit(x, y + 0.5, z, 0, 0, 0, 0.35, R * 1.6, R * 0.3, 0.75, 0.55, 1, 1, 0);
+    this.light(x, y + 1, z, 0x9b6bff, 90, 0.9, R * 5);
+  }
+  // blink trail: streak of motes along the jump path, flares at both ends
+  blink(x, y, z, tx, ty, tz) {
+    const n = 26;
+    for (let i = 0; i <= n; i++) {
+      const k = i / n, px = x + (tx - x) * k, py = y + (ty - y) * k + 1, pz = z + (tz - z) * k;
+      this.emit(px, py + rand(-0.5, 0.5), pz, rand(-0.5, 0.5), rand(0, 1.2), rand(-0.5, 0.5), rand(0.25, 0.6), rand(0.25, 0.5), 0.02, 0.7, 0.45, 1, 1, 0);
+    }
+    for (const [ex, ey, ez] of [[x, y, z], [tx, ty, tz]]) {
+      for (let i = 0; i < 16; i++) { const a = rand(0, 6.28), s = rand(1, 4); this.emit(ex, ey + 1, ez, Math.cos(a) * s, rand(-1, 3), Math.sin(a) * s, rand(0.3, 0.7), rand(0.3, 0.7), 0.03, 0.85, 0.65, 1, 1, 0); }
+      this.emit(ex, ey + 1, ez, 0, 0, 0, 0.2, 2.4, 0.4, 0.8, 0.6, 1, 1, 0);
+    }
+    this.light(tx, ty + 1, tz, 0xa07bff, 20, 0.25, 9);
+  }
   light(x, y, z, color, intensity, dur, dist = 14) {
     const L = this.lights.find((q) => q.t <= 0) || this.lights[0];
     L.l.position.set(x, y, z); L.l.color.setHex(color); L.l.distance = dist; L.i0 = intensity; L.t = L.dur = dur; L.l.intensity = intensity;
@@ -175,6 +205,12 @@ export class FX {
       if (k >= 1) { b.t = 0; b.m.visible = false; continue; }
       b.m.scale.setScalar(b.R * (0.3 + 0.7 * (1 - Math.pow(1 - k, 3))) * 0.55);
       b.m.material.opacity = (1 - k) * 0.55;
+    }
+    for (const v of this.void) if (v.t > 0) {
+      v.t += dt; const k = v.t / v.dur;
+      if (k >= 1) { v.t = 0; v.m.visible = false; continue; }
+      v.m.scale.setScalar(v.R * (1 - Math.pow(1 - k, 3)) * (v.dur > 0.9 ? 1 : 0.7));
+      v.m.material.opacity = Math.pow(1 - k, 1.5) * (v.dur > 0.9 ? 0.4 : 0.6);
     }
     let dirty = false;
     for (let i = 0; i < this.DN; i++) {

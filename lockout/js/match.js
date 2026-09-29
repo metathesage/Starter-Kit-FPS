@@ -1,8 +1,8 @@
 // Match engine: actors, movement, weapons, projectiles, damage, medals, pickups, rules.
 import * as THREE from 'three';
 import * as W from './world.js';
-import { WEAPONS, makeWeaponMesh, makeGrenadeMesh, makeRocketMesh } from './weapons.js';
-import { buildWaifu, animateRig, disposeRig, BOT_STYLES, TEAM } from './rig.js';
+import { WEAPONS, makeWeaponMesh, makeGrenadeMesh, makeRocketMesh, makeNovaMesh } from './weapons.js';
+import { buildWaifu, animateRig, disposeRig, BOT_STYLES, TEAM, setHuntTeams } from './rig.js';
 import { MODES, P_TEAMS, Objectives } from './modes.js';
 import { Sound } from './audio.js';
 import { Bus, clamp, rand, pick, forward, lerp, damp, angDiff } from './util.js';
@@ -11,6 +11,8 @@ import { Brain } from './bots.js';
 export const EYE_STAND = 1.62, EYE_CROUCH = 1.15, H_STAND = 1.78, H_CROUCH = 1.3, RAD = 0.4;
 const RUN = 5.4, CROUCH_SPEED = 2.6, GRAV = 21, JUMP = 7.4;
 const SHIELD_MAX = 100, HEALTH_MAX = 45, RECHARGE_DELAY = 4.6, RECHARGE_RATE = 30;
+// warlock kit
+const BLINK_DIST = 9.5, BLINK_CD = 4.2, BLINK_MAX = 2, NOVA_WIND = 1.05, NOVA_SPEED = 15, NOVA_R = 8.5, NOVA_DMG = 230, SUPER_RATE = 1 / 70, GLIDE_FALL = -2.3;
 const _f = { x: 0, y: 0, z: 0 };
 const dead0 = (v) => v.health <= 0;
 export const POWER = new Set(['overshield', 'camo', 'boost']);
@@ -34,10 +36,12 @@ const PERFECT_W = new Map([['br', 4], ['carbine', 5], ['magnum', 3], ['sniper', 
 export class Actor {
   constructor(match, { name, team, style, isPlayer = false, id = null, remote = null, helmet }) {
     this.m = match; this.id = id ?? _uid++; if (id !== null && id >= _uid) _uid = id + 1; this.remote = remote; this.netT = null; this.spawnSeq = 0; this.name = name; this.team = team; this.isPlayer = isPlayer; this.style = style;
-    this.rig = buildWaifu({ team, hair: style.hair, eye: style.eye, helmet: helmet ?? (isPlayer ? match.cfg.helmet === true : false), haloColor: isPlayer ? match.cfg.haloColor : undefined, skin: isPlayer ? match.cfg.skinTint : null });
+    this.cls = match.hunt && team === 'red' ? 'warlock' : 'spartan';
+    this.blinkCh = BLINK_MAX; this.blinkT = 0; this.sup = 0.3; this.novaT = 0; this.castDmg = 0; this.glide = false;
+    this.rig = buildWaifu({ warlock: this.cls === 'warlock', team, hair: style.hair, eye: style.eye, helmet: helmet ?? (isPlayer ? match.cfg.helmet === true : false), haloColor: isPlayer ? match.cfg.haloColor : undefined, skin: isPlayer ? match.cfg.skinTint : null });
     this.rig.root.visible = false;
     match.scene.add(this.rig.root);
-    this.cmd = { mx: 0, mz: 0, fire: false, fireEdge: false, zoom: false, jump: false, crouch: false, melee: false, grenade: false, reload: false, swap: false, use: false, gswitch: false };
+    this.cmd = { mx: 0, mz: 0, fire: false, fireEdge: false, zoom: false, jump: false, crouch: false, melee: false, grenade: false, reload: false, swap: false, use: false, gswitch: false, blink: false, nova: false };
     this.kills = 0; this.deaths = 0; this.assists = 0; this.streak = 0; this.medals = {}; this.lastKiller = -1; this.multiT = -99; this.multi = 0;
     this.alive = false; this.deadT = 0; this.respawnAt = 0;
     this.x = 0; this.y = 0; this.z = 0; this.vx = 0; this.vy = 0; this.vz = 0; this.yaw = 0; this.pitch = 0;
@@ -62,8 +66,10 @@ export class Actor {
     this.vx = this.vy = this.vz = 0; this.grounded = true; this.crouch = 0; this.h = H_STAND;
     this.alive = true; this.deadT = 0;
     this.shield = SHIELD_MAX; this.health = HEALTH_MAX; this.over = 0; this.overT = 0; this.camoT = 0; this.boostT = 0;
-    this.weapons = this.m.startWeapons(); this.cur = 0;
-    this.gren = { frag: 2, plasma: 2 }; this.gtype = 'frag';
+    this.weapons = this.m.startWeapons(this); this.cur = 0;
+    const wl = this.cls === 'warlock';
+    this.gren = wl ? { frag: 0, plasma: 0 } : { frag: 2, plasma: 2 }; this.gtype = 'frag';
+    this.blinkCh = BLINK_MAX; this.blinkT = 0; this.novaT = 0; this.castDmg = 0; this.glide = false; if (wl) this.sup = Math.min(this.sup, 0.35);
     this.resetTimers(); this.spawnProt = 2.2; this.dmgBy.clear();
     this.spawnSeq++; this.netT = null; this.carry = null; this.pf = null;
     this.rig.root.visible = !this.isPlayer || this.m.thirdPerson;
@@ -113,6 +119,7 @@ export class Actor {
     this.lastHit += dt;
     this.lungeCd = Math.max(0, this.lungeCd - dt);
     this.gcd = Math.max(0, this.gcd - dt);
+    if (this.cls === 'warlock' && this.sup < 1) { this.sup = Math.min(1, this.sup + dt * SUPER_RATE); if (this.sup >= 1 && this.isPlayer) { this.m.bus.emit('announce', 'NOVA BOMB READY', this.team); Sound.play('power', { vol: 0.7 }); } }
     this.bloom = Math.max(0, this.bloom - dt * 0.05);
     if (this.overT > 0) {
       this.overT -= dt;
@@ -140,8 +147,11 @@ export class Actor {
     if (this.zoomLevel > 0) spd *= 0.65;
     if (this.carry === 'flag') spd *= 0.94;
     if (this.reloadT > 0 && this.def && (this.def.id === 'sniper')) spd *= 0.85;
+    if (this.cls === 'warlock') this.abilities(dt, frozen);
+    if (this.glide) spd *= 1.12;
     let wx = frozen ? 0 : c.mx * spd, wz = frozen ? 0 : c.mz * spd;
-    if (this.lunge) { wx = wz = 0; }
+    if (this.lunge || this.novaT > 0) { wx = wz = 0; }
+    if (this.novaT > 0 && !this.grounded) this.vy = 0;
     if (c.jump && this.grounded && !frozen) { this.vy = JUMP; this.grounded = false; if (this.isPlayer) Sound.play('jump', { vol: 0.5 }); }
     this.physics(dt, wx, wz, false);
     this.separate();
@@ -164,6 +174,50 @@ export class Actor {
 
   }
 
+  // ---- warlock kit: glide, blink, nova bomb -------------------------------------------
+  abilities(dt, frozen) {
+    const c = this.cmd;
+    if (this.blinkCh < BLINK_MAX) { this.blinkT += dt; if (this.blinkT >= BLINK_CD) { this.blinkT = 0; this.blinkCh++; } } else this.blinkT = 0;
+    this.glide = !frozen && this.alive && !this.grounded && c.jump && this.vy < 0.4 && this.novaT <= 0;
+    if (c.blink && !frozen && this.blinkCh > 0 && this.novaT <= 0 && this.alive) this.doBlink();
+  }
+
+  doBlink() {
+    const c = this.cmd, m = this.m;
+    let dx = c.mx, dz = c.mz; const l = Math.hypot(dx, dz);
+    if (l < 0.15) { dx = -Math.sin(this.yaw); dz = -Math.cos(this.yaw); } else { dx /= l; dz /= l; }
+    const ox = this.x, oy = this.y, oz = this.z, step = 0.4;
+    let d = 0;
+    while (d < BLINK_DIST) {
+      const nx = this.x + dx * step, nz = this.z + dz * step;
+      if (W.blocked(nx, nz, this.y, RAD, this.h)) break;
+      this.x = nx; this.z = nz; d += step;
+      if (this.grounded) { const g = W.groundAt(this.x, this.z, this.y); if (g >= this.y - W.STEP * 1.1) this.y = g; else this.grounded = false; }
+    }
+    if (d < 1.2) { this.x = ox; this.y = oy; this.z = oz; this.grounded = true; return false; }
+    this.blinkCh--; this.blinkT = 0;
+    this.vx = dx * 7; this.vz = dz * 7; if (!this.grounded) this.vy = Math.max(this.vy, 1.5);
+    m.fx.blink(ox, oy, oz, this.x, this.y, this.z);
+    m.sfx('blink', this, 0.9);
+    m.bus.emit('blink', this);
+    return true;
+  }
+
+  // host-side cast state machine: returns true while the warlock is busy casting
+  novaUpdate(dt) {
+    const c = this.cmd, m = this.m;
+    if (this.novaT > 0) {
+      this.novaT -= dt;
+      if (this.novaT <= 0) { this.novaT = 0; m.launchNova(this); }
+    } else if (c.nova && this.sup >= 1 && m.state === 'live') {
+      this.sup = 0; this.novaT = NOVA_WIND; this.castDmg = 0; this.zoomLevel = 0; this.reloadT = 0; this.burstLeft = 0;
+      m.sfx('novaCharge', this, 1.3);
+      m.bus.emit('announce', this.isPlayer ? 'NOVA BOMB CHARGING' : `${this.name} IS CASTING A NOVA BOMB`, this.team);
+    }
+    c.nova = false;
+    return this.novaT > 0;
+  }
+
   updateRemote(dt) {
     const m = this.m;
     if (!this.alive) {
@@ -172,6 +226,7 @@ export class Actor {
     }
     this.tickVitals(dt);
     const T = this.netT;
+    if (T && this.cmd.blink && this.cls === 'warlock') { m.fx.blink(this.x, this.y, this.z, T.x, T.y, T.z); m.sfx('blink', this, 0.9); this.x = T.x; this.y = T.y; this.z = T.z; this.cmd.blink = false; }
     if (T) {
       const k = 1 - Math.exp(-18 * dt);
       this.x += (T.x - this.x) * k; this.y += (T.y - this.y) * k; this.z += (T.z - this.z) * k;
@@ -211,7 +266,7 @@ export class Actor {
   }
 
   physics(dt, wx, wz, dead) {
-    const acc = dead ? 20 : this.grounded ? 58 : 7;
+    const acc = dead ? 20 : this.grounded ? 58 : this.glide ? 17 : 7;
     this.vx += clamp(wx - this.vx, -acc * dt, acc * dt);
     this.vz += clamp(wz - this.vz, -acc * dt, acc * dt);
     if (this.lunge) this.lungeStep(dt);
@@ -226,6 +281,7 @@ export class Actor {
     }
     if (!this.grounded) {
       this.vy -= GRAV * (this.m.variant === 'lowgrav' ? 0.42 : 1) * dt;
+      if (this.glide && this.vy < GLIDE_FALL) this.vy += (GLIDE_FALL - this.vy) * Math.min(1, dt * 12);
       let ny = this.y + this.vy * dt;
       if (this.vy > 0) {
         const cl = W.ceilingBetween(this.x, this.z, this.y + h, ny + h);
@@ -263,6 +319,7 @@ export class Actor {
     if (this.meleeT > 0) this.meleeT -= dt;
     if (this.throwT > 0) this.throwT -= dt;
     this.kick = damp(this.kick, 0, 14, dt);
+    if (this.cls === 'warlock' && this.novaUpdate(dt)) { c.fire = false; c.fireEdge = false; c.melee = false; return; }
 
     // pending hits (melee) and throws
     if (this.pend) { this.pend.t -= dt; if (this.pend.t <= 0) { this.resolveMelee(this.pend); this.pend = null; } }
@@ -387,7 +444,7 @@ export class Actor {
     animateRig(this.rig, dt, {
       speed, lx, lz, grounded: this.grounded, crouch: this.crouch, pitch: this.pitch, dead: !this.alive,
       weaponId: w ? w.id : null, firing: this.kick, melee: this.meleeT > 0 ? 1 - this.meleeT / 0.5 : 0,
-      throwT: this.throwT > 0 ? 1 - this.throwT / 0.55 : 0, reloading: this.reloadT > 0, camo: this.camoT > 0 && !this.isPlayer ? 1 : this.camoT > 0 ? 0.5 : 0, boost: this.boostT > 0,
+      cast: this.novaT > 0 ? clamp(1 - this.novaT / NOVA_WIND, 0, 1) : 0, glide: this.glide, throwT: this.throwT > 0 ? 1 - this.throwT / 0.55 : 0, reloading: this.reloadT > 0, camo: this.camoT > 0 && !this.isPlayer ? 1 : this.camoT > 0 ? 0.5 : 0, boost: this.boostT > 0,
     });
     this.rig.root.position.set(this.x, this.y, this.z);
     this.rig.root.rotation.y = yaw;
@@ -426,7 +483,7 @@ export class Match {
     this.diff = DIFFICULTY[cfg.difficulty] || DIFFICULTY.normal;
     this.actors = []; this.projs = []; this.pickups = [];
     this.variant = cfg.variant || 'standard';
-    this.mode = MODES[cfg.mode] ? cfg.mode : 'slayer'; this.ffa = this.mode === 'rumble'; this.teams = this.ffa ? P_TEAMS : ['red', 'blue'];
+    this.mode = MODES[cfg.mode] ? cfg.mode : 'slayer'; this.hunt = !!MODES[this.mode].hunt; setHuntTeams(this.hunt); this.ffa = this.mode === 'rumble'; this.teams = this.ffa ? P_TEAMS : ['red', 'blue'];
     this.time = 0; this.state = 'countdown'; this.count = 3.99; this.limit = cfg.limit || MODES[this.mode].limits[1]; this.timeLimit = (cfg.minutes || 12) * 60; this.clock = this.timeLimit;
     this.score = {}; for (const t of this.teams) this.score[t] = 0;
     this.leader = null; this.obj = null; this.thirdPerson = false; this.winner = null; this.endT = 0; this.firstBlood = false;
@@ -479,12 +536,13 @@ export class Match {
   }
 
   // variant loadouts
-  startWeapons() {
+  startWeapons(a) {
     const slot = (id) => ({ id, mag: WEAPONS[id].mag, res: WEAPONS[id].reserve });
     const v = this.variant;
     if (v === 'snipers') return [slot('sniper')];
     if (v === 'swords') return [slot('sword'), slot('magnum')];
     if (v === 'fiesta') { const ids = ['br', 'magnum', 'smg', 'shotgun', 'sniper', 'rocket', 'carbine', 'plasmarifle', 'needler', 'sword', 'hammer']; return [slot(ids[(Math.random() * ids.length) | 0])]; }
+    if (a && a.cls === 'warlock') return [slot('smg'), slot('magnum')];
     return [slot('br')];
   }
   foe(a, b) { return a !== b && (this.ffa || a.team !== b.team); }
@@ -662,9 +720,16 @@ export class Match {
     this.projs.push(p);
   }
 
+  launchNova(a) {
+    const f = forward(a.yaw, a.pitch, { x: 0, y: 0, z: 0 });
+    const p = { type: 'nova', x: a.x + f.x * 0.9, y: a.eye - 0.05 + f.y * 0.9, z: a.z + f.z * 0.9, vx: f.x * NOVA_SPEED, vy: f.y * NOVA_SPEED, vz: f.z * NOVA_SPEED, owner: a, uid: ++this.puid, life: 7, mesh: makeNovaMesh(), alive: true, radius: NOVA_R, dmg: NOVA_DMG };
+    p.mesh.position.set(p.x, p.y, p.z); this.pgroup.add(p.mesh); this.projs.push(p);
+    this.sfx('novaLaunch', a, 1.3); this.bus.emit('shake', 0.25);
+  }
+
   explode(x, y, z, R, dmg, owner, weapon, direct = null) {
-    this.fx.explosion(x, y, z, R);
-    this.sfx('explode', { x, y, z }, 1.4);
+    if (weapon === 'nova') this.fx.nova(x, y, z, R); else this.fx.explosion(x, y, z, R);
+    this.sfx(weapon === 'nova' ? 'novaBoom' : 'explode', { x, y, z }, 1.4);
     this.bus.emit('explosion', { x, y, z }, R);
     const pl = this.player;
     const dp = Math.hypot(pl.x - x, pl.y - y, pl.z - z);
@@ -679,7 +744,7 @@ export class Match {
       let k = 1 - d / R;
       let dm = dmg * (0.2 + 0.8 * k);
       if (direct === o) dm = dmg;
-      if (o === owner) dm *= 0.55;
+      if (o === owner) dm *= weapon === 'nova' ? 0.08 : 0.55;
       const dx = cx - x, dz = cz - z, dl = Math.hypot(dx, cy - y, dz) || 1;
       this.damage(o, dm, { attacker: owner, weapon, kind: weapon, explosion: true, dir: { x: dx / dl, y: (cy - y) / dl, z: dz / dl }, point: { x: cx, y: cy, z: cz }, self: o === owner });
       const imp = (0.35 + k) * 11;
@@ -709,6 +774,35 @@ export class Match {
         this.fx.emit(p.x, p.y, p.z, rand(-0.4, 0.4), rand(-0.4, 0.4), rand(-0.4, 0.4), 0.45, 0.32, 0.06, 1, 0.6, 0.25, 0.9, 0);
         p.mesh.position.set(p.x, p.y, p.z); p.mesh.lookAt(p.x + p.vx, p.y + p.vy, p.z + p.vz);
         if (boom || p.life <= 0) { p.alive = false; this.explode(p.x, p.y, p.z, p.radius, p.dmg, p.owner, 'rocket', direct); }
+        continue;
+      }
+      if (p.type === 'nova') {
+        const sp = Math.hypot(p.vx, p.vy, p.vz) || 1;
+        let best = null, bd = 1e9;
+        for (const o of this.actors) {
+          if (!o.alive || !this.foe(p.owner, o)) continue;
+          const dx = o.x - p.x, dy = o.chest - p.y, dz = o.z - p.z, d = Math.hypot(dx, dy, dz);
+          if (d > 34 || (dx * p.vx + dy * p.vy + dz * p.vz) / (d * sp) < 0.55 || d >= bd) continue;
+          bd = d; best = o;
+        }
+        if (best) {
+          const k = Math.min(1, dt * 1.7), dx = best.x - p.x, dy = best.chest - p.y, dz = best.z - p.z, d = Math.hypot(dx, dy, dz) || 1;
+          p.vx += ((dx / d) * NOVA_SPEED - p.vx) * k; p.vy += ((dy / d) * NOVA_SPEED - p.vy) * k; p.vz += ((dz / d) * NOVA_SPEED - p.vz) * k;
+          const n = NOVA_SPEED / (Math.hypot(p.vx, p.vy, p.vz) || 1); p.vx *= n; p.vy *= n; p.vz *= n;
+        }
+        const steps = Math.ceil((NOVA_SPEED * dt) / 0.4), sdt = dt / steps;
+        let boom = false, direct = null;
+        for (let s = 0; s < steps && !boom; s++) {
+          p.x += p.vx * sdt; p.y += p.vy * sdt; p.z += p.vz * sdt;
+          if (W.pointSolid(p.x, p.y, p.z)) { boom = true; break; }
+          for (const o of this.actors) {
+            if (!o.alive || !this.foe(p.owner, o)) continue;
+            if (Math.abs(p.x - o.x) < 0.9 && Math.abs(p.z - o.z) < 0.9 && p.y > o.y - 0.3 && p.y < o.y + o.h + 0.3) { boom = true; direct = o; break; }
+          }
+        }
+        for (let i = 0; i < 3; i++) this.fx.emit(p.x + rand(-0.4, 0.4), p.y + rand(-0.4, 0.4), p.z + rand(-0.4, 0.4), rand(-0.8, 0.8), rand(-0.8, 0.8), rand(-0.8, 0.8), 0.55, 0.55, 0.05, 0.6, 0.35, 1, 0.9, 0);
+        p.mesh.position.set(p.x, p.y, p.z); p.mesh.rotation.y += dt * 5; p.mesh.rotation.x += dt * 3;
+        if (boom || p.life <= 0) { p.alive = false; this.explode(p.x, p.y, p.z, p.radius, p.dmg, p.owner, 'nova', direct); }
         continue;
       }
       // grenades
@@ -763,6 +857,12 @@ export class Match {
     if (a && a !== v && !this.foe(a, v)) return 0;
     if (a && a.brain && v.isPlayer && !info.explosion) amt *= this.diff.dmgIn;
     if (a && a !== v && a.boostT > 0) amt *= 2;
+    if (v.cls === 'warlock' && a !== v) amt *= 1.1;
+    if (a && a !== v && a.cls === 'warlock' && !info.explosion) a.sup = Math.min(1, a.sup + amt * 0.0009);
+    if (v.novaT > 0 && a && a !== v && this.foe(a, v)) {
+      v.castDmg += amt;
+      if (v.castDmg >= 55) { v.novaT = 0; v.sup = 0.5; v.castDmg = 0; this.sfx('shieldBreak', v, 1.1); a.medals['NOVA BREAKER'] = (a.medals['NOVA BREAKER'] || 0) + 1; this.bus.emit('medal', a, 'NOVA BREAKER', 'shield'); this.bus.emit('announce', v.isPlayer ? 'NOVA BOMB INTERRUPTED' : `${v.name}'S NOVA BOMB BROKEN`, a.team); }
+    }
     const wasShield = v.shield > 0;
     v.lastHit = 0;
     let rem = amt;
@@ -790,7 +890,7 @@ export class Match {
   kill(v, a, info) {
     v.alive = false; v.deadT = 0; v.deaths++; v.streak = 0;
     v.respawnAt = this.time + (v.isPlayer ? 4 : 3);
-    v.zoomLevel = 0; v.burstLeft = 0; v.lunge = null; v.pend = null; v.pendThrow = null;
+    v.novaT = 0; v.glide = false; v.zoomLevel = 0; v.burstLeft = 0; v.lunge = null; v.pend = null; v.pendThrow = null;
     v.dropCurrent();
     if (v.weapons[1 - v.cur] && v.weapons.length > 1) { const w = v.weapons[1 - v.cur]; this.addPickup({ id: w.id, x: v.x + 0.5, y: v.y, z: v.z, t: 0, dropped: true, ammo: [w.mag, w.res] }); }
     v.weapons = [];
@@ -800,11 +900,12 @@ export class Match {
     const suicide = !a || a === v;
     const wid = info.weapon || 'melee';
     const rec = { killer: suicide ? null : a, victim: v, weapon: wid, head: !!info.head, kind: info.kind, suicide, t: this.time };
-    const scoring = this.mode === 'slayer' || this.ffa;
+    const scoring = this.mode === 'slayer' || this.hunt || this.ffa;
     if (this.obj) this.obj.onDeath(v, a);
     if (suicide) { if (scoring) this.score[v.team] = Math.max(0, this.score[v.team] - 1); }
     else {
       a.kills++; a.streak++; if (scoring) this.score[a.team]++;
+      if (a.cls === 'warlock' && wid !== 'nova') a.sup = Math.min(1, a.sup + 0.2);
       v.lastKiller = a.id;
       // assists
       for (const [id, t] of v.dmgBy) { if (id === a.id || this.time - t > 6) continue; const s = this.actors.find((x) => x.id === id); if (s && !this.ffa && s.team === a.team) s.assists++; }
@@ -844,6 +945,7 @@ export class Match {
     if (wid === 'sword') M('SWORD KILL', 'blade');
     if (wid === 'hammer') M('HAMMER TIME', 'fist');
     if (wid === 'frag' || wid === 'plasma') M('GRENADE KILL', 'grenade');
+    if (wid === 'nova') M('NOVA BOMB', 'burst');
     if (wid === 'sniper') M('SNIPER KILL', 'crosshair');
     if (wid === 'rocket') M('ROCKET KILL', 'rocket');
     if (a.lastKiller === v.id) { M('REVENGE', 'skull'); a.lastKiller = -1; }
@@ -865,7 +967,7 @@ export class Match {
     const lead = red === blue ? 'tied' : red > blue ? 'red' : 'blue';
     if (lead !== this.lead && this.state === 'live') {
       const first = this.lead === null; this.lead = lead;
-      if (!first) this.bus.emit('announce', lead === 'tied' ? 'TEAMS TIED' : `${TEAM[lead].name} TEAM TAKES THE LEAD`, lead === 'tied' ? null : lead);
+      if (!first) this.bus.emit('announce', lead === 'tied' ? 'TEAMS TIED' : `${TEAM[lead].name}${this.hunt ? '' : ' TEAM'} TAKE${this.hunt ? '' : 'S'} THE LEAD`, lead === 'tied' ? null : lead);
     }
     const left = this.limit - Math.max(red, blue), unit = { slayer: 'KILL', ctf: 'CAPTURE', oddball: 'SECOND' }[this.mode] || 'POINT';
     const warnAt = this.mode === 'oddball' ? 10 : this.mode === 'ctf' ? 1 : 3;
@@ -912,7 +1014,7 @@ export class Match {
     const live = this.state === 'live';
     for (const a of this.actors) {
       if (a.brain && a.alive && live) a.brain.update(dt);
-      else if (a.brain) { a.cmd.mx = a.cmd.mz = 0; a.cmd.fire = a.cmd.fireEdge = a.cmd.jump = a.cmd.melee = a.cmd.grenade = a.cmd.reload = a.cmd.swap = a.cmd.zoom = false; }
+      else if (a.brain) { a.cmd.mx = a.cmd.mz = 0; a.cmd.fire = a.cmd.fireEdge = a.cmd.jump = a.cmd.melee = a.cmd.grenade = a.cmd.reload = a.cmd.swap = a.cmd.zoom = a.cmd.blink = a.cmd.nova = false; }
       if (this.state === 'countdown') { a.cmd.fire = false; }
       a.update(dt);
       if (live && a.alive) {
@@ -923,7 +1025,7 @@ export class Match {
         }
       }
       if (!a.alive && live && this.time >= a.respawnAt) a.spawn(this.spawnPoint(a));
-      a.cmd.fireEdge = false; a.cmd.jump = false; a.cmd.melee = false; a.cmd.grenade = false; a.cmd.reload = false; a.cmd.swap = false; a.cmd.use = false; a.cmd.gswitch = false; a.cmd.zoom = false;
+      a.cmd.fireEdge = false; a.cmd.jump = false; a.cmd.melee = false; a.cmd.grenade = false; a.cmd.reload = false; a.cmd.swap = false; a.cmd.use = false; a.cmd.gswitch = false; a.cmd.zoom = false; a.cmd.blink = false;
     }
     if (this.obj) this.obj.update(dt, live);
     this.updateProjectiles(dt);
@@ -964,7 +1066,7 @@ export class Match {
     this.hosting = true;
     const fx = this.fx, cp = (v) => (v && typeof v === 'object' && 'x' in v ? { x: +v.x.toFixed(2), y: +v.y.toFixed(2), z: +v.z.toFixed(2) } : typeof v === 'number' ? +v.toFixed(3) : v);
     fx._o ||= {};
-    for (const m of ['flash', 'tracer', 'sparks', 'dust', 'blood', 'explosion', 'light', 'decal', 'eject']) {
+    for (const m of ['flash', 'tracer', 'sparks', 'dust', 'blood', 'explosion', 'light', 'decal', 'eject', 'nova', 'blink']) {
       fx._o[m] ||= fx[m].bind(fx);
       fx[m] = (...a) => { fx._o[m](...a); if (this.hosting) this.ev.push(['f', m, ...a.map(cp)]); };
     }
@@ -1007,7 +1109,7 @@ export class Match {
         i: a.id, x: r2(a.x), y: r2(a.y), z: r2(a.z), yw: r2(a.yaw), pt: r2(a.pitch), vx: r2(a.vx), vz: r2(a.vz), al: a.alive ? 1 : 0, cr: r2(a.crouch), g: a.grounded ? 1 : 0,
         sh: Math.round(a.shield), hp: Math.round(a.health), ov: Math.round(a.over), cu: a.cur, w: a.weapons.map((w) => [w.id, w.mag, w.res]),
         g1: a.gren.frag, g2: a.gren.plasma, gt: a.gtype === 'frag' ? 0 : 1, k: a.kills, d: a.deaths, as: a.assists, st: a.streak,
-        mt: r2(a.meleeT), tt: r2(a.throwT), rt: r2(a.reloadT), sw: r2(a.swapT), zl: a.zoomLevel, sq: a.spawnSeq, ra: r2(Math.max(0, a.respawnAt - this.time)), lm: r2(a.lastMoveSpeed), lf: r2(this.time - a.lastFireT), ot: r2(a.overT), cm: r2(a.camoT), bt: r2(a.boostT),
+        mt: r2(a.meleeT), tt: r2(a.throwT), rt: r2(a.reloadT), sw: r2(a.swapT), zl: a.zoomLevel, sq: a.spawnSeq, ra: r2(Math.max(0, a.respawnAt - this.time)), lm: r2(a.lastMoveSpeed), lf: r2(this.time - a.lastFireT), sp: r2(a.sup), nv: r2(a.novaT), ot: r2(a.overT), cm: r2(a.camoT), bt: r2(a.boostT),
       })),
       pk: this.pickups.slice(0, this.nStatic || W.PICKUPS.length).map((p) => (p.active ? 1 : 0)),
       dr: this.pickups.filter((p) => p.dropped).map((p) => ({ u: p.uid, id: p.id, x: r2(p.mesh.position.x), y: r2(p.mesh.position.y), z: r2(p.mesh.position.z), a: p.ammo })),
@@ -1022,7 +1124,7 @@ export class Match {
     const c = a.cmd, e = k.e | 0;
     c.fire = !!k.f;
     if (e & 1) c.fireEdge = true; if (e & 2) c.jump = true; if (e & 4) c.melee = true; if (e & 8) c.grenade = true;
-    if (e & 16) c.reload = true; if (e & 32) c.swap = true; if (e & 64) c.use = true; if (e & 128) c.gswitch = true;
+    if (e & 16) c.reload = true; if (e & 32) c.swap = true; if (e & 64) c.use = true; if (e & 128) c.gswitch = true; if (e & 256) c.blink = true; if (e & 512) c.nova = true;
   }
 
   // friend <- host
@@ -1037,7 +1139,7 @@ export class Match {
       a.alive = !!o.al; a.shield = o.sh; a.health = o.hp; a.over = o.ov; a.cur = o.cu; a.weapons = o.w.map(([id, mag, res]) => ({ id, mag, res }));
       a.gren.frag = o.g1; a.gren.plasma = o.g2; a.gtype = o.gt ? 'plasma' : 'frag';
       a.kills = o.k; a.deaths = o.d; a.assists = o.as; a.streak = o.st;
-      a.meleeT = o.mt; a.throwT = o.tt; a.reloadT = o.rt; a.swapT = o.sw; a.respawnAt = this.time + o.ra; a.lastMoveSpeed = o.lm; a.lastFireT = this.time - o.lf; a.camoT = o.cm; a.boostT = o.bt; a.overT = o.ot;
+      a.meleeT = o.mt; a.throwT = o.tt; a.reloadT = o.rt; a.swapT = o.sw; a.respawnAt = this.time + o.ra; a.lastMoveSpeed = o.lm; a.lastFireT = this.time - o.lf; a.camoT = o.cm; a.boostT = o.bt; a.overT = o.ot; a.sup = o.sp ?? 0; a.novaT = o.nv || 0;
       if (a === this.player) {
         if (o.sq !== a.spawnSeq || (!wasAlive && a.alive)) {
           a.spawnSeq = o.sq; a.x = o.x; a.y = o.y; a.z = o.z; a.yaw = o.yw; a.pitch = 0; a.vx = a.vz = a.vy = 0; a.grounded = true; a.deadT = 0; a.first = false;
@@ -1058,7 +1160,7 @@ export class Match {
     for (const [u, type, x, y, z, vx, vy, vz] of s.pj) {
       seen.add(u);
       let r = this.rp.get(u);
-      if (!r) { r = { mesh: type === 'rocket' ? makeRocketMesh() : makeGrenadeMesh(type), type, first: true }; r.mesh.position.set(x, y, z); this.pgroup.add(r.mesh); this.rp.set(u, r); }
+      if (!r) { r = { mesh: type === 'rocket' ? makeRocketMesh() : type === 'nova' ? makeNovaMesh() : makeGrenadeMesh(type), type, first: true }; r.mesh.position.set(x, y, z); this.pgroup.add(r.mesh); this.rp.set(u, r); }
       r.t = { x, y, z }; r.v = { x: vx, y: vy, z: vz };
     }
     for (const [u, r] of this.rp) if (!seen.has(u)) { this.pgroup.remove(r.mesh); this.rp.delete(u); }
@@ -1088,13 +1190,14 @@ export class Match {
     if (this.obj) this.obj.update(dt, false);
     for (const a of this.actors) {
       a.update(dt);
-      const c = a.cmd; c.fireEdge = false; c.jump = false; c.melee = false; c.grenade = false; c.reload = false; c.swap = false; c.use = false; c.gswitch = false; c.zoom = false;
+      const c = a.cmd; c.fireEdge = false; c.jump = false; c.melee = false; c.grenade = false; c.reload = false; c.swap = false; c.use = false; c.gswitch = false; c.zoom = false; c.blink = false; c.nova = false;
     }
     const k = 1 - Math.exp(-24 * dt);
     for (const r of this.rp.values()) {
       const m = r.mesh, t = r.t; if (!t) continue;
       m.position.x += (t.x - m.position.x) * k; m.position.y += (t.y - m.position.y) * k; m.position.z += (t.z - m.position.z) * k;
       if (r.type === 'rocket') { m.lookAt(m.position.x + r.v.x, m.position.y + r.v.y, m.position.z + r.v.z); this.fx.emit(m.position.x, m.position.y, m.position.z, rand(-0.4, 0.4), rand(-0.4, 0.4), rand(-0.4, 0.4), 0.45, 0.32, 0.06, 1, 0.6, 0.25, 0.9, 0); }
+      else if (r.type === 'nova') { m.rotation.y += dt * 5; m.rotation.x += dt * 3; this.fx.emit(m.position.x + rand(-0.4, 0.4), m.position.y + rand(-0.4, 0.4), m.position.z + rand(-0.4, 0.4), 0, 0, 0, 0.5, 0.55, 0.05, 0.6, 0.35, 1, 0.9, 0); }
       else { m.rotation.x += dt * 9; m.rotation.z += dt * 6; if (r.type === 'plasma') this.fx.emit(m.position.x, m.position.y, m.position.z, 0, 0.3, 0, 0.25, 0.22, 0.04, 0.4, 0.8, 1, 0.8, 0); }
     }
     this.updatePickups(dt);
@@ -1105,6 +1208,7 @@ export class Match {
   }
 
   dispose() {
+    setHuntTeams(false);
     if (this.hosting && this.fx._o) { for (const m of Object.keys(this.fx._o)) this.fx[m] = this.fx._o[m]; }
     this.hosting = false;
     if (this.obj) this.obj.dispose();

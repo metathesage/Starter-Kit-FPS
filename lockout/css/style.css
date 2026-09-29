@@ -402,3 +402,32 @@ body.touch-on.playing #touch, body.touch-on.online-play #touch { display: block;
 .at-tile .tv { width: 100%; }
 .wp-icon { display: flex; align-items: flex-end; justify-content: flex-end; gap: 10px; }
 .wsil { height: 34px; width: auto; max-width: 150px; object-fit: contain; filter: brightness(0) invert(1) drop-shadow(0 2px 4px rgba(0, 0, 0, .7)); opacity: .95; } .wsil.sec { height: 20px; opacity: .45; }
+
+/* ---- warlock kit tray ---- */
+.h-abil { position: absolute; right: calc(30px + var(--safe-r)); bottom: calc(46px + var(--safe-b)); display: flex; align-items: flex-end; gap: 26px; pointer-events: none; --vo: #b98cff; }
+.ab { position: relative; display: grid; justify-items: center; gap: 6px; color: var(--paper); }
+.ab em { white-space: nowrap; font: 500 9.5px var(--f-mono); letter-spacing: .36em; font-style: normal; color: var(--dim); text-indent: .36em; }
+.ab .kd { position: absolute; top: -9px; left: 50%; transform: translateX(-50%); padding: 1px 6px; font: 700 10px var(--f-mono); letter-spacing: .12em; background: var(--ink); border: 1px solid var(--line); }
+.ab.nova { width: 84px; }
+.ab.nova .ring { width: 84px; height: 84px; transform: rotate(-90deg); overflow: visible; }
+.ab.nova .ring circle { fill: rgba(4, 4, 4, .62); stroke: var(--line); stroke-width: 2.5; }
+.ab.nova .ring .pg { fill: none; stroke: var(--vo); stroke-width: 3; stroke-dasharray: 100; stroke-dashoffset: 100; stroke-linecap: butt; transition: stroke-dashoffset .3s linear; filter: drop-shadow(0 0 5px var(--vo)); }
+.ab.nova .ic { position: absolute; top: 22px; left: 50%; width: 40px; height: 40px; margin-left: -20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; opacity: .75; }
+.ab.nova .pct { position: absolute; top: 61px; left: 0; right: 0; text-align: center; font: 700 10px var(--f-mono); letter-spacing: .12em; font-variant-numeric: tabular-nums; color: var(--paper); text-shadow: 0 0 6px #000; }
+.ab.nova.ready .ic { color: var(--vo); opacity: 1; animation: novaPulse 1s ease-in-out infinite; }
+.ab.nova.ready .ring .pg { stroke-width: 4; }
+.ab.nova.ready .kd { border-color: var(--vo); color: var(--vo); }
+.ab.nova.cast .ic { animation: novaPulse .3s ease-in-out infinite; color: #fff; }
+@keyframes novaPulse { 50% { transform: scale(1.14); filter: drop-shadow(0 0 10px var(--vo)); } }
+.ab.blink { padding-bottom: 2px; }
+.ab.blink .ic { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.ab.blink .pips { display: flex; gap: 6px; }
+.ab.blink .pips i { --f: 0; position: relative; width: 26px; height: 6px; background: rgba(255, 255, 255, .12); overflow: hidden; transform: skewX(-24deg); }
+.ab.blink .pips i::after { content: ''; position: absolute; inset: 0; background: var(--vo); transform-origin: left; transform: scaleX(var(--f)); box-shadow: 0 0 8px var(--vo); }
+.ab.blink .pips i:not(.full)::after { opacity: .45; }
+@media (max-width: 900px) { .h-abil { bottom: calc(150px + var(--safe-b)); transform: scale(.8); transform-origin: right bottom; } }
+.t-blink, .t-nova { display: none; }
+body.is-warlock .t-blink, body.is-warlock .t-nova { display: grid; }
+body.is-warlock .t-gren { display: none; }
+.t-blink { right: calc(96px + var(--safe-r)); bottom: calc(126px + var(--safe-b)); border-color: #b98cff; }
+.t-nova { right: calc(170px + var(--safe-r)); bottom: calc(150px + var(--safe-b)); width: 64px; height: 64px; border-color: #b98cff; box-shadow: 0 0 18px rgba(185, 140, 255, .45); }

@@ -26,6 +26,7 @@ const loadout = Object.assign({ waifu: 0, team: 'blue', diff: 'normal', limit: 2
 if (!MODES[loadout.mode]) loadout.mode = 'slayer';
 if (Q.get('mode') && MODES[Q.get('mode')]) loadout.mode = Q.get('mode');
 if (Q.get('variant')) loadout.variant = Q.get('variant');
+if (Q.get('team') === 'red' || Q.get('team') === 'blue') loadout.team = Q.get('team');
 const limitOf = () => { const l = MODES[loadout.mode].limits, v = loadout.limits && loadout.limits[loadout.mode]; return l.includes(v) ? v : l[1]; };
 const haloHex = (id) => { const h = C.HALOS.find((x) => x.id === (id || Profile.d.eq.halo)); return h ? h.color : undefined; };
 const skinHex = (id) => { const s = C.SKINS.find((x) => x.id === (id || Profile.d.eq.skin)); return s ? s.tint : null; };
@@ -302,7 +303,7 @@ function showSetup(focusRow) {
   rows.push(modeRow(box, () => showSetup(1)));
   rows.push(variantRow(box));
   rows.push(UI.choice(box, 'Map', World.MAP_LIST.map((m) => ({ label: m.name, value: m.id })), World.MAP_LIST.findIndex((m) => m.id === loadout.map), (v) => { loadout.map = v; persist(); $('#mapTag').textContent = World.MAP_LIST.find((m) => m.id === v).tag; }));
-  if (loadout.mode !== 'rumble') rows.push(UI.choice(box, 'Team', [{ label: 'BLUE', value: 'blue' }, { label: 'RED', value: 'red' }], loadout.team === 'blue' ? 0 : 1, (v) => { loadout.team = v; rebuildShowcase(); persist(); }));
+  if (loadout.mode !== 'rumble') rows.push(UI.choice(box, MODES[loadout.mode].hunt ? 'Side' : 'Team', MODES[loadout.mode].hunt ? [{ label: 'SPARTANS', value: 'blue' }, { label: 'WARLOCKS', value: 'red' }] : [{ label: 'BLUE', value: 'blue' }, { label: 'RED', value: 'red' }], loadout.team === 'blue' ? 0 : 1, (v) => { loadout.team = v; rebuildShowcase(); persist(); }));
   rows.push(UI.choice(box, 'Armor', [{ label: 'SPARTAN HELM', value: true }, { label: 'ANGEL', value: false }], loadout.helmet ? 0 : 1, (v) => { loadout.helmet = v; rebuildShowcase(); setHero(); persist(); }));
   rows.push(callsignRow(box));
   const dk = Object.keys(DIFFICULTY);
@@ -585,7 +586,7 @@ function pauseMenu() {
   const menu = $('#pauseMenu'); menu.innerHTML = '';
   if (match) {
     const p = match.player, md = MODES[match.mode], mp = World.MAP_LIST.find((x) => x.id === loadout.map);
-    const sc = match.ffa ? `YOU ${match.score[p.team]}` : `BLUE ${Math.floor(match.score.blue)} · RED ${Math.floor(match.score.red)}`;
+    const sc = match.ffa ? `YOU ${match.score[p.team]}` : `${TEAM.blue.name} ${Math.floor(match.score.blue)} · ${TEAM.red.name} ${Math.floor(match.score.red)}`;
     $('#pauseSub').textContent = `${md.name} · ${mp ? mp.name : ''} · ${sc} · K ${p.kills} D ${p.deaths}`;
   }
   const resume = () => { UI.hide('pause'); state = 'playing'; document.body.classList.add('playing'); Input.lock(); };
@@ -609,6 +610,7 @@ function playerInput(p) {
   if (Input.last === 'pad') { if (Input.pressed.crouch) padCrouch = !padCrouch; c.crouch = padCrouch; } else c.crouch = Input.held.crouch;
   if (Input.pressed.melee) c.melee = true; if (Input.pressed.grenade) c.grenade = true; if (Input.pressed.reload) c.reload = true;
   if (Input.pressed.swap) c.swap = true; if (Input.pressed.use) c.use = true; if (Input.pressed.zoom) c.zoom = true; if (Input.pressed.gswitch) c.gswitch = true;
+  if (Input.pressed.blink) c.blink = true; if (Input.pressed.nova) c.nova = true;
   // holding use also keeps pickup intent alive for a frame or two
   if (Input.held.use) c.use = true;
 }
@@ -683,7 +685,7 @@ function play(dt) {
   const aimEnemy = p.alive ? m.aimTarget(p) : null;
   if (p.alive && !p.brain) {
     playerInput(p); look(p, dt, aimEnemy);
-    if (Net.isClient) { const c = p.cmd; netEdges |= (c.fireEdge ? 1 : 0) | (c.jump ? 2 : 0) | (c.melee ? 4 : 0) | (c.grenade ? 8 : 0) | (c.reload ? 16 : 0) | (c.swap ? 32 : 0) | (c.use ? 64 : 0) | (c.gswitch ? 128 : 0); }
+    if (Net.isClient) { const c = p.cmd; netEdges |= (c.fireEdge ? 1 : 0) | (c.jump ? 2 : 0) | (c.melee ? 4 : 0) | (c.grenade ? 8 : 0) | (c.reload ? 16 : 0) | (c.swap ? 32 : 0) | (c.use ? 64 : 0) | (c.gswitch ? 128 : 0) | (c.blink ? 256 : 0) | (c.nova ? 512 : 0); }
   }
   else if (!p.alive) { p.cmd.fire = false; }
   // fixed-ish substeps

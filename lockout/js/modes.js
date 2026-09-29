@@ -7,6 +7,7 @@ export const P_TEAMS = ['p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7'];
 export const MODES = {
   slayer: { id: 'slayer', short: 'SLAYER', name: 'TEAM SLAYER', unit: 'KILLS', limits: [15, 25, 50], teams: true, blurb: 'Four on four. Kills score for the team. First to the limit wins.' },
   rumble: { id: 'rumble', short: 'RUMBLE', name: 'RUMBLE PIT', unit: 'KILLS', limits: [15, 25, 40], teams: false, blurb: 'Eight operators, no teams. Every gun is pointed at you. The kill leader wears a crown.' },
+  hunt: { id: 'hunt', short: 'HUNT', name: 'WARLOCK HUNT', unit: 'KILLS', limits: [20, 30, 50], teams: true, hunt: true, blurb: 'Void warlocks against Spartans. Warlocks glide, blink and charge a Nova Bomb. Spartans have the guns and the numbers. Break the cast.' },
   ctf: { id: 'ctf', short: 'CTF', name: 'CAPTURE THE FLAG', unit: 'CAPTURES', limits: [3, 5, 8], teams: true, obj: true, blurb: 'Steal the enemy flag and bring it home while yours is safe. The carrier moves slower and cannot hide.' },
   oddball: { id: 'oddball', short: 'ODDBALL', name: 'ODDBALL', unit: 'SECONDS', limits: [60, 100, 150], teams: true, obj: true, blurb: 'Hold the ball to score. The carrier is armed with nothing but a fist. Protect them.' },
 };

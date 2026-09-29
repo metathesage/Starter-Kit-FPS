@@ -55,7 +55,8 @@ export class Brain {
       if (cos < 0.25 && dist > 6) continue;
       if (o.camoT > 0 && dist > 9 && o.lastMoveSpeed < 3.5) continue;   // camo hides a still target
       if (!W.los(a.x, a.eye, a.z, o.x, o.chest, o.z)) continue;
-      if (dist < bd) { bd = dist; best = o; }
+      const wd = o.novaT > 0 ? dist * 0.35 : dist;   // a warlock mid-cast is priority one
+      if (wd < bd) { bd = wd; best = o; }
     }
     if (best) {
       if (this.target !== best) { this.react = this.d.react * rand(0.8, 1.3); }
@@ -243,6 +244,7 @@ export class Brain {
     if (l > 1) { mx /= l; mz /= l; }
     const speedScale = this.state === 'combat' ? 1 : 0.95;
     c.mx = mx * speedScale; c.mz = mz * speedScale;
+    this.classAI(dt, moveTarget);
 
     // ---- stuck handling ----
     this.chk.t += dt;
@@ -254,6 +256,40 @@ export class Brain {
         if (this.stuckT >= 2) { this.path = []; this.goal = null; this.stuckT = 0; this.strafeDir *= -1; }
       } else this.stuckT = 0;
       this.chk.x = a.x; this.chk.z = a.z; this.chk.t = 0;
+    }
+  }
+
+  // warlock kit + spartan answers to it
+  classAI(dt, moveTarget) {
+    const a = this.a, m = this.m, c = a.cmd, t = this.target;
+    this.bCool = (this.bCool || 0) - dt;
+    if (m.hunt) {
+      // nova inbound: everyone runs from the blast, sideways-and-away, and hops
+      for (const p of m.projs) {
+        if (p.type !== 'nova' || !m.foe(p.owner, a)) continue;
+        const dx = a.x - p.x, dz = a.z - p.z, d = Math.hypot(dx, dz);
+        if (d < 17) { const l = d || 1; c.mx = dx / l; c.mz = dz / l; if (a.grounded && chance(dt * 1.2)) c.jump = true; break; }
+      }
+    }
+    if (a.cls !== 'warlock') return;
+    if (a.grounded) this.glideOn = chance(0.65);
+    else if (this.glideOn && a.vy < 0.4) c.jump = true;
+    // big one: charged, target in the open at a good range
+    if (a.sup >= 1 && a.novaT <= 0 && t && this.visible && this.react <= 0) {
+      const dist = Math.hypot(t.x - a.x, t.z - a.z);
+      if (dist > 7 && dist < 34 && chance(dt * 1.6)) c.nova = true;
+    }
+    if (a.novaT > 0) return;
+    if (this.bCool > 0 || a.blinkCh <= 0) return;
+    // dodge: just took fire, blink sideways off the line
+    if (t && a.lastHit < 0.45 && chance(dt * 4)) {
+      const dx = t.x - a.x, dz = t.z - a.z, l = Math.hypot(dx, dz) || 1, sd = chance(0.5) ? 1 : -1;
+      c.mx = (-dz / l) * sd; c.mz = (dx / l) * sd; c.blink = true; this.bCool = rand(1.2, 2.4); return;
+    }
+    // close the gap: far from a known enemy, blink along the path (keeps one charge in reserve)
+    if (a.blinkCh >= 2 && moveTarget && (this.state === 'hunt' || (this.state === 'combat' && t && Math.hypot(t.x - a.x, t.z - a.z) > 30)) && chance(dt * 0.6)) {
+      const dx = moveTarget.x - a.x, dz = moveTarget.z - a.z, l = Math.hypot(dx, dz) || 1;
+      if (l > 4) { c.mx = dx / l; c.mz = dz / l; c.blink = true; this.bCool = rand(2, 3.5); }
     }
   }
 
