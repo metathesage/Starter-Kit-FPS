@@ -34,6 +34,27 @@ Must be served over HTTP (ES modules + importmap). Chrome, Edge, Firefox, Safari
 
 Menus are fully navigable by D-pad / stick, A, B. Prompts switch glyphs by last device used.
 
+## Play online with friends (including phones)
+
+Main menu -> **Play Online**.
+- **Host a lobby** gives a 5-letter code and a share link. Friends open the link (or type the code) on any device and land in your lobby.
+- Up to 3 friends join. They take slots from the bots, on your team or the other team (host setting). The host starts the match.
+- The host's browser runs the match (bots, weapons, scoring). Friends send input and render what the host streams, so the host's connection matters most.
+- Signaling uses the free public PeerJS cloud (`0.peerjs.com`), then game traffic goes browser to browser over WebRTC.
+  Both sides need internet access to that server. Corporate/school networks sometimes block WebRTC.
+- Link format: `https://<host>/<path>/?join=CODE`.
+- Not available inside the Claude artifact preview (it blocks network access). Use the GitHub Pages build or run locally.
+
+**Phones:** touch controls appear automatically (left thumb stick, drag the right side to aim, buttons for fire, jump,
+melee, grenade, reload/pick up, swap, zoom, crouch). Shadows start off and resolution scales down to keep frame rate up.
+Landscape works best. The menu asks for fullscreen on tap.
+
+### Deploy (GitHub Pages)
+
+`.github/workflows/lockout-pages.yml` publishes `lockout/` to Pages. In the repo: Settings -> Pages -> Source: **GitHub Actions**.
+It runs on pushes to `main` and can be run by hand (Actions -> Deploy LOCKOUT -> Run workflow).
+Live URL: `https://<owner>.github.io/<repo>/`.
+
 ## Rules
 
 - Team Slayer, 4v4, first to 15 / 25 / 50 kills or 12 minutes.
@@ -63,13 +84,15 @@ js/ui.js       screen manager, controller-navigable rows
 js/input.js    one action map for keyboard/mouse/gamepad
 js/audio.js    synthesized SFX + ambient music
 js/merge.js    merges static meshes per material (draw-call budget)
-js/main.js     boot, loading, menus, camera, loop
+js/net.js      PeerJS lobby + transport
+js/touch.js    on-screen controls for phones
+js/main.js     boot, loading, menus, online flow, camera, loop
 ```
 
 Operators wear Spartan-style armor (bulk, domed helm, gold visor) with twin tails out the back.
 Setup lets you swap the helm for a bare anime face. Real weapon models: see `models/README.md`.
 
-Debug: `?fps` shows an FPS counter (or F3), `?quick` skips splash and drops straight into a match,
+Debug: `?fast` skips splash delays, `?touch` forces touch controls, `?peerhost=localhost&peerport=9000&peerpath=/` uses a local PeerJS server, `?fps` shows an FPS counter (or F3), `?quick` skips splash and drops straight into a match,
 `?quick&bot` lets the AI play for you.
 
 A fan tribute. Not affiliated with or endorsed by any publisher.

@@ -11,6 +11,8 @@ import { Viewmodel } from './fps.js';
 import { Match, DIFFICULTY } from './match.js';
 import { HUD, glyph, svg, MEDAL_ICONS } from './hud.js';
 import { UI } from './ui.js';
+import { Net, friendlyError } from './net.js';
+import { initTouch } from './touch.js';
 
 const Q = new URLSearchParams(location.search);
 const settings = Object.assign({ sens: 1, padSens: 1, invertY: false, fov: 66, master: 0.8, sfx: 1, music: 0.5, shadows: true }, store('settings', {}));
@@ -50,9 +52,9 @@ addEventListener('resize', resize);
 // ---- state ----------------------------------------------------------------------------
 let state = 'splash', world = null, fx = null, viewmodel = null, hud = null, match = null, showcase = null;
 let trauma = 0, camKick = 0, fovCur = 62, menuT = 0, last = performance.now(), padCrouch = false, fpsAcc = 0, fpsN = 0, showFps = Q.has('fps'), muted = false;
-let lastDevice = 'kbm', endShown = false, quick = Q.has('quick');
+let lastDevice = 'kbm', endShown = false, quick = Q.has('quick'), fast = Q.has('fast') || Q.has('quick'), netAcc = 0, netEdges = 0;
 const shakeN = { t: 0 };
-window.__game = { renderer, get fx() { return fx; }, get match() { return match; }, get state() { return state; }, get scene() { return scene; }, get camera() { return camera; }, start: () => startMatch(), Input, THREE };
+window.__game = { Net, hostLobby: () => hostLobby(), joinLobby: (c) => joinLobby(c), startOnlineHost: () => startOnlineHost(), renderer, get fx() { return fx; }, get match() { return match; }, get state() { return state; }, get scene() { return scene; }, get camera() { return camera; }, start: () => startMatch(), Input, THREE };
 
 function applySettings() {
   Input.sens = settings.sens; Input.padSens = settings.padSens; Input.invertY = settings.invertY;
@@ -70,6 +72,8 @@ const setProg = (p, label) => {
 };
 
 async function boot() {
+  const touchDevice = initTouch();
+  if (touchDevice) { if (store('settings', {}).shadows === undefined) settings.shadows = false; resScale = 0.75; }
   resize(); applySettings();
   Input.init(canvas);
   Input.onLockChange = (locked) => { if (!locked && state === 'playing' && !Input.fallback) pauseGame(); };
@@ -81,7 +85,7 @@ async function boot() {
   $$('.splash-word span').forEach((s, i) => s.style.setProperty('--i', i));
   requestAnimationFrame(loop);
   UI.show('splash');
-  if (!quick) {
+  if (!fast) {
     const t0 = performance.now();
     await new Promise((res) => { const chk = () => { if ((performance.now() - t0 > 3600) || (performance.now() - t0 > 900 && (Input.any() || skipSplash))) res(); else setTimeout(chk, 50); }; chk(); });
   }
@@ -108,8 +112,9 @@ async function boot() {
   applySettings();
   clearInterval(tipTimer);
   await new Promise((r) => setTimeout(r, quick ? 0 : 350));
-  buildMenus();
-  if (quick) { showTitle(); startMatch(); } else showTitle();
+  buildMenus(); wireNet();
+  const jc = Q.get('join');
+  if (quick) { showTitle(); startMatch(); } else if (jc) { showTitle(); openOnline(); const inp = $('#joinCode'); if (inp) inp.value = jc.toUpperCase(); joinLobby(jc); } else showTitle();
 }
 let skipSplash = false;
 addEventListener('click', () => { skipSplash = true; });
@@ -153,8 +158,9 @@ function showTitle() {
   const menu = $('#titleMenu'); menu.innerHTML = '';
   const rows = [
     UI.item(menu, 'Play Match', '01', () => showSetup()),
-    UI.item(menu, 'Controls', '02', () => showControls('title')),
-    UI.item(menu, 'Settings', '03', () => showSettings(() => showTitle())),
+    UI.item(menu, 'Play Online', '02', () => openOnline()),
+    UI.item(menu, 'Controls', '03', () => showControls('title')),
+    UI.item(menu, 'Settings', '04', () => showSettings(() => showTitle())),
   ];
   UI.show('title', { rows });
   $('#btnFull').onclick = () => { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen && document.documentElement.requestFullscreen().catch(() => {}); };
@@ -209,24 +215,164 @@ function showSetup() {
   refreshPrompts();
 }
 
+// ---- online lobby ------------------------------------------------------------------------------
+const lobby = { players: new Map(), sameTeam: true };
+const isTouch = () => document.body.classList.contains('touch-on');
+function goFullscreen() {
+  if (!isTouch() || document.fullscreenElement) return;
+  try { const p = document.documentElement.requestFullscreen && document.documentElement.requestFullscreen(); if (p && p.catch) p.catch(() => {}); } catch { /* */ }
+  try { const o = screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape'); if (o && o.catch) o.catch(() => {}); } catch { /* */ }
+}
+const onlineStatus = (msg, err = false) => { const e = $('#onlineStatus'); if (e) { e.textContent = msg || ''; e.classList.toggle('err', err); } };
+
+function openOnline() {
+  state = 'menu';
+  const box = $('#onlineOpts'); box.innerHTML = ''; onlineStatus('');
+  const rows = [];
+  rows.push(UI.item(box, 'Host a lobby', 'A', () => hostLobby()));
+  const row = document.createElement('div'); row.className = 'opt';
+  row.innerHTML = '<span class="lbl">Friend\'s code</span><span class="val"><input id="joinCode" class="join-input" maxlength="5" placeholder="-----" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Lobby code"></span>';
+  box.appendChild(row);
+  const inp = row.querySelector('input');
+  row._act = () => inp.focus(); row.onclick = () => inp.focus();
+  inp.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); joinLobby(inp.value); } });
+  inp.addEventListener('input', () => { inp.value = inp.value.toUpperCase().replace(/[^A-Z0-9]/g, ''); });
+  rows.push(row);
+  rows.push(UI.item(box, 'Join lobby', 'B', () => joinLobby(inp.value)));
+  const back = $('#btnOnlineBack'); UI.button(back, () => { Net.close(); showTitle(); }); rows.push(back);
+  UI.show('online', { rows, onBack: () => { Net.close(); showTitle(); } });
+}
+
+async function hostLobby() {
+  goFullscreen(); onlineStatus('Contacting lobby server...');
+  try { await Net.startHost(); } catch (e) { onlineStatus(friendlyError(e), true); return; }
+  lobby.players.clear();
+  showLobby(true); pushLobby();
+}
+
+async function joinLobby(code) {
+  goFullscreen(); onlineStatus('Connecting...');
+  try { await Net.join(code); } catch (e) { onlineStatus(friendlyError(e), true); Net.close(); return; }
+  Net.send({ t: 'hello', name: WAIFUS[loadout.waifu].name, waifu: loadout.waifu, helmet: loadout.helmet, v: 1 });
+  showLobby(false);
+}
+
+function lobbyList() {
+  const list = [{ name: WAIFUS[loadout.waifu].name, host: true, team: loadout.team }];
+  for (const [, p] of lobby.players) list.push({ name: p.name, team: lobby.sameTeam ? loadout.team : loadout.team === 'blue' ? 'red' : 'blue' });
+  return list;
+}
+function pushLobby() {
+  const list = lobbyList();
+  renderLobby(list);
+  if (Net.isHost) Net.broadcast({ t: 'lobby', list, sameTeam: lobby.sameTeam });
+}
+function renderLobby(list) {
+  const box = $('#lobbyPlayers'); if (!box) return;
+  box.innerHTML = list.map((p) => `<div class="lp" style="--c:${TEAM[p.team].css}"><i></i><span>${p.name}</span><em>${p.host ? 'HOST' : 'GUEST'} / ${TEAM[p.team].name}</em></div>`).join('')
+    + (list.length < 4 ? '<div class="lp wait"><i style="--c:#8fa1bd"></i><span>Waiting for friends</span></div>' : '');
+}
+
+function showLobby(host) {
+  state = 'menu';
+  $('#lobbyTitle').textContent = host ? 'YOUR LOBBY' : 'LOBBY';
+  $('#lobbySub').textContent = host ? 'Share the code or link. Friends join from any device. Bots fill empty slots.' : 'Connected. Waiting for the host to start the match.';
+  $('#lobbyCode').textContent = Net.code || '-----'; $('#lobbyLink').textContent = Net.link();
+  const rows = [], opts = $('#lobbyOpts'); opts.innerHTML = '';
+  const copy = $('#btnCopy'), share = $('#btnShare');
+  const doCopy = async () => { try { await navigator.clipboard.writeText(Net.link()); UI.toast('LINK COPIED'); } catch { UI.toast(Net.link(), 4000); } };
+  UI.button(copy, doCopy);
+  UI.button(share, async () => { if (navigator.share) { try { await navigator.share({ title: 'LOCKOUT', text: 'Join my LOCKOUT lobby', url: Net.link() }); return; } catch { /* cancelled */ } } doCopy(); });
+  rows.push(copy, share);
+  const btns = $('#lobbyBtns'); btns.innerHTML = '';
+  const leave = document.createElement('button'); leave.className = 'btn'; leave.innerHTML = '<span>LEAVE</span><i></i>';
+  UI.button(leave, () => leaveOnline());
+  if (host) {
+    rows.push(UI.choice(opts, 'Friends join', [{ label: 'MY TEAM', value: true }, { label: 'OTHER TEAM', value: false }], lobby.sameTeam ? 0 : 1, (v) => { lobby.sameTeam = v; pushLobby(); }));
+    const dk = Object.keys(DIFFICULTY);
+    rows.push(UI.choice(opts, 'Bot difficulty', dk.map((k) => ({ label: DIFFICULTY[k].name, value: k })), dk.indexOf(loadout.diff), (v) => { loadout.diff = v; persist(); }));
+    rows.push(UI.choice(opts, 'Score to win', [15, 25, 50].map((n) => ({ label: n + ' KILLS', value: n })), [15, 25, 50].indexOf(loadout.limit), (v) => { loadout.limit = v; persist(); }));
+    const go = document.createElement('button'); go.className = 'btn primary'; go.innerHTML = '<span>START MATCH</span><i></i>';
+    UI.button(go, () => startOnlineHost());
+    btns.appendChild(leave); btns.appendChild(go); rows.push(go, leave);
+  } else { btns.appendChild(leave); rows.push(leave); }
+  UI.show('lobby', { rows, onBack: () => leaveOnline(), focus: rows.length - (host ? 2 : 1) });
+  renderLobby(host ? lobbyList() : []);
+}
+
+function startOnlineHost() {
+  const other = loadout.team === 'blue' ? 'red' : 'blue';
+  const humans = [...lobby.players].map(([peer, p]) => ({ peer, name: p.name, waifu: WAIFUS[p.waifu] || WAIFUS[0], team: lobby.sameTeam ? loadout.team : other, helmet: p.helmet }));
+  const w = WAIFUS[loadout.waifu];
+  const m = new Match(scene, fx, { waifu: w, name: w.name, team: loadout.team, helmet: loadout.helmet, difficulty: loadout.diff, limit: loadout.limit, humans });
+  beginMatch(m, w);
+  m.enableHost();
+  const roster = m.actors.map((a) => ({ id: a.id, name: a.name, team: a.team, hair: a.style.hair, eye: a.style.eye, helmet: a.rig.helmet }));
+  for (const h of humans) { const a = m.actors.find((x) => x.remote === h.peer); if (a) Net.sendTo(h.peer, { t: 'start', roster, you: a.id, limit: m.limit, minutes: 12 }); }
+  m.bus.emit('count', 3);
+}
+
+function startReplica(msg) {
+  beginMatch(new Match(scene, fx, { replica: true, roster: msg.roster, you: msg.you, limit: msg.limit, minutes: msg.minutes }));
+}
+
+function leaveOnline() {
+  Net.close(); lobby.players.clear();
+  if (match) endMatchToMenu();
+  showTitle();
+}
+
+function wireNet() {
+  Net.bus.on('msg', (from, m) => {
+    if (!m || !m.t) return;
+    if (Net.isHost) {
+      if (m.t === 'hello') {
+        if (match && !match.replica && state !== 'menu') { Net.sendTo(from, { t: 'busy' }); return; }
+        let name = String(m.name || 'GUEST').slice(0, 12).toUpperCase(); const taken = new Set([WAIFUS[loadout.waifu].name, ...[...lobby.players.values()].map((p) => p.name)]);
+        while (taken.has(name)) name += '2';
+        lobby.players.set(from, { name, waifu: m.waifu | 0, helmet: m.helmet !== false }); pushLobby();
+      } else if (m.t === 'in' && match && match.hosting) match.applyInput(match.actors.find((a) => a.remote === from), m);
+    } else if (m.t === 'lobby') renderLobby(m.list);
+    else if (m.t === 'start') startReplica(m);
+    else if (m.t === 'snap' && match && match.replica) match.applySnapshot(m.s);
+    else if (m.t === 'busy' || m.t === 'full') { UI.toast(m.t === 'full' ? 'LOBBY IS FULL' : 'MATCH ALREADY IN PROGRESS', 3500); leaveOnline(); }
+  });
+  Net.bus.on('leave', (peer) => { lobby.players.delete(peer); if (match && match.hosting) match.convertToBot(peer); if (state === 'menu' && UI.cur === 'lobby') pushLobby(); });
+  Net.bus.on('closed', () => { if (Net.isClient) { UI.toast('HOST LEFT THE LOBBY', 3500); leaveOnline(); } });
+}
+
+function netTick(dt) {
+  netAcc += dt;
+  if (Net.isHost && match && match.hosting) {
+    if (netAcc >= 0.05) { netAcc = 0; const sn = match.snapshot(); sn.ev = match.takeEvents(); Net.broadcast({ t: 'snap', s: sn }); }
+  } else if (Net.isClient && match && match.replica && netAcc >= 0.033) {
+    netAcc = 0; const p = match.player, r = (v) => Math.round(v * 100) / 100;
+    Net.send({ t: 'in', x: r(p.x), y: r(p.y), z: r(p.z), yw: r(p.yaw), pt: r(p.pitch), vx: r(p.vx), vy: r(p.vy), vz: r(p.vz), g: p.grounded ? 1 : 0, cr: r(p.crouch), zl: p.zoomLevel, f: p.alive && p.cmd.fire ? 1 : 0, e: netEdges, sq: p.spawnSeq });
+    netEdges = 0;
+  }
+}
+
 // ---- match lifecycle --------------------------------------------------------------------------
 function startMatch() {
+  const w = WAIFUS[loadout.waifu];
+  beginMatch(new Match(scene, fx, { waifu: w, name: w.name, team: loadout.team, helmet: loadout.helmet, difficulty: loadout.diff, limit: loadout.limit, autoPlayer: Q.has('bot') }), w);
+}
+
+function beginMatch(m, w) {
   if (match) { match.dispose(); match = null; }
-  UI.hide('title'); UI.hide('setup'); UI.hide('results'); UI.hide('pause'); UI.hide('settings'); UI.hide('controls');
   $$('.screen').forEach((s) => s.classList.remove('active'));
   UI.cur = null; UI.rows = [];
-  const w = WAIFUS[loadout.waifu];
   showcase.root.visible = false;
-  match = new Match(scene, fx, { waifu: w, name: w.name, team: loadout.team, helmet: loadout.helmet, difficulty: loadout.diff, limit: loadout.limit, autoPlayer: Q.has('bot') });
-  viewmodel.setup(loadout.team, w.hair, w.eye);
+  match = m;
+  const st = w || match.player.style;
+  viewmodel.setup(match.player.team, st.hair, st.eye);
   hud.root.classList.remove('hidden'); hud.bind(match);
   match.bus.on('shake', (a) => { trauma = Math.min(1, trauma + a); });
-  match.bus.on('shot', (a, def) => { if (a === match.player) { viewmodel.kickNow(0.4 + def.kick * 8); camKick = Math.min(0.06, camKick + def.kick * 0.35); } });
+  match.bus.on('shot', (a, def) => { if (a === match.player && def) { viewmodel.kickNow(0.4 + def.kick * 8); camKick = Math.min(0.06, camKick + def.kick * 0.35); } });
   match.bus.on('state', (s) => { if (s === 'ended') onMatchEnd(); });
-  match.player.pitch = 0; fovCur = settings.fov; endShown = false; padCrouch = false; trauma = 0;
+  match.player.pitch = 0; fovCur = settings.fov; endShown = false; padCrouch = false; trauma = 0; netAcc = 0; netEdges = 0;
   state = 'playing'; document.body.classList.add('playing');
   Input.lock(); Sound.music('match');
-  // let the 3..2..1 land
   hud.announce('', null);
 }
 
@@ -260,8 +406,15 @@ function showResults() {
   const b2 = document.createElement('button'); b2.className = 'btn'; b2.innerHTML = '<span>LOADOUT</span><i></i>';
   const b3 = document.createElement('button'); b3.className = 'btn'; b3.innerHTML = '<span>MAIN MENU</span><i></i>';
   [b3, b2, b1].forEach((b) => btns.appendChild(b));
-  UI.button(b1, () => startMatch()); UI.button(b2, () => { endMatchToMenu(); showSetup(); }); UI.button(b3, () => { endMatchToMenu(); showTitle(); });
-  UI.show('results', { rows: [b1, b2, b3], onBack: null });
+  if (Net.online) {
+    b2.remove(); b3.querySelector('span').textContent = 'LEAVE';
+    if (Net.isHost) { UI.button(b1, () => startOnlineHost()); b1.querySelector('span').textContent = 'REMATCH'; } else { b1.querySelector('span').textContent = 'WAITING FOR HOST'; b1.disabled = true; b1.style.opacity = .5; UI.button(b1, () => {}); }
+    UI.button(b3, () => leaveOnline());
+    UI.show('results', { rows: Net.isHost ? [b1, b3] : [b3], onBack: null });
+  } else {
+    UI.button(b1, () => startMatch()); UI.button(b2, () => { endMatchToMenu(); showSetup(); }); UI.button(b3, () => { endMatchToMenu(); showTitle(); });
+    UI.show('results', { rows: [b1, b2, b3], onBack: null });
+  }
   Sound.music('menu');
 }
 
@@ -281,10 +434,10 @@ function pauseMenu() {
   const resume = () => { UI.hide('pause'); state = 'playing'; document.body.classList.add('playing'); Input.lock(); };
   const rows = [
     UI.item(menu, 'Resume', 'I', resume),
-    UI.item(menu, 'Restart match', 'II', () => startMatch()),
+    ...(Net.online ? [] : [UI.item(menu, 'Restart match', 'II', () => startMatch())]),
     UI.item(menu, 'Controls', 'III', () => showControls('pause')),
     UI.item(menu, 'Settings', 'IV', () => showSettings(() => pauseMenu())),
-    UI.item(menu, 'Quit to menu', 'V', () => { endMatchToMenu(); showTitle(); }),
+    UI.item(menu, Net.online ? 'Leave match' : 'Quit to menu', 'V', () => { if (Net.online) leaveOnline(); else { endMatchToMenu(); showTitle(); } }),
   ];
   UI.show('pause', { rows, onBack: resume });
 }
@@ -362,11 +515,15 @@ function play(dt) {
   const scoreOn = Input.held.score || m.state === 'ended';
   hud.showBoard(scoreOn && (m.state !== 'ended' || m.endT < 2.4));
   const aimEnemy = p.alive ? m.aimTarget(p) : null;
-  if (p.alive && !p.brain) { playerInput(p); look(p, dt, aimEnemy); }
+  if (p.alive && !p.brain) {
+    playerInput(p); look(p, dt, aimEnemy);
+    if (Net.isClient) { const c = p.cmd; netEdges |= (c.fireEdge ? 1 : 0) | (c.jump ? 2 : 0) | (c.melee ? 4 : 0) | (c.grenade ? 8 : 0) | (c.reload ? 16 : 0) | (c.swap ? 32 : 0) | (c.use ? 64 : 0) | (c.gswitch ? 128 : 0); }
+  }
   else if (!p.alive) { p.cmd.fire = false; }
   // fixed-ish substeps
   const n = Math.max(1, Math.ceil(dt * 60)), sdt = dt / n;
   for (let i = 0; i < n; i++) m.update(sdt);
+  netTick(dt);
   fx.update(dt); world.snow.update(dt, camera.position, m.time);
   p.rig.root.visible = m.thirdPerson || !p.alive;
   updateCamera(dt);
@@ -379,6 +536,12 @@ function play(dt) {
   render(showVM);
   if (m.state === 'ended' && m.endT > 3.2 && !endShown) showResults();
   if (Input.pressed.score || false) { /* held handled above */ }
+}
+
+function idleOnline(dt) {
+  const m = match, p = m.player; p.cmd.mx = p.cmd.mz = 0; p.cmd.fire = false; p.cmd.crouch = false;
+  const n = Math.max(1, Math.ceil(dt * 60)); for (let i = 0; i < n; i++) m.update(dt / n);
+  netTick(dt); fx.update(dt); world.snow.update(dt, camera.position, m.time); updateCamera(dt); render(false);
 }
 
 function render(showVM) {
@@ -429,7 +592,7 @@ function loop(now) {
 function frame(now, dt, lastNow0) {
   if (state === 'menu') { UI.tick(); menuFrame(dt); }
   else if (state === 'results') { UI.tick(); if (match) { updateCamera(dt); fx.update(dt); } render(false); }
-  else if (state === 'paused') { UI.tick(); render(false); }
+  else if (state === 'paused') { UI.tick(); if (Net.online && match) idleOnline(dt); else render(false); }
   else if (state === 'playing') { play(dt); adaptRes((now - lastNow0) / 1000); }
   else if (state === 'splash' || state === 'loading') { UI.tick(); }
 }

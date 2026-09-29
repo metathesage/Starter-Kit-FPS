@@ -219,7 +219,7 @@ export class HUD {
     E.prompt.innerHTML = prompt; E.prompt.classList.toggle('on', !!prompt);
     // camera hint
     E.cam.innerHTML = `${glyph('cam')}<span>${m.thirdPerson ? 'FIRST PERSON' : 'CHASE CAM'}</span>`;
-    E.cam.style.display = Input.last === 'pad' ? 'none' : '';
+    E.cam.style.display = Input.last === 'pad' || Input.last === 'touch' ? 'none' : '';
     // death
     if (!p.alive && m.state !== 'countdown') {
       E.death.classList.add('on');

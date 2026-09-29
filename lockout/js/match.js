@@ -4,7 +4,7 @@ import * as W from './world.js';
 import { WEAPONS, makeWeaponMesh, makeGrenadeMesh, makeRocketMesh } from './weapons.js';
 import { buildWaifu, animateRig, disposeRig, BOT_STYLES, TEAM } from './rig.js';
 import { Sound } from './audio.js';
-import { Bus, clamp, rand, pick, forward, lerp, damp } from './util.js';
+import { Bus, clamp, rand, pick, forward, lerp, damp, angDiff } from './util.js';
 import { Brain } from './bots.js';
 
 export const EYE_STAND = 1.62, EYE_CROUCH = 1.15, H_STAND = 1.78, H_CROUCH = 1.3, RAD = 0.4;
@@ -24,9 +24,9 @@ export const DIFFICULTY = {
 
 let _uid = 1;
 export class Actor {
-  constructor(match, { name, team, style, isPlayer = false }) {
-    this.m = match; this.id = _uid++; this.name = name; this.team = team; this.isPlayer = isPlayer; this.style = style;
-    this.rig = buildWaifu({ team, hair: style.hair, eye: style.eye, helmet: isPlayer ? match.cfg.helmet !== false : true });
+  constructor(match, { name, team, style, isPlayer = false, id = null, remote = null, helmet }) {
+    this.m = match; this.id = id ?? _uid++; if (id !== null && id >= _uid) _uid = id + 1; this.remote = remote; this.netT = null; this.spawnSeq = 0; this.name = name; this.team = team; this.isPlayer = isPlayer; this.style = style;
+    this.rig = buildWaifu({ team, hair: style.hair, eye: style.eye, helmet: helmet ?? (isPlayer ? match.cfg.helmet !== false : true) });
     this.rig.root.visible = false;
     match.scene.add(this.rig.root);
     this.cmd = { mx: 0, mz: 0, fire: false, fireEdge: false, zoom: false, jump: false, crouch: false, melee: false, grenade: false, reload: false, swap: false, use: false, gswitch: false };
@@ -57,6 +57,7 @@ export class Actor {
     this.weapons = [{ id: 'br', mag: WEAPONS.br.mag, res: WEAPONS.br.reserve }]; this.cur = 0;
     this.gren = { frag: 2, plasma: 2 }; this.gtype = 'frag';
     this.resetTimers(); this.spawnProt = 2.2; this.dmgBy.clear();
+    this.spawnSeq++; this.netT = null;
     this.rig.root.visible = !this.isPlayer || this.m.thirdPerson;
     this.rig.a.dead = 0;
     if (this.brain) this.brain.reset();
@@ -81,6 +82,8 @@ export class Actor {
   // ---- per-frame ----------------------------------------------------------
   update(dt) {
     const m = this.m, c = this.cmd;
+    if (m.replica) return this.updateReplica(dt);
+    if (this.remote) return this.updateRemote(dt);
     if (!this.alive) {
       this.deadT += dt;
       this.rig.root.visible = this.deadT < 6 && (!this.isPlayer || this.m.thirdPerson || this.deadT >= 0);
@@ -88,7 +91,16 @@ export class Actor {
       this.animate(dt);
       return;
     }
-    const frozen = m.state === 'countdown' || m.state === 'ended' && false;
+    const frozen = m.state === 'countdown';
+    this.tickVitals(dt);
+
+    this.locomote(dt, frozen);
+
+    if (!frozen) this.weaponsUpdate(dt);
+    this.animate(dt);
+  }
+
+  tickVitals(dt) {
     this.spawnProt = Math.max(0, this.spawnProt - dt);
     this.lastHit += dt;
     this.lungeCd = Math.max(0, this.lungeCd - dt);
@@ -106,6 +118,10 @@ export class Actor {
       if (this.shield >= SHIELD_MAX) this.health = Math.min(HEALTH_MAX, this.health + 20 * dt);
     }
 
+  }
+
+  locomote(dt, frozen) {
+    const m = this.m, c = this.cmd;
     // locomotion
     const crouching = c.crouch && this.grounded;
     this.crouch = damp(this.crouch, crouching ? 1 : 0, 14, dt);
@@ -135,7 +151,51 @@ export class Actor {
       if (this.stepD > 2.2) { this.stepD = 0; m.sfx('step', this, this.isPlayer ? 0.5 : 0.7); }
     }
 
-    if (!frozen) this.weaponsUpdate(dt);
+  }
+
+  updateRemote(dt) {
+    const m = this.m;
+    if (!this.alive) {
+      this.deadT += dt; this.rig.root.visible = this.deadT < 6;
+      this.physics(dt, 0, 0, true); this.animate(dt); return;
+    }
+    this.tickVitals(dt);
+    const T = this.netT;
+    if (T) {
+      const k = 1 - Math.exp(-18 * dt);
+      this.x += (T.x - this.x) * k; this.y += (T.y - this.y) * k; this.z += (T.z - this.z) * k;
+      this.yaw += angDiff(this.yaw, T.yaw) * Math.min(1, k * 1.5); this.pitch += (T.pitch - this.pitch) * k;
+      this.vx = T.vx; this.vz = T.vz; this.vy = T.vy; this.grounded = T.g; this.zoomLevel = T.zl;
+      this.crouch = damp(this.crouch, T.cr, 14, dt); this.h = lerp(H_STAND, H_CROUCH, this.crouch);
+    }
+    this.lastMoveSpeed = Math.hypot(this.vx, this.vz);
+    this.rig.root.visible = true;
+    if (m.state !== 'countdown') this.weaponsUpdate(dt);
+    this.animate(dt);
+  }
+
+  updateReplica(dt) {
+    const m = this.m, mine = this === m.player;
+    if (this.alive && mine) {
+      this.locomote(dt, m.state === 'countdown');
+      const c = this.cmd, def = this.def;
+      if (c.zoom && def && def.zoom && this.reloadT <= 0) this.zoomLevel = (this.zoomLevel + 1) % (def.zoom.length + 1);
+      if ((def && !def.zoom) || this.reloadT > 0 || this.swapT > 0.1) this.zoomLevel = 0;
+      this.kick = damp(this.kick, 0, 14, dt);
+      this.rig.root.visible = m.thirdPerson;
+      this.animate(dt); return;
+    }
+    const T = this.netT;
+    if (T) {
+      const k = 1 - Math.exp(-16 * dt);
+      this.x += (T.x - this.x) * k; this.y += (T.y - this.y) * k; this.z += (T.z - this.z) * k;
+      this.yaw += angDiff(this.yaw, T.yaw) * Math.min(1, k * 1.5); this.pitch += (T.pitch - this.pitch) * k;
+      this.vx = T.vx; this.vz = T.vz; this.grounded = T.g;
+      this.crouch = damp(this.crouch, T.cr, 14, dt); this.h = lerp(H_STAND, H_CROUCH, this.crouch);
+    }
+    if (!this.alive) { this.deadT += dt; this.rig.root.visible = this.deadT < 6; } else { this.deadT = 0; this.rig.root.visible = mine ? m.thirdPerson : this.first !== true; }
+    this.lastMoveSpeed = Math.hypot(this.vx, this.vz);
+    this.kick = damp(this.kick, 0, 14, dt);
     this.animate(dt);
   }
 
@@ -169,7 +229,7 @@ export class Actor {
       }
       this.y = ny;
     }
-    if (this.y < W.KILL_Y && this.alive && !dead) { this.health = 0; this.m.kill(this, null, { weapon: 'fall', kind: 'fall' }); }
+    if (this.y < W.KILL_Y && this.alive && !dead && !this.m.replica) { this.health = 0; this.m.kill(this, null, { weapon: 'fall', kind: 'fall' }); }
     if (this.y < -60) { this.y = -60; this.vy = 0; }
   }
 
@@ -357,18 +417,34 @@ export class Match {
     this.listener = { x: 0, y: 0, z: 0, yaw: 0 };
     this.lead = null; this.feed = [];
     this.pgroup = new THREE.Group(); scene.add(this.pgroup);
+    this.replica = !!cfg.replica; this.hosting = false; this.ev = []; this.puid = 0; this.byId = new Map(); this.rp = new Map(); this.nStatic = 0;
+    if (this.replica) {
+      this.timeLimit = (cfg.minutes || 12) * 60;
+      for (const r of cfg.roster) {
+        const a = new Actor(this, { name: r.name, team: r.team, style: { hair: r.hair, eye: r.eye }, isPlayer: r.id === cfg.you, id: r.id, helmet: r.helmet });
+        a.alive = true; a.rig.root.visible = false; a.first = true; a.weapons = [{ id: 'br', mag: 36, res: 108 }];
+        this.actors.push(a); this.byId.set(a.id, a);
+        if (r.id === cfg.you) this.player = a;
+      }
+      for (const p of W.PICKUPS) this.addPickup({ ...p });
+      this.nStatic = this.pickups.length;
+      return;
+    }
 
     const pt = cfg.team || 'blue', et = pt === 'blue' ? 'red' : 'blue';
+    const humans = cfg.humans || [], hb = (t) => humans.filter((h) => h.team === t).length;
     this.player = new Actor(this, { name: cfg.name || 'AOI', team: pt, style: cfg.waifu, isPlayer: true });
     this.actors.push(this.player);
+    for (const h of humans) this.actors.push(new Actor(this, { name: h.name, team: h.team, style: h.waifu, remote: h.peer, helmet: h.helmet !== false }));
     let si = 0;
     const mk = (team) => { const s = BOT_STYLES[(si++ * 5 + 1) % BOT_STYLES.length]; const b = new Actor(this, { name: s.name, team, style: s }); this.actors.push(b); };
-    for (let i = 0; i < 3; i++) mk(pt);
-    for (let i = 0; i < 4; i++) mk(et);
+    for (let i = 0; i < Math.max(0, 3 - hb(pt)); i++) mk(pt);
+    for (let i = 0; i < Math.max(0, 4 - hb(et)); i++) mk(et);
     // unique names
     const seen = new Set();
     this.actors.forEach((a) => { while (seen.has(a.name)) a.name += '2'; seen.add(a.name); });
-    for (const a of this.actors) if (!a.isPlayer || cfg.autoPlayer) a.brain = new Brain(a, this, this.diff);
+    for (const a of this.actors) if ((!a.isPlayer || cfg.autoPlayer) && !a.remote) a.brain = new Brain(a, this, this.diff);
+    this.actors.forEach((a) => this.byId.set(a.id, a));
 
     for (const p of W.PICKUPS) this.addPickup({ ...p });
     const used = { red: 0, blue: 0 };
@@ -376,7 +452,10 @@ export class Match {
     this.bus.emit('state', 'countdown');
   }
 
-  sfx(name, src, vol = 1) { Sound.at(name, { x: src.x, y: src.y ?? 0, z: src.z }, this.listener, vol); }
+  sfx(name, src, vol = 1) {
+    Sound.at(name, { x: src.x, y: src.y ?? 0, z: src.z }, this.listener, vol);
+    if (this.hosting && name !== 'beep') this.ev.push(['s', name, +src.x.toFixed(1), +(src.y ?? 0).toFixed(1), +src.z.toFixed(1), vol]);
+  }
 
   // ---- pickups --------------------------------------------------------------
   addPickup(p) {
@@ -394,7 +473,7 @@ export class Match {
     obj.position.y = 0.95; g.add(obj);
     g.position.set(p.x, p.y, p.z);
     this.pgroup.add(g);
-    const pk = { ...p, mesh: g, obj, active: true, back: 0, born: this.time, isPower, ammo: p.ammo || null };
+    const pk = { ...p, mesh: g, obj, active: true, back: 0, born: this.time, isPower, ammo: p.ammo || null, uid: p.uid ?? ++this.puid };
     this.pickups.push(pk);
     return pk;
   }
@@ -404,6 +483,7 @@ export class Match {
       const p = this.pickups[i];
       if (p.dropped && this.time - p.born > 40) { this.pgroup.remove(p.mesh); this.pickups.splice(i, 1); continue; }
       if (!p.active) {
+        if (this.replica) continue;
         p.back -= dt;
         if (p.back <= 0 && p.t > 0) { p.active = true; p.mesh.visible = true; Sound.at('spawn', p, this.listener, 0.5); }
         continue;
@@ -481,7 +561,7 @@ export class Match {
     a.zoomHold = a.zoomLevel;
 
     if (def.proj === 'rocket') {
-      const p = { type: 'rocket', x: mx, y: my, z: mz, vx: base.x * def.speed, vy: base.y * def.speed, vz: base.z * def.speed, owner: a, life: 6, mesh: makeRocketMesh(), alive: true, dmg: def.dmg, radius: def.radius };
+      const p = { type: 'rocket', x: mx, y: my, z: mz, vx: base.x * def.speed, vy: base.y * def.speed, vz: base.z * def.speed, owner: a, uid: ++this.puid, life: 6, mesh: makeRocketMesh(), alive: true, dmg: def.dmg, radius: def.radius };
       p.mesh.position.set(mx, my, mz); this.pgroup.add(p.mesh);
       this.projs.push(p);
       return;
@@ -526,7 +606,7 @@ export class Match {
   throwGrenade(a, kind) {
     const f = forward(a.yaw, a.pitch + 0.16, { x: 0, y: 0, z: 0 });
     const s = kind === 'plasma' ? 17 : 15.5;
-    const p = { type: kind, x: a.x + f.x * 0.5, y: a.eye - 0.1, z: a.z + f.z * 0.5, vx: f.x * s + a.vx * 0.5, vy: f.y * s + 1.5, vz: f.z * s + a.vz * 0.5, owner: a, life: kind === 'plasma' ? 6 : 2.4, mesh: makeGrenadeMesh(kind), alive: true, stuck: null, beep: 0 };
+    const p = { type: kind, x: a.x + f.x * 0.5, y: a.eye - 0.1, z: a.z + f.z * 0.5, vx: f.x * s + a.vx * 0.5, vy: f.y * s + 1.5, vz: f.z * s + a.vz * 0.5, owner: a, uid: ++this.puid, life: kind === 'plasma' ? 6 : 2.4, mesh: makeGrenadeMesh(kind), alive: true, stuck: null, beep: 0 };
     p.mesh.position.set(p.x, p.y, p.z); this.pgroup.add(p.mesh);
     this.projs.push(p);
   }
@@ -736,6 +816,7 @@ export class Match {
   }
 
   update(dt) {
+    if (this.replica) return this.replicaUpdate(dt);
     this.time += dt;
     if (this.state === 'countdown') {
       const prev = Math.ceil(this.count);
@@ -795,11 +876,153 @@ export class Match {
     return best;
   }
 
+
+  // ================= networking =================
+  // host: mirror fx / sound / bus events so friends see and hear the same match
+  enableHost() {
+    this.hosting = true;
+    const fx = this.fx, cp = (v) => (v && typeof v === 'object' && 'x' in v ? { x: +v.x.toFixed(2), y: +v.y.toFixed(2), z: +v.z.toFixed(2) } : typeof v === 'number' ? +v.toFixed(3) : v);
+    fx._o ||= {};
+    for (const m of ['flash', 'tracer', 'sparks', 'dust', 'blood', 'explosion', 'light']) {
+      fx._o[m] ||= fx[m].bind(fx);
+      fx[m] = (...a) => { fx._o[m](...a); if (this.hosting) this.ev.push(['f', m, ...a.map(cp)]); };
+    }
+    const oe = this.bus.emit.bind(this.bus), RELAY = new Set(['hit', 'hurt', 'kill', 'medal', 'announce', 'count', 'state', 'explosion', 'spawn', 'shot']);
+    this.bus.emit = (e, ...a) => { oe(e, ...a); if (RELAY.has(e)) this.ev.push(['b', e, ...a.map((x) => this.serVal(x))]); };
+  }
+
+  serVal(x) {
+    if (x instanceof Actor) return { $a: x.id };
+    if (x && typeof x === 'object' && x.cycle !== undefined && x.snd) return { $w: x.id };
+    if (x && typeof x === 'object' && 'victim' in x) return { ...x, killer: this.serVal(x.killer), victim: this.serVal(x.victim) };
+    return x;
+  }
+
+  deser(x) {
+    if (x && typeof x === 'object' && x.$a !== undefined) return this.byId.get(x.$a) || null;
+    if (x && typeof x === 'object' && x.$w) return WEAPONS[x.$w];
+    if (x && typeof x === 'object' && 'victim' in x) return { ...x, killer: this.deser(x.killer), victim: this.deser(x.victim) };
+    return x;
+  }
+
+  convertToBot(peer) {
+    const a = this.actors.find((x) => x.remote === peer); if (!a) return;
+    a.remote = null; a.netT = null; a.cmd.fire = false; a.brain = new Brain(a, this, this.diff);
+    this.bus.emit('announce', `${a.name} LEFT`, null);
+  }
+
+  takeEvents() {
+    let e = this.ev; this.ev = [];
+    // a long stall must not produce an oversized packet: keep game events, drop stale fx/sound
+    if (e.length > 140) { const keep = e.filter((x) => x[0] === 'b').slice(-90), rest = e.filter((x) => x[0] !== 'b').slice(-60); e = [...keep, ...rest]; }
+    return e;
+  }
+
+  snapshot() {
+    const r2 = (v) => Math.round(v * 100) / 100;
+    return {
+      t: r2(this.time), st: this.state, cl: r2(this.clock), cn: r2(this.count), sc: [this.score.red, this.score.blue], w: this.winner,
+      a: this.actors.map((a) => ({
+        i: a.id, x: r2(a.x), y: r2(a.y), z: r2(a.z), yw: r2(a.yaw), pt: r2(a.pitch), vx: r2(a.vx), vz: r2(a.vz), al: a.alive ? 1 : 0, cr: r2(a.crouch), g: a.grounded ? 1 : 0,
+        sh: Math.round(a.shield), hp: Math.round(a.health), ov: Math.round(a.over), cu: a.cur, w: a.weapons.map((w) => [w.id, w.mag, w.res]),
+        g1: a.gren.frag, g2: a.gren.plasma, gt: a.gtype === 'frag' ? 0 : 1, k: a.kills, d: a.deaths, as: a.assists, st: a.streak,
+        mt: r2(a.meleeT), tt: r2(a.throwT), rt: r2(a.reloadT), sw: r2(a.swapT), zl: a.zoomLevel, sq: a.spawnSeq, ra: r2(Math.max(0, a.respawnAt - this.time)), lm: r2(a.lastMoveSpeed), lf: r2(this.time - a.lastFireT),
+      })),
+      pk: this.pickups.slice(0, this.nStatic || W.PICKUPS.length).map((p) => (p.active ? 1 : 0)),
+      dr: this.pickups.filter((p) => p.dropped).map((p) => ({ u: p.uid, id: p.id, x: r2(p.mesh.position.x), y: r2(p.mesh.position.y), z: r2(p.mesh.position.z), a: p.ammo })),
+      pj: this.projs.filter((p) => p.alive).map((p) => [p.uid, p.type, r2(p.x), r2(p.y), r2(p.z), r2(p.vx), r2(p.vy), r2(p.vz)]),
+    };
+  }
+
+  // host <- friend: their pose + held/edge input. Ignored until they have acknowledged the last spawn.
+  applyInput(a, k) {
+    if (!a || !a.alive || k.sq !== a.spawnSeq) return;
+    a.netT = { x: k.x, y: k.y, z: k.z, yaw: k.yw, pitch: k.pt, vx: k.vx, vy: k.vy, vz: k.vz, g: !!k.g, cr: k.cr, zl: k.zl };
+    const c = a.cmd, e = k.e | 0;
+    c.fire = !!k.f;
+    if (e & 1) c.fireEdge = true; if (e & 2) c.jump = true; if (e & 4) c.melee = true; if (e & 8) c.grenade = true;
+    if (e & 16) c.reload = true; if (e & 32) c.swap = true; if (e & 64) c.use = true; if (e & 128) c.gswitch = true;
+  }
+
+  // friend <- host
+  applySnapshot(s) {
+    this.state = s.st; this.clock = s.cl; this.count = s.cn; this.score.red = s.sc[0]; this.score.blue = s.sc[1]; if (s.w) this.winner = s.w;
+    this.hostT = s.t;
+    for (const o of s.a) {
+      const a = this.byId.get(o.i); if (!a) continue;
+      const wasAlive = a.alive;
+      a.alive = !!o.al; a.shield = o.sh; a.health = o.hp; a.over = o.ov; a.cur = o.cu; a.weapons = o.w.map(([id, mag, res]) => ({ id, mag, res }));
+      a.gren.frag = o.g1; a.gren.plasma = o.g2; a.gtype = o.gt ? 'plasma' : 'frag';
+      a.kills = o.k; a.deaths = o.d; a.assists = o.as; a.streak = o.st;
+      a.meleeT = o.mt; a.throwT = o.tt; a.reloadT = o.rt; a.swapT = o.sw; a.respawnAt = this.time + o.ra; a.lastMoveSpeed = o.lm; a.lastFireT = this.time - o.lf;
+      if (a === this.player) {
+        if (o.sq !== a.spawnSeq || (!wasAlive && a.alive)) {
+          a.spawnSeq = o.sq; a.x = o.x; a.y = o.y; a.z = o.z; a.yaw = o.yw; a.pitch = 0; a.vx = a.vz = a.vy = 0; a.grounded = true; a.deadT = 0; a.first = false;
+        } else if (a.alive && Math.hypot(a.x - o.x, a.z - o.z) + Math.abs(a.y - o.y) * 0.5 > 4) { a.x = o.x; a.y = o.y; a.z = o.z; a.vy = 0; }
+        if (!a.alive) a.netT = { x: o.x, y: o.y, z: o.z, yaw: o.yw, pitch: o.pt, vx: o.vx, vz: o.vz, g: !!o.g, cr: o.cr };
+      } else {
+        a.netT = { x: o.x, y: o.y, z: o.z, yaw: o.yw, pitch: o.pt, vx: o.vx, vz: o.vz, g: !!o.g, cr: o.cr };
+        if (a.first || (!wasAlive && a.alive) || o.sq !== a.spawnSeq) { a.x = o.x; a.y = o.y; a.z = o.z; a.yaw = o.yw; a.first = false; a.spawnSeq = o.sq; }
+      }
+      if (a === this.player && a.first) { a.x = o.x; a.y = o.y; a.z = o.z; a.yaw = o.yw; a.first = false; a.spawnSeq = o.sq; }
+      if (!a.alive && wasAlive) { a.deadT = 0; a.vy = 1; }
+    }
+    s.pk.forEach((v, i) => { const p = this.pickups[i]; if (p && p.active !== !!v) { p.active = !!v; p.mesh.visible = !!v; } });
+    const have = new Set(s.dr.map((d) => d.u));
+    for (const d of s.dr) if (!this.pickups.some((p) => p.uid === d.u)) this.addPickup({ id: d.id, x: d.x, y: d.y, z: d.z, t: 0, dropped: true, ammo: d.a, uid: d.u });
+    for (let i = this.pickups.length - 1; i >= 0; i--) { const p = this.pickups[i]; if (p.dropped && !have.has(p.uid)) { this.pgroup.remove(p.mesh); this.pickups.splice(i, 1); } }
+    const seen = new Set();
+    for (const [u, type, x, y, z, vx, vy, vz] of s.pj) {
+      seen.add(u);
+      let r = this.rp.get(u);
+      if (!r) { r = { mesh: type === 'rocket' ? makeRocketMesh() : makeGrenadeMesh(type), type, first: true }; r.mesh.position.set(x, y, z); this.pgroup.add(r.mesh); this.rp.set(u, r); }
+      r.t = { x, y, z }; r.v = { x: vx, y: vy, z: vz };
+    }
+    for (const [u, r] of this.rp) if (!seen.has(u)) { this.pgroup.remove(r.mesh); this.rp.delete(u); }
+    if (s.ev) this.applyEvents(s.ev);
+  }
+
+  applyEvents(list) {
+    const pl = this.player;
+    for (const e of list) {
+      if (e[0] === 'f') { const f = this.fx[e[1]]; if (f) f.apply(this.fx, e.slice(2)); }
+      else if (e[0] === 's') Sound.at(e[1], { x: e[2], y: e[3], z: e[4] }, this.listener, e[5]);
+      else if (e[0] === 'b') {
+        const name = e[1], args = e.slice(2).map((x) => this.deser(x));
+        if (name === 'kill') { if (args[0].victim === pl) this.lastKillRec = args[0]; this.feed.push(args[0]); }
+        else if (name === 'shot' && args[0]) args[0].kick = 1;
+        else if (name === 'hurt' && args[0]) { args[0].rig.flash = 1; if (args[0] === pl) this.bus.emit('shake', clamp(args[2] / 90, 0.08, 0.6)); }
+        else if (name === 'explosion') { const d = Math.hypot(pl.x - args[0].x, pl.z - args[0].z); if (d < args[1] * 3) this.bus.emit('shake', clamp(1 - d / (args[1] * 3), 0, 1) * 0.9); }
+        else if (name === 'spawn') continue;
+        this.bus.emit(name, ...args);
+      }
+    }
+  }
+
+  replicaUpdate(dt) {
+    this.time += dt;
+    if (this.state === 'ended') this.endT += dt;
+    for (const a of this.actors) {
+      a.update(dt);
+      const c = a.cmd; c.fireEdge = false; c.jump = false; c.melee = false; c.grenade = false; c.reload = false; c.swap = false; c.use = false; c.gswitch = false; c.zoom = false;
+    }
+    const k = 1 - Math.exp(-24 * dt);
+    for (const r of this.rp.values()) {
+      const m = r.mesh, t = r.t; if (!t) continue;
+      m.position.x += (t.x - m.position.x) * k; m.position.y += (t.y - m.position.y) * k; m.position.z += (t.z - m.position.z) * k;
+      if (r.type === 'rocket') { m.lookAt(m.position.x + r.v.x, m.position.y + r.v.y, m.position.z + r.v.z); this.fx.emit(m.position.x, m.position.y, m.position.z, rand(-0.4, 0.4), rand(-0.4, 0.4), rand(-0.4, 0.4), 0.45, 0.32, 0.06, 1, 0.6, 0.25, 0.9, 0); }
+      else { m.rotation.x += dt * 9; m.rotation.z += dt * 6; if (r.type === 'plasma') this.fx.emit(m.position.x, m.position.y, m.position.z, 0, 0.3, 0, 0.25, 0.22, 0.04, 0.4, 0.8, 1, 0.8, 0); }
+    }
+    this.updatePickups(dt);
+  }
+
   ranking() {
     return [...this.actors].sort((a, b) => b.kills - a.kills || a.deaths - b.deaths);
   }
 
   dispose() {
+    if (this.hosting && this.fx._o) { for (const m of Object.keys(this.fx._o)) this.fx[m] = this.fx._o[m]; }
+    this.hosting = false;
     for (const a of this.actors) { this.scene.remove(a.rig.root); disposeRig(a.rig); }
     this.scene.remove(this.pgroup);
     this.pgroup.traverse((o) => { if (o.isMesh && o.geometry) o.geometry.dispose(); });

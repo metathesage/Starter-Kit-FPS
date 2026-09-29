@@ -32,6 +32,7 @@ export const Input = {
   move: { x: 0, y: 0 },
   look: { x: 0, y: 0 },
   padLookActive: false,
+  touch: { enabled: false, move: { x: 0, y: 0 }, look: { x: 0, y: 0 }, held: {} },
   gp: null,
   el: null,
   onLockChange: null,
@@ -94,10 +95,10 @@ export const Input = {
     } else { padBtn = []; padAxes = [0, 0, 0, 0]; padTrig = [0, 0]; }
 
     for (const a of ACTIONS) {
-      let h = KEY[a].some((k) => keys.has(k) || tap.has(k)) || (PAD[a] || []).some((i) => padBtn[i]);
-      if (a === 'fire') h = mouse[0] || mtap[0] || padTrig[1] > 0.35 || padBtn[7];
-      if (a === 'zoom') h = mouse[2] || mtap[2] || padBtn[11];
-      if (a === 'grenade') h = h || padTrig[0] > 0.35 || padBtn[6];
+      let h = KEY[a].some((k) => keys.has(k) || tap.has(k)) || (PAD[a] || []).some((i) => padBtn[i]) || !!this.touch.held[a];
+      if (a === 'fire') h = mouse[0] || mtap[0] || padTrig[1] > 0.35 || padBtn[7] || !!this.touch.held.fire;
+      if (a === 'zoom') h = mouse[2] || mtap[2] || padBtn[11] || !!this.touch.held.zoom;
+      if (a === 'grenade') h = h || padTrig[0] > 0.35 || padBtn[6] || !!this.touch.held.grenade;
       this.prev[a] = this.held[a];
       this.held[a] = !!h;
       this.pressed[a] = this.held[a] && !this.prev[a];
@@ -109,14 +110,15 @@ export const Input = {
     let mx = (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0);
     let my = (keys.has('KeyS') ? 1 : 0) - (keys.has('KeyW') ? 1 : 0);
     if (padAxes[0] || padAxes[1]) { mx += padAxes[0]; my += padAxes[1]; }
+    mx += this.touch.move.x; my += this.touch.move.y;
     const m = Math.hypot(mx, my);
     if (m > 1) { mx /= m; my /= m; }
     this.move.x = mx; this.move.y = my;
 
     // look
     const ms = 0.0022 * this.sens;
-    let lx = mdx * ms, ly = mdy * ms;
-    mdx = 0; mdy = 0;
+    let lx = mdx * ms + this.touch.look.x * this.sens, ly = mdy * ms + this.touch.look.y * this.sens;
+    mdx = 0; mdy = 0; this.touch.look.x = 0; this.touch.look.y = 0;
     const rx = padAxes[2], ry = padAxes[3];
     this.padLookActive = Math.abs(rx) + Math.abs(ry) > 0;
     if (this.padLookActive) {
@@ -151,6 +153,7 @@ export const Input = {
     if (this.last === 'pad') {
       return ({ fire: 'RT', zoom: 'RS', jump: 'A', crouch: 'LS', reload: 'X', use: 'X', swap: 'Y', grenade: 'LT', gswitch: 'LB', melee: 'B', score: 'VIEW', pause: 'MENU', confirm: 'A', back: 'B', cam: 'RS', up: 'D-PAD', down: 'D-PAD', left: 'D-PAD', right: 'D-PAD' })[action] || '?';
     }
+    if (this.last === 'touch') return 'TAP';
     return ({ fire: 'LMB', zoom: 'RMB', jump: 'SPACE', crouch: 'C', reload: 'R', use: 'E', swap: 'Q', grenade: 'G', gswitch: 'T', melee: 'F', score: 'TAB', pause: 'ESC', confirm: 'ENTER', back: 'ESC', cam: 'V', up: '↑', down: '↓', left: '←', right: '→' })[action] || '?';
   },
 };

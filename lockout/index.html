@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>LOCKOUT — Team Slayer, Waifu Edition</title>
 <meta name="description" content="A low-poly arena shooter tribute: 4v4 Team Slayer on a symmetrical Forerunner yard, armored waifus, energy swords, sniper towers. Runs in your browser. Xbox controller ready.">
 <meta name="theme-color" content="#070b14">
@@ -94,6 +94,34 @@
     <div class="panel-head"><span class="idx">03</span><h2>SETTINGS</h2></div>
     <div class="opts" id="settingsOpts"></div>
     <div class="panel-foot"><button class="btn" id="btnSetBack"><span>BACK</span><i></i></button></div>
+  </div>
+</section>
+
+<!-- ONLINE -->
+<section id="online" class="screen" data-screen="online">
+  <div class="panel">
+    <div class="panel-head"><span class="idx">02</span><h2>PLAY ONLINE</h2><span class="sub">Host a private lobby, or join a friend's with their code. Phone and desktop both work.</span></div>
+    <div class="opts" id="onlineOpts"></div>
+    <div class="online-status" id="onlineStatus"></div>
+    <div class="panel-foot"><button class="btn" id="btnOnlineBack"><span>BACK</span><i></i></button></div>
+  </div>
+</section>
+
+<!-- LOBBY -->
+<section id="lobby" class="screen" data-screen="lobby">
+  <div class="panel wide">
+    <div class="panel-head"><span class="idx">LOBBY</span><h2 id="lobbyTitle">YOUR LOBBY</h2><span class="sub" id="lobbySub">Share the code. Friends join on any device.</span></div>
+    <div class="lobby-grid">
+      <div class="lobby-code">
+        <div class="lc-label">JOIN CODE</div>
+        <div class="lc-code" id="lobbyCode">-----</div>
+        <div class="lc-link" id="lobbyLink"></div>
+        <div class="lc-btns"><button class="btn" id="btnCopy"><span>COPY LINK</span><i></i></button><button class="btn" id="btnShare"><span>SHARE</span><i></i></button></div>
+      </div>
+      <div class="lobby-roster"><div class="lc-label">OPERATORS</div><div id="lobbyPlayers"></div></div>
+    </div>
+    <div class="opts" id="lobbyOpts"></div>
+    <div class="panel-foot" id="lobbyBtns"></div>
   </div>
 </section>
 
