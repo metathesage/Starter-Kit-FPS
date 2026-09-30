@@ -156,7 +156,7 @@ export class HUD {
     this.tut = !Profile.d.seen.tutorial;
     if (this.tut) {
       const wl2 = this.p.cls === 'warlock';
-      const rows = [['fire', 'FIRE'], ['zoom', 'ZOOM'], ['jump', wl2 ? 'JUMP / HOLD TO GLIDE' : 'JUMP'], ['sprint', 'SPRINT'], wl2 ? ['blink', 'BLINK'] : ['grenade', 'GRENADE'], ...(wl2 ? [['nova', 'NOVA BOMB']] : []), ['melee', 'MELEE'], ['reload', 'RELOAD'], ['swap', 'SWAP WEAPON'], ['score', 'SCOREBOARD']];
+      const rows = [['fire', 'FIRE'], ['zoom', 'ZOOM'], ['jump', wl2 ? 'JUMP / AIR JUMP / HOLD TO GLIDE' : 'JUMP'], ['sprint', 'SPRINT'], wl2 ? ['blink', 'BLINK'] : this.p.fac === 'spartan' ? ['blink', 'POWER DASH'] : ['grenade', 'GRENADE'], ...(wl2 ? [['nova', 'NOVA BOMB']] : this.p.fac === 'spartan' ? [['nova', 'ARMOR ABILITY'], ['grenade', 'GRENADE']] : []), ['melee', 'MELEE'], ['reload', 'RELOAD'], ['swap', 'SWAP WEAPON'], ['score', 'SCOREBOARD']];
       this.el.tut.innerHTML = `<div class="tt-h">FIELD MANUAL</div>${rows.map(([a, t]) => `<div class="tt-r">${glyph(a)}<span>${t}</span></div>`).join('')}<div class="tt-f">Kill to score. Break line of sight to recharge shields.</div>`;
       this.el.tut.classList.add('on');
     } else this.el.tut.classList.remove('on');

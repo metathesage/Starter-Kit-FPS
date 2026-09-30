@@ -9,6 +9,7 @@ export const PATCHES = [
       'Killcam: a beat after you die, the last seconds replay from your killer\'s eyes, slowing on the killing shot. Any button skips.',
       'TOP KILL: at match end the best kill of the game (distance, headshots, power weapons, multikills, air kills, streaks) plays as a slow-motion chase cinematic before the results.',
       'Hit markers v2: chamfered ticks, orange when the target\'s shield is down, skull on headshots, a burst ring on kills, and stacked damage numbers beside the reticle.',
+      'Strafe roll, landing dip and dust puffs on hard landings. The loading screen gets an animated emblem: counter-rotating rings, a live progress arc and a radar sweep.',
       'Bullet magnetism: shots bend toward a foe near the reticle on every input device. Setting: Aim assist OFF / LIGHT / STANDARD.',
     ]],
     ['FIXED', [
