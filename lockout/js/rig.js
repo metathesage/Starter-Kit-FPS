@@ -187,7 +187,7 @@ function glowSoft() {
   _glowSoft = new THREE.CanvasTexture(c); _glowSoft.colorSpace = THREE.SRGBColorSpace; return _glowSoft;
 }
 
-export function buildWaifu({ skin = null, team = 'blue', hair = 0xff86c2, eye = 0x5ce1ff, scale = 1.04, helmet = false, angel = true, haloColor = null, warlock = false, model = 'angel' } = {}) {
+export function buildWaifu({ skin = null, team = 'blue', hair = 0xff86c2, eye = 0x5ce1ff, scale = 1.04, helmet = false, angel = true, haloColor = null, warlock = false, model: opModel = 'angel' } = {}) {
   const mats = makeMats(team, hair, eye);
   if (haloColor != null) mats.halo.color.setHex(haloColor);
   const root = new THREE.Group(); root.rotation.order = 'YXZ';
@@ -328,7 +328,7 @@ export function buildWaifu({ skin = null, team = 'blue', hair = 0xff86c2, eye = 
     for (const key of ['body', 'skirt', 'visor', 'face', 'wing', 'halo']) { const m = mats[key]; if (!m) continue; m.transparent = k > 0 || key === 'face' || key === 'wing' || key === 'halo'; m.opacity = key === 'wing' ? (k > 0 ? 0.03 : 0.6) : key === 'halo' ? (k > 0 ? 0.04 : 0.95) : k > 0 ? (k >= 1 ? 0.07 : 0.4) : 1; m.depthWrite = k === 0 && key !== 'wing' && key !== 'halo'; m.needsUpdate = true; }
   };
   rig.setVisible = (v) => { root.visible = v; };
-  if (angel && !helmet && angelReady(model)) attachAngel(rig, { hair, tint: (TEAM[team] || TEAM.blue).glow, model });
+  if (angel && !helmet && angelReady(opModel)) attachAngel(rig, { hair, tint: (TEAM[team] || TEAM.blue).glow, model: opModel });
   else if (angel && !helmet && angelReady()) attachAngel(rig, { hair, tint: (TEAM[team] || TEAM.blue).glow });
   if (warlock) addWarlockGear(rig);
   return rig;
