@@ -1,6 +1,22 @@
 // Patch notes: the single source. `node tools/gen-notes.mjs` writes docs/PATCH_NOTES.md from this list; the in-game Patch Notes screen reads it directly.
 // Newest first. Section kinds: NEW, CHANGED, FIXED, KNOWN.
 export const PATCHES = [
+  { v: '0.14', date: '2026-09-30', name: 'Rigged', blurb: 'First authored, animated operators, and a full controls suite.', sections: [
+    ['NEW', [
+      'LOBA and REVENANT: authored characters with real skeletons and real animation clips (idle, walk, jog, sprint, crouch, jump, aim, shoot, reload, death). Legs follow locomotion while the arms hold the aim pose. Both are in the roster and in the bot pool.',
+      'Controls and Voice screen (Settings, or Controls in the menu): rebind any key, mouse button or pad button by selecting it and pressing the new input. Conflicts swap automatically.',
+      'Gamepad layouts: CLASSIC, HALO, DESTINY and APEX. Halo puts zoom on LT and grenades on RB, Destiny puts melee on RB and abilities on the D-pad, Apex puts tactical on LB and ultimate on the D-pad.',
+      'Stick tuning: inner deadzone, four response curves (linear, default, dynamic, precision), separate horizontal and vertical look speed, zoom sensitivity, optional look acceleration and rumble strength.',
+      'Crouch hold or toggle, auto sprint.',
+      'Voice: push to talk (hold your bound key, B by default), OPEN MIC with a sensitivity gate (tap the mic button to mute), or off. Voice volume slider.',
+    ]],
+    ['CHANGED', [
+      'The Controls sheet now shows your live bindings for keyboard and pad, with a button that opens the rebind screen.',
+    ]],
+    ['KNOWN', [
+      'Rigged operators use their own aim pose, so weapons sit approximately in the hand and can look off on some guns. Grip tuning is next.',
+    ]],
+  ] },
   { v: '0.13', date: '2026-09-30', name: 'Squad Comms', blurb: 'Text chat, push-to-talk voice and a proper phone layout for online matches.', sections: [
     ['NEW', [
       'Lobby text chat: press Y (or tap the chat button) in an online match. Messages relay through the host to everyone.',

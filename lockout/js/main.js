@@ -28,9 +28,10 @@ import { Net, friendlyError } from './net.js';
 import { initTouch } from './touch.js';
 import { ReplayPlayer } from './replay.js';
 import { Comms } from './comms.js';
+import { ACTION_LABELS, keyLabel, padLabel } from './input.js';
 
 const Q = new URLSearchParams(location.search);
-const settings = Object.assign({ sens: 1, padSens: 1, invertY: false, fov: 66, master: 0.8, sfx: 1, music: 0.5, shadows: true, bloom: true, quality: 'auto', reticle: '#ffffff', hudScale: 1, announcer: true, assist: 1 }, store('settings', {}));
+const settings = Object.assign({ sens: 1, padSens: 1, invertY: false, fov: 66, master: 0.8, sfx: 1, music: 0.5, shadows: true, bloom: true, quality: 'auto', reticle: '#ffffff', hudScale: 1, announcer: true, assist: 1, binds: { preset: 'classic', kbm: {}, pad: {} }, dead: 0.18, curve: 'default', xSens: 1, ySens: 1, adsSens: 0.7, accel: false, vib: 1, crouchMode: 'auto', autoSprint: false, voice: 'ptt', micThresh: 0.3, voiceVol: 1 }, store('settings', {}));
 const loadout = Object.assign({ waifu: 0, team: 'blue', diff: 'normal', limit: 25, helmet: false, map: 'lockout', mode: 'slayer', variant: 'standard', limits: {}, faction: 'spartan', aa: 'lock' }, store('loadout', {}));
 if (!MODES[loadout.mode]) loadout.mode = 'slayer';
 if (Q.get('mode') && MODES[Q.get('mode')]) loadout.mode = Q.get('mode');
@@ -109,10 +110,13 @@ let state = 'splash', world = null, fx = null, viewmodel = null, hud = null, mat
 let trauma = 0, camKick = 0, fovCur = 62, menuT = 0, last = performance.now(), padCrouch = false, padSprint = false, fpsAcc = 0, fpsN = 0, showFps = Q.has('fps'), muted = false;
 let camRoll = 0, replay = null, kcAt = -1, topDone = false, rpUI = null, hitstop = 0, showWeapon = null, mstats = null, lastDevice = 'kbm', endShown = false, quick = Q.has('quick'), fast = Q.has('fast') || Q.has('quick'), netAcc = 0, netEdges = 0;
 const shakeN = { t: 0 };
-window.__game = { Comms, get post() { return post; }, get hub() { return hub; }, ensureMap: (id) => ensureMap(id), World, get world() { return world; }, render: () => render(false), Net, hostLobby: () => hostLobby(), joinLobby: (c) => joinLobby(c), startOnlineHost: () => startOnlineHost(), renderer, get fx() { return fx; }, get match() { return match; }, get state() { return state; }, get scene() { return scene; }, get camera() { return camera; }, start: () => startMatch(), Input, THREE };
+window.__game = { Comms, showBindings: () => showBindings(() => showTitle()), get post() { return post; }, get hub() { return hub; }, ensureMap: (id) => ensureMap(id), World, get world() { return world; }, render: () => render(false), Net, hostLobby: () => hostLobby(), joinLobby: (c) => joinLobby(c), startOnlineHost: () => startOnlineHost(), renderer, get fx() { return fx; }, get match() { return match; }, get state() { return state; }, get scene() { return scene; }, get camera() { return camera; }, start: () => startMatch(), Input, THREE };
 
 function applySettings() {
   Input.sens = settings.sens; Input.padSens = settings.padSens; Input.invertY = settings.invertY;
+  Input.applyBinds(settings.binds);
+  Input.cfg = { dead: settings.dead, curve: { linear: 1, default: 1.7, dynamic: 2.2, precision: 2.7 }[settings.curve] || 1.7, xSens: settings.xSens, ySens: settings.ySens, adsMul: settings.adsSens, accel: !!settings.accel, vib: settings.vib };
+  Comms.setMode(settings.voice, settings.micThresh, settings.voiceVol);
   Sound.setVolume(muted ? 0 : settings.master, settings.sfx, settings.music);
   renderer.shadowMap.enabled = settings.shadows;
   document.documentElement.style.setProperty('--ret', settings.reticle);
@@ -264,7 +268,13 @@ function openRecord() { showRecord({ back: () => showTitle(), onChange: () => re
 function showControls(from) {
   const b = $('#btnCtrlBack'); UI.button(b, () => back());
   const back = () => (from === 'pause' ? pauseMenu() : from === 'hub' ? openHubPauseAgain() : showTitle());
-  UI.show('controls', { rows: [b], onBack: back });
+  // live sheet built from the current bindings (kept in sync with rebinding)
+  const grid = $('#ctrlGrid');
+  if (grid) grid.innerHTML = ACTION_LABELS.map(([a, l]) => `<div class="ctrl-row"><span>${l}</span><b><u>${Input.keysFor(a).map(keyLabel).join(' / ') || '-'}</u><u class="pd">${Input.padFor(a).map(padLabel).join(' / ') || '-'}</u></b></div>`).join('');
+  let cu = document.getElementById('btnCtrlCustom');
+  if (!cu) { cu = document.createElement('button'); cu.className = 'btn primary'; cu.id = 'btnCtrlCustom'; cu.innerHTML = '<span>REBIND AND TUNE</span><i></i>'; b.parentNode.insertBefore(cu, b); }
+  UI.button(cu, () => showBindings(() => showControls(from)));
+  UI.show('controls', { rows: [cu, b], onBack: back });
 }
 
 function showPatch() {
@@ -312,10 +322,66 @@ function showSettings(backFn) {
   rows.push(UI.choice(box, 'Announcer voice', [{ label: 'OFF', value: false }, { label: 'ON', value: true }], settings.announcer ? 1 : 0, (v) => { settings.announcer = v; applySettings(); persist(); if (v) Sound.say('Announcer online'); }));
   rows.push(UI.choice(box, 'Bloom and grade', [{ label: 'ON', value: true }, { label: 'OFF', value: false }], settings.bloom !== false ? 0 : 1, (v) => { settings.bloom = v; applySettings(); persist(); }));
   rows.push(UI.choice(box, 'Shadows', [{ label: 'ON', value: true }, { label: 'OFF', value: false }], settings.shadows ? 0 : 1, (v) => { settings.shadows = v; applySettings(); persist(); }));
+  const cb = document.createElement('button'); cb.className = 'btn primary'; cb.innerHTML = '<span>CONTROLS AND VOICE</span><i></i>'; box.insertBefore(cb, box.firstChild);
+  UI.button(cb, () => showBindings(() => showSettings(backFn))); rows.unshift(cb);
   const sd = document.createElement('button'); sd.className = 'btn'; sd.innerHTML = '<span>SAVE DATA / BACKUP</span><i></i>'; box.appendChild(sd);
   UI.button(sd, () => showSaveData(() => showSettings(backFn))); rows.push(sd);
   const b = $('#btnSetBack'); UI.button(b, backFn); rows.push(b);
   UI.show('settings', { rows, onBack: backFn });
+}
+
+// ---- controls screen: presets, rebinding, stick tuning, toggles, voice -------------------------------
+function showBindings(backFn) {
+  const box = $('#bindsOpts'); box.innerHTML = '';
+  const rows = [], save = () => { applySettings(); persist(); };
+  const B = settings.binds;
+  rows.push(UI.choice(box, 'Gamepad layout', [{ label: 'CLASSIC', value: 'classic' }, { label: 'HALO', value: 'halo' }, { label: 'DESTINY', value: 'destiny' }, { label: 'APEX', value: 'apex' }], ['classic', 'halo', 'destiny', 'apex'].indexOf(B.preset), (v) => { B.preset = v; B.pad = {}; save(); refreshList(); }));
+  rows.push(UI.slider(box, 'Look speed horizontal', 0.4, 2.2, 0.1, settings.xSens, (v) => v.toFixed(1), (v) => { settings.xSens = v; save(); }));
+  rows.push(UI.slider(box, 'Look speed vertical', 0.4, 2.2, 0.1, settings.ySens, (v) => v.toFixed(1), (v) => { settings.ySens = v; save(); }));
+  rows.push(UI.slider(box, 'Zoom sensitivity', 0.3, 1.4, 0.05, settings.adsSens, (v) => Math.round(v * 100) + '%', (v) => { settings.adsSens = v; save(); }));
+  rows.push(UI.slider(box, 'Stick deadzone', 0.04, 0.4, 0.02, settings.dead, (v) => Math.round(v * 100) + '%', (v) => { settings.dead = v; save(); }));
+  rows.push(UI.choice(box, 'Stick response', [{ label: 'LINEAR', value: 'linear' }, { label: 'DEFAULT', value: 'default' }, { label: 'DYNAMIC', value: 'dynamic' }, { label: 'PRECISION', value: 'precision' }], ['linear', 'default', 'dynamic', 'precision'].indexOf(settings.curve), (v) => { settings.curve = v; save(); }));
+  rows.push(UI.choice(box, 'Look acceleration', [{ label: 'OFF', value: false }, { label: 'ON', value: true }], settings.accel ? 1 : 0, (v) => { settings.accel = v; save(); }));
+  rows.push(UI.slider(box, 'Vibration', 0, 1, 0.1, settings.vib, (v) => Math.round(v * 100) + '%', (v) => { settings.vib = v; save(); Input.rumble(0.6, 0.6, 160); }));
+  rows.push(UI.choice(box, 'Crouch', [{ label: 'AUTO', value: 'auto' }, { label: 'HOLD', value: 'hold' }, { label: 'TOGGLE', value: 'toggle' }], ['auto', 'hold', 'toggle'].indexOf(settings.crouchMode), (v) => { settings.crouchMode = v; save(); }));
+  rows.push(UI.choice(box, 'Sprint', [{ label: 'HOLD / TOGGLE', value: false }, { label: 'AUTO SPRINT', value: true }], settings.autoSprint ? 1 : 0, (v) => { settings.autoSprint = v; save(); }));
+  rows.push(UI.choice(box, 'Voice chat', [{ label: 'PUSH TO TALK', value: 'ptt' }, { label: 'OPEN MIC', value: 'open' }, { label: 'OFF', value: 'off' }], ['ptt', 'open', 'off'].indexOf(settings.voice), (v) => { settings.voice = v; save(); }));
+  rows.push(UI.slider(box, 'Open mic sensitivity', 0.05, 0.9, 0.05, settings.micThresh, (v) => Math.round((1 - v) * 100) + '%', (v) => { settings.micThresh = v; save(); }));
+  rows.push(UI.slider(box, 'Voice volume', 0, 1.5, 0.1, settings.voiceVol, (v) => Math.round(v * 100) + '%', (v) => { settings.voiceVol = v; save(); }));
+  const head = document.createElement('div'); head.className = 'opt-head'; head.textContent = 'BINDINGS  -  select one, then press a key, mouse button or pad button'; box.appendChild(head);
+  const listEl = document.createElement('div'); listEl.className = 'bind-list'; box.appendChild(listEl);
+  const chips = (a) => { const k = Input.keysFor(a).map(keyLabel), p = Input.padFor(a).map(padLabel); return [...k.map((x) => `<u>${x}</u>`), ...p.map((x) => `<u class="pd">${x}</u>`)].join('') || '<u class="none">UNBOUND</u>'; };
+  const bindRows = [];
+  function refreshList() {
+    listEl.innerHTML = ''; bindRows.length = 0;
+    for (const [a, label] of ACTION_LABELS) {
+      const r = document.createElement('button'); r.className = 'btn bind'; r.innerHTML = `<span>${label}</span><b>${chips(a)}</b>`; listEl.appendChild(r);
+      UI.button(r, () => {
+        r.classList.add('wait'); r.querySelector('b').innerHTML = '<u class="none">PRESS INPUT  -  ESC CANCELS</u>';
+        Input.capture((res) => {
+          r.classList.remove('wait');
+          if (res && res.dev === 'kbm') {
+            for (const o of Object.keys(Input.binds.kbm)) if (o !== a) { const cur = Input.binds.kbm[o]; if (cur.includes(res.code)) B.kbm[o] = cur.filter((c) => c !== res.code); }
+            B.kbm[a] = [res.code];
+          } else if (res && res.dev === 'pad') {
+            for (const o of Object.keys(Input.binds.pad)) if (o !== a) { const cur = Input.binds.pad[o]; if (cur.includes(res.btn)) B.pad[o] = cur.filter((c) => c !== res.btn); }
+            B.pad[a] = [res.btn];
+          }
+          save(); refreshList();
+        });
+      });
+      bindRows.push(r);
+    }
+    const rs = document.createElement('button'); rs.className = 'btn'; rs.innerHTML = '<span>RESET ALL BINDINGS</span><i></i>'; listEl.appendChild(rs);
+    UI.button(rs, () => { B.kbm = {}; B.pad = {}; B.preset = 'classic'; save(); showBindings(backFn); }); bindRows.push(rs);
+    rows.splice(rowBase, rows.length - rowBase, ...bindRows, back);
+    if (UI.cur === 'binds') UI.show('binds', { rows, onBack: backFn, focus: rowBase });
+  }
+  const back = $('#btnBindBack'); UI.button(back, backFn);
+  const rowBase = rows.length;
+  rows.push(back);
+  refreshList();
+  UI.show('binds', { rows, onBack: backFn });
 }
 
 function callsignRow(box) {
@@ -792,8 +858,11 @@ function playerInput(p) {
   c.mx = rx * mv.x + fx_ * -mv.y; c.mz = rz * mv.x + fz_ * -mv.y;
   c.fire = Input.held.fire; if (Input.pressed.fire) c.fireEdge = true;
   if (Input.held.jump) c.jump = true;
-  if (Input.last === 'pad') { if (Input.pressed.crouch) padCrouch = !padCrouch; c.crouch = padCrouch; } else c.crouch = Input.held.crouch;
-  if (Input.last === 'pad') { if (Input.pressed.sprint) padSprint = !padSprint; if (Math.hypot(mv.x, mv.y) < 0.25 || Input.held.fire || Input.held.zoom) padSprint = false; c.sprint = padSprint; } else c.sprint = Input.held.sprint;
+  Input.ads = p.zoomLevel > 0;
+  { const cm = settings.crouchMode === 'auto' ? (Input.last === 'pad' ? 'toggle' : 'hold') : settings.crouchMode;
+    if (cm === 'toggle') { if (Input.pressed.crouch) padCrouch = !padCrouch; c.crouch = padCrouch; } else { padCrouch = false; c.crouch = Input.held.crouch; } }
+  if (settings.autoSprint) c.sprint = true;
+  else if (Input.last === 'pad') { if (Input.pressed.sprint) padSprint = !padSprint; if (Math.hypot(mv.x, mv.y) < 0.25 || Input.held.fire || Input.held.zoom) padSprint = false; c.sprint = padSprint; } else c.sprint = Input.held.sprint;
   if (Input.pressed.melee) c.melee = true; if (Input.pressed.grenade) c.grenade = true; if (Input.pressed.reload) c.reload = true;
   if (Input.pressed.swap) c.swap = true; if (Input.pressed.use) c.use = true; if (Input.pressed.zoom) c.zoom = true; if (Input.pressed.gswitch) c.gswitch = true;
   if (Input.pressed.blink) c.blink = true; if (Input.pressed.nova) c.nova = true; c.novaHeld = !!Input.held.nova;
@@ -998,7 +1067,7 @@ function loop(now) {
   requestAnimationFrame(loop);
   const lastNow0 = lastNow;
   const dt = Math.min(0.05, Math.max(0.0005, (now - last) / 1000)); last = now;
-  Input.update(dt);
+  Input.update(dt); Comms.poll(dt, !!Input.held.talk, !!Input.pressed.chat, state === 'playing');
   if (Input.last !== lastDevice) { lastDevice = Input.last; if (state === 'menu') refreshPrompts(); if (hud && match) { /* hud glyphs re-render each frame */ } }
   if (showFps) { fpsAcc += (now - lastNow) / 1000; fpsN++; if (fpsAcc > 0.5 && hud) { hud.el.fps.textContent = `${Math.round(fpsN / fpsAcc)} FPS · ${resScale.toFixed(2)}x`; fpsAcc = 0; fpsN = 0; } }
   lastNow = now;

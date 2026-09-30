@@ -23,8 +23,7 @@ export const OPERATOR_MODELS = {
     J: { hips: [0, 0.03], spine: [0, 0.12], chest: [0, 0.22], head: [0, 0.335], sh: [0.09, 0.285], el: [0.1, 0.15], wr: [0.09, 0.02], hand: [0.085, -0.02], hip: [0.045, 0.0], kn: [0.05, -0.24], an: [0.05, -0.45], toe: [0.05, -0.5] } },
   // authored, rigged and animated (real clips). S = height in rig units; gun* place the weapon in the right hand
   loba: { url: 'models/operator/loba.glb', rigged: true, S: 1.74, glow: 0.3, gunPos: [0, 0, 0], gunRot: [0, 0, 0] },
-  revenant: { url: 'models/operator/revenant.glb', rigged: true, S: 1.86, glow: 0.3, gunPos: [0, 0, 0], gunRot: [0, 0, 0] },
-  wraith: { url: 'models/operator/wraith.glb', rigged: true, S: 1.7, glow: 0.3, gunPos: [0, 0, 0], gunRot: [0, 0, 0] },
+  revenant: { url: 'models/operator/revenant.glb', rigged: true, S: 1.86, glow: 0.5, noInk: true, gunPos: [0, 0, 0], gunRot: [0, 0, 0] },
   kagome: { url: 'models/operator/kagome.glb', S: 1.76, shScale: 1.0, glow: 0.34,
     J: { hips: [0, -0.02], spine: [0, 0.07], chest: [0, 0.2], head: [0, 0.33], sh: [0.08, 0.29], el: [0.24, 0.29], wr: [0.34, 0.29], hand: [0.4, 0.29], hip: [0.045, -0.03], kn: [0.05, -0.24], an: [0.05, -0.46], toe: [0.05, -0.5] } },
 };

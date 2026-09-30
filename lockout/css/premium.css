@@ -639,3 +639,15 @@ body.touch-on .h-score { scale: .72; transform-origin: top right; }
 body.touch-on .h-tut { display: none !important; }
 
 .cm-form[hidden] { display: none !important; }
+
+/* controls screen */
+.opt-head { margin: 18px 0 8px; font: 600 10px 'JetBrains Mono', monospace; letter-spacing: .26em; color: var(--champ, #ffd48a); opacity: .85; }
+.bind-list { display: grid; gap: 6px; }
+.btn.bind { display: flex; justify-content: space-between; align-items: center; gap: 14px; text-align: left; }
+.btn.bind b { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; font-weight: 500; }
+.btn.bind u { text-decoration: none; font: 700 10.5px 'JetBrains Mono', monospace; letter-spacing: .14em; padding: 4px 9px; background: rgba(255,255,255,.1); box-shadow: inset 0 0 0 1px rgba(255,255,255,.22); clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); }
+.btn.bind u.pd { background: rgba(255,226,168,.16); box-shadow: inset 0 0 0 1px rgba(255,226,168,.5); color: var(--champ, #ffd48a); } .btn.bind u.none { opacity: .55; }
+.btn.bind.wait { box-shadow: inset 0 0 0 2px var(--champ, #ffd48a); animation: bindwait 1s ease-in-out infinite; } @keyframes bindwait { 50% { background: rgba(255,226,168,.12); } }
+.cm-mic.open i { background: #7dffb0; } .cm-mic.muted { color: #ff6a76; } .cm-mic.muted i { background: #ff6a76; } .cm-mic[hidden] { display: none; }
+#binds .panel { max-height: 92vh; overflow-y: auto; }
+.ctrl-row { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,.07); } .ctrl-row b { display: flex; gap: 6px; } .ctrl-row u { text-decoration: none; font: 700 10.5px 'JetBrains Mono', monospace; letter-spacing: .12em; padding: 3px 8px; background: rgba(255,255,255,.1); } .ctrl-row u.pd { background: rgba(255,226,168,.16); color: var(--champ, #ffd48a); }

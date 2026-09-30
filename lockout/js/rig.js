@@ -17,10 +17,9 @@ export const WAIFUS = [
   { id: 'eos', model: 'angel', look: { hue: 0 }, name: 'EOS', role: 'ARCHANGEL', hair: 0xffd166, eye: 0xfff0c4, blurb: 'First light. Last word.' },
   // authored rigs with real clips
   { id: 'loba', model: 'loba', look: {}, name: 'LOBA', role: 'THIEF', hair: 0xffc46b, eye: 0xffd15b, blurb: 'Takes what she wants and leaves before you notice.' },
-  { id: 'wraith', model: 'wraith', look: {}, name: 'WRAITH', role: 'VOID PROWLER', hair: 0xb98cff, eye: 0xb98cff, blurb: 'Hears the voices. Follows the good ones.' },
   { id: 'revenant', model: 'revenant', look: {}, name: 'REVENANT', role: 'SIMULACRUM', hair: 0xff4a58, eye: 0xff4a58, blurb: 'Nothing left to lose. Everything left to break.' },
 ];
-export const RIGGED = new Set(['loba', 'wraith', 'revenant']);
+export const RIGGED = new Set(['loba', 'revenant']);
 export const BOT_STYLES = [
   { model: 'mualani', look: { hue: 0 }, name: 'HIKARI', hair: 0xffd166, eye: 0x6ab8ff }, { model: 'kagome', look: { hue: 40 }, name: 'RIN', hair: 0xff5b5b, eye: 0xffe36a },
   { model: 'lucy', look: { hue: 150 }, name: 'YUZU', hair: 0xff9f43, eye: 0x7cf0c9 }, { model: 'mualani', look: { hue: 275 }, name: 'MIO', hair: 0x4fd1ff, eye: 0xff8fb8 },
@@ -28,7 +27,7 @@ export const BOT_STYLES = [
   { model: 'mualani', look: { hue: 150 }, name: 'AKANE', hair: 0xff6f91, eye: 0x9df2ff }, { model: 'kagome', look: { hue: 200 }, name: 'TSUKI', hair: 0x9aa7ff, eye: 0xffb86b },
   { model: 'lucy', look: { hue: 275 }, name: 'MOMO', hair: 0xffb3d9, eye: 0x7cc7ff }, { model: 'mualani', look: { hue: 0 }, name: 'SORA', hair: 0x7de0ff, eye: 0xff7a9c },
   { model: 'kagome', look: { hue: 40 }, name: 'NANA', hair: 0xf2f2f8, eye: 0x82ffb0 }, { model: 'lucy', look: { hue: 150 }, name: 'EMI', hair: 0xff7f50, eye: 0x8fd4ff },
-  { model: 'loba', look: {}, name: 'ROXY', hair: 0xffc46b, eye: 0xffd15b }, { model: 'wraith', look: {}, name: 'VOIDLING', hair: 0xb98cff, eye: 0xb98cff }, { model: 'revenant', look: {}, name: 'SHADE', hair: 0xff4a58, eye: 0xff4a58 },
+  { model: 'loba', look: {}, name: 'ROXY', hair: 0xffc46b, eye: 0xffd15b }, { model: 'revenant', look: {}, name: 'SHADE', hair: 0xff4a58, eye: 0xff4a58 },
 ];
 export const TEAM = {
   red: { name: 'RED', armor: 0xd93a48, armor2: 0x2a2f3a, glow: 0xff4a58, css: '#ff4a58' },

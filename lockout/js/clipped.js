@@ -17,11 +17,10 @@ export async function loadRigged(id, cfg, fetchGltf) {
   // units differ per model (cm, m, arbitrary), so size from the skeleton: neck-base height over foot height
   // (the bind pose is not the standing pose in these files, so pose the skeleton on the first frame of Idle first)
   { const idle = g.animations.find((a) => a.name === 'Idle_Loop') || g.animations[0]; if (idle) { const mx = new THREE.AnimationMixer(g.scene); mx.clipAction(idle).play(); mx.update(0); g.scene.updateMatrixWorld(true); mx.stopAllAction(); mx.uncacheRoot(g.scene); } }
-  const bn = {}; g.scene.traverse((o) => { if (o.isBone) bn[o.name] = o; });
-  const wy = (b) => new THREE.Vector3().setFromMatrixPosition(b.matrixWorld).y;
-  const headY = bn.Head ? wy(bn.Head) : 1, toeY = Math.min(bn.LeftToes ? wy(bn.LeftToes) : 0, bn.RightToes ? wy(bn.RightToes) : 0, bn.LeftFoot ? wy(bn.LeftFoot) : 0);
-  const h = Math.max(1e-3, (headY - toeY) / 0.84), floor = toeY - 0.03 * h;
-  const box = { min: { y: floor } };
+  // size from the posed, skinned vertices themselves (bone units and node scales differ wildly between files)
+  const box = new THREE.Box3(), tb = new THREE.Box3();
+  g.scene.traverse((o) => { if (o.isSkinnedMesh && o.geometry.attributes.position.count < 100000) { o.skeleton.update(); o.computeBoundingBox(); tb.copy(o.boundingBox).applyMatrix4(o.matrixWorld); if (isFinite(tb.max.y) && tb.max.y - tb.min.y < 1e6) box.union(tb); } });
+  const h = Math.max(1e-3, box.max.y - box.min.y), floor = box.min.y;
   const clips = {}; for (const c of g.animations) clips[c.name] = c;
   return { id, cfg, clipped: true, gltf: g, scale: cfg.S / h, feet: floor, clips };
 }
@@ -57,7 +56,7 @@ export function attachClipped(rig, cache, { tint = 0x4aa0ff } = {}) {
   }
   root.traverse((o) => { if (o.isMesh && !o.isSkinnedMesh) o.visible = false; });
   const inks = [];
-  for (const m of meshes) if (m.geometry.index && m.geometry.index.count > 2400) { try { inks.push(outlineSkinned(m, { width: cfg.ink ?? 0.006 })); } catch (e) { /* outline is cosmetic */ } }
+  if (!cfg.noInk) for (const m of meshes) if (m.geometry.index && m.geometry.index.count > 2400) { try { inks.push(outlineSkinned(m, { width: cfg.ink ?? 0.006 })); } catch (e) { /* outline is cosmetic */ } }
   // hide the classic body (weapon root and halo handled below)
   rig.model.traverse((o) => { if (o.isMesh && !o.isSkinnedMesh && !o.userData.outline && !holder.children.includes(o)) { let p = o, inside = false; while (p) { if (p === holder) inside = true; p = p.parent; } if (!inside) o.visible = false; } });
   rig.halo.visible = false;

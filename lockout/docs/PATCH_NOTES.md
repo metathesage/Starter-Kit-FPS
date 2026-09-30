@@ -2,6 +2,27 @@
 
 Generated from `js/patchnotes.js` (edit that file, then run `node tools/gen-notes.mjs`). Newest first.
 
+## 0.14 · Rigged · 2026-09-30
+
+_First authored, animated operators, and a full controls suite._
+
+**NEW**
+
+- LOBA and REVENANT: authored characters with real skeletons and real animation clips (idle, walk, jog, sprint, crouch, jump, aim, shoot, reload, death). Legs follow locomotion while the arms hold the aim pose. Both are in the roster and in the bot pool.
+- Controls and Voice screen (Settings, or Controls in the menu): rebind any key, mouse button or pad button by selecting it and pressing the new input. Conflicts swap automatically.
+- Gamepad layouts: CLASSIC, HALO, DESTINY and APEX. Halo puts zoom on LT and grenades on RB, Destiny puts melee on RB and abilities on the D-pad, Apex puts tactical on LB and ultimate on the D-pad.
+- Stick tuning: inner deadzone, four response curves (linear, default, dynamic, precision), separate horizontal and vertical look speed, zoom sensitivity, optional look acceleration and rumble strength.
+- Crouch hold or toggle, auto sprint.
+- Voice: push to talk (hold your bound key, B by default), OPEN MIC with a sensitivity gate (tap the mic button to mute), or off. Voice volume slider.
+
+**CHANGED**
+
+- The Controls sheet now shows your live bindings for keyboard and pad, with a button that opens the rebind screen.
+
+**KNOWN**
+
+- Rigged operators use their own aim pose, so weapons sit approximately in the hand and can look off on some guns. Grip tuning is next.
+
 ## 0.13 · Squad Comms · 2026-09-30
 
 _Text chat, push-to-talk voice and a proper phone layout for online matches._
