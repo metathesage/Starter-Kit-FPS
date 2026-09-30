@@ -90,7 +90,7 @@ export function marbleize(rig, M, pose = 'still') {
   return rig;
 }
 function goddess(M, pose, scale = 1.7) {
-  const rig = buildWaifu({ team: 'blue', hair: 0xffffff, eye: 0xffffff, helmet: false, haloColor: 0xffdf9a }); rig.setWeapon(null);
+  const rig = buildWaifu({ model: 'mualani', team: 'blue', hair: 0xffffff, eye: 0xffffff, helmet: false, haloColor: 0xffdf9a }); rig.setWeapon(null);
   marbleize(rig, M, pose); rig.root.scale.setScalar(scale); rig.root.userData.kind = 'goddess'; return rig.root;
 }
 // guardian: cuirass, greaves, crested helm, tower shield and spear, all marble with gold trim

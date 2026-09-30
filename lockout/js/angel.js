@@ -139,6 +139,7 @@ function toonMats(cache, hair, tint) {
     if (src.transparent || src.alphaTest > 0) { m.alphaTest = src.alphaTest > 0 ? src.alphaTest : 0.45; }
     if (map) m.emissiveMap = map; m.emissive.setScalar(cfg.glow);
     if (cfg.recolor) m.color.set(0xffffff).lerp(new THREE.Color(tint), 0.3);
+    else m.color.lerp(new THREE.Color(hair), 0.16);   // same model, different operator: a hint of their colour
     // anime rim light in the team colour: reads as style and as team identification
     const rimC = new THREE.Color(tint);
     m.onBeforeCompile = (sh) => {
