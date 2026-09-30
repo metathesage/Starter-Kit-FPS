@@ -26,6 +26,7 @@ import { HUD, glyph, svg, MEDAL_ICONS } from './hud.js';
 import { UI } from './ui.js';
 import { Net, friendlyError } from './net.js';
 import { initTouch } from './touch.js';
+import { ReplayPlayer } from './replay.js';
 
 const Q = new URLSearchParams(location.search);
 const settings = Object.assign({ sens: 1, padSens: 1, invertY: false, fov: 66, master: 0.8, sfx: 1, music: 0.5, shadows: true, bloom: true, quality: 'auto', reticle: '#ffffff', hudScale: 1, announcer: true, assist: 1 }, store('settings', {}));
@@ -104,7 +105,7 @@ addEventListener('resize', resize);
 let hub = null, missionActive = null;
 let state = 'splash', world = null, fx = null, viewmodel = null, hud = null, match = null, showcase = null;
 let trauma = 0, camKick = 0, fovCur = 62, menuT = 0, last = performance.now(), padCrouch = false, padSprint = false, fpsAcc = 0, fpsN = 0, showFps = Q.has('fps'), muted = false;
-let hitstop = 0, showWeapon = null, mstats = null, lastDevice = 'kbm', endShown = false, quick = Q.has('quick'), fast = Q.has('fast') || Q.has('quick'), netAcc = 0, netEdges = 0;
+let replay = null, kcAt = -1, topDone = false, rpUI = null, hitstop = 0, showWeapon = null, mstats = null, lastDevice = 'kbm', endShown = false, quick = Q.has('quick'), fast = Q.has('fast') || Q.has('quick'), netAcc = 0, netEdges = 0;
 const shakeN = { t: 0 };
 window.__game = { get post() { return post; }, get hub() { return hub; }, ensureMap: (id) => ensureMap(id), World, get world() { return world; }, render: () => render(false), Net, hostLobby: () => hostLobby(), joinLobby: (c) => joinLobby(c), startOnlineHost: () => startOnlineHost(), renderer, get fx() { return fx; }, get match() { return match; }, get state() { return state; }, get scene() { return scene; }, get camera() { return camera; }, start: () => startMatch(), Input, THREE };
 
@@ -542,7 +543,7 @@ async function startMatch() {
 }
 
 function beginMatch(m, w) {
-  if (match) { match.dispose(); match = null; }
+  if (replay) { replay.dispose(); replay = null; } if (match) { match.dispose(); match = null; }
   fx.clearDecals();
   $$('.screen').forEach((s) => s.classList.remove('active'));
   UI.cur = null; UI.rows = [];
@@ -560,6 +561,8 @@ function beginMatch(m, w) {
   match.bus.on('shake', (a) => { trauma = Math.min(1, trauma + a); });
   match.bus.on('shot', (a, def) => { if (a === match.player && def) { viewmodel.kickNow(0.4 + def.kick * 8); camKick = Math.min(0.06, camKick + def.kick * 0.35); } });
   match.bus.on('state', (s) => { if (s === 'ended') onMatchEnd(); });
+  if (replay) replay.dispose(); replay = new ReplayPlayer(scene, fx); kcAt = -1; topDone = false;
+  match.bus.on('kill', (r) => { if (r.victim === match.player && r.killer && !r.suicide && match.state === 'live' && !Q.has('nokillcam')) kcAt = match.time + 0.7; });
   match.player.pitch = 0; fovCur = settings.fov; endShown = false; padCrouch = false; trauma = 0; netAcc = 0; netEdges = 0;
   state = 'playing'; document.body.classList.add('playing');
   Input.lock(); Sound.music('match'); Sound.ambience(loadout.map === 'lockout' ? 'hum' : 'wind');
@@ -679,7 +682,7 @@ function getHub() {
 }
 async function enterHub() {
   missionActive = null;
-  if (match) { match.dispose(); match = null; }
+  if (replay) { replay.dispose(); replay = null; } if (match) { match.dispose(); match = null; }
   if (World.MAP && World.MAP.id === 'sanctum') world = null;   // reload fresh: doors reset
   await ensureMap('sanctum');
   const h = getHub(); h.setWorld(world); await h.enter(loadout);
@@ -738,7 +741,7 @@ function startMission(m) {
 
 function endMatchToMenu() {
   missionActive = null;
-  if (match) { match.dispose(); match = null; }
+  if (replay) { replay.dispose(); replay = null; } if (match) { match.dispose(); match = null; }
   showcase.root.visible = true; renderPCard();
   UI.hide('pause'); UI.hide('results');
 }
@@ -844,6 +847,38 @@ function updateCamera(dt) {
   m.listener.x = camera.position.x; m.listener.y = camera.position.y; m.listener.z = camera.position.z; m.listener.yaw = camera.rotation.y;
 }
 
+// ---- killcam + top kill ----------------------------------------------------------------------
+function rpShow(kind, clip) {
+  if (!rpUI) { rpUI = document.createElement('div'); rpUI.id = 'replayUI'; document.body.appendChild(rpUI); }
+  const wn = (WEAPONS[clip.weapon] && WEAPONS[clip.weapon].name) || clip.weapon.toUpperCase();
+  const tags = [wn, clip.dist + ' M', clip.head ? 'HEADSHOT' : '', clip.multi >= 2 ? clip.multi + 'X MULTI' : ''].filter(Boolean);
+  const col = clip.killerTeam && TEAM[clip.killerTeam] ? TEAM[clip.killerTeam].css : '#ffd48a';
+  rpUI.style.setProperty('--tc', col);
+  rpUI.className = 'rp on ' + kind;
+  rpUI.innerHTML = `<i class="rp-bar t"></i><i class="rp-bar b"></i>
+    <div class="rp-title"><small>${kind === 'top' ? 'TOP KILL' : 'KILLCAM'}</small><b>${clip.killerName}</b><span>${kind === 'top' ? clip.killerName + ' &rarr; ' + clip.victimName : 'ELIMINATED YOU'}</span><em>${tags.map((t) => `<u>${t}</u>`).join('')}</em></div>
+    <div class="rp-skip">${glyph('confirm')}<span>SKIP</span></div><i class="rp-rec"></i>`;
+  document.body.classList.add('is-replay');
+}
+function rpHide() { document.body.classList.remove('is-replay'); if (rpUI) rpUI.className = 'rp'; }
+function startReplay(clip, kind, done) {
+  if (!replay || !clip) return false;
+  try { replay.start(clip, kind, () => { rpHide(); if (done) done(); }); } catch (e) { replay.stop(); return false; }
+  rpShow(kind, clip); Sound.play('menuOpen', { vol: 0.6 }); return true;
+}
+function replayFrame(dt, sim) {
+  const m = match, p = m.player;
+  if (replay.time > 0.9 && (Input.pressed.confirm || Input.pressed.fire)) { const cb = replay.onDone; replay.stop(); rpHide(); if (cb) cb(); return; }
+  for (const a of m.actors) a.rig.root.visible = false;
+  fx.update(dt); world.snow.update(dt, camera.position, m.time);
+  if (!replay.update(dt, camera)) return;
+  camera.fov = replay.fov; camera.updateProjectionMatrix(); fovCur = replay.fov; camera.up.set(0, 1, 0);
+  fx.setScale(H * renderer.getPixelRatio(), camera.fov);
+  m.listener.x = camera.position.x; m.listener.y = camera.position.y; m.listener.z = camera.position.z; m.listener.yaw = camera.rotation.y;
+  render(false);
+  void p; void sim;
+}
+
 function play(dt) {
   const p = match.player, m = match;
   if (Input.pressed.pause) { pauseGame(); return; }
@@ -858,7 +893,11 @@ function play(dt) {
   else if (!p.alive) { p.cmd.fire = false; }
   // fixed-ish substeps
   const n = Math.max(1, Math.ceil(dt * 60)), sdt = dt / n;
+  if (replay && replay.active && replay.mode === 'top') { replayFrame(dt, false); return; }
   for (let i = 0; i < n; i++) m.update(sdt);
+  // killcam: a beat after you die, replay the last seconds from the killer's eyes
+  if (replay && !replay.active && kcAt >= 0 && !p.alive && m.time >= kcAt && m.state === 'live') { kcAt = -1; if (m.rec.death) startReplay(m.rec.death, 'kill'); }
+  if (replay && replay.active && replay.mode === 'kill') { if (p.alive) { replay.stop(); rpHide(); } else { netTick(dt); replayFrame(dt, true); return; } }
   netTick(dt);
   fx.update(dt); world.snow.update(dt, camera.position, m.time);
   p.rig.root.visible = m.thirdPerson || !p.alive || (m.state === 'countdown' && m.count > 0.6);
@@ -870,7 +909,12 @@ function play(dt) {
   fx.setScale(H * renderer.getPixelRatio(), camera.fov);
   hud.update(dt, { match: m, player: p, aimEnemy, camYaw: camera.rotation.y, camera });
   render(showVM);
-  if (m.state === 'ended' && m.endT > 3.2 && !endShown) showResults();
+  if (m.state === 'ended' && m.endT > 3.2 && !endShown) {
+    // top kill cinematic before the results: your best kill if it was a good one, otherwise the best of the match
+    const R = m.rec, clip = R && (R.bestMine && (!R.best || R.bestMine.score >= R.best.score * 0.6) ? R.bestMine : R.best);
+    if (!topDone && clip && !Q.has('notop')) { topDone = true; if (startReplay(clip, 'top', () => { topDone = true; })) return; }
+    if (!replay || !replay.active) showResults();
+  }
   if (Input.pressed.score || false) { /* held handled above */ }
 }
 

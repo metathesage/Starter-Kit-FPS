@@ -572,3 +572,21 @@ body.is-jetting .h-lock { opacity: 1; background: radial-gradient(ellipse at cen
 /* short windows: weapon box docks to the bottom edge, never stretches */
 @media (max-height: 520px) { .h-weapon { top: auto !important; } }
 @media (max-width: 900px) { .h-weapon { top: auto !important; } }
+
+/* killcam + top kill: letterbox, rec tag, name plate with chips */
+body.is-replay #hud, body.is-replay .touch { display: none !important; }
+#replayUI { position: fixed; inset: 0; z-index: 40; pointer-events: none; opacity: 0; transition: opacity .25s; font-family: 'Chakra Petch', 'Rajdhani', sans-serif; }
+#replayUI.on { opacity: 1; }
+.rp-bar { position: absolute; left: 0; right: 0; height: 9vh; background: #000; animation: rpbar .55s cubic-bezier(.2,.8,.2,1) both; } .rp-bar.t { top: 0; } .rp-bar.b { bottom: 0; animation-name: rpbarb; }
+@keyframes rpbar { from { transform: translateY(-100%); } } @keyframes rpbarb { from { transform: translateY(100%); } }
+.rp::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,.55) 100%); }
+.rp::after { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(0deg, rgba(255,255,255,.035) 0 1px, transparent 1px 3px); mix-blend-mode: overlay; }
+.rp-title { position: absolute; left: calc(4vw + var(--safe-l, 0px)); bottom: calc(9vh + 26px); display: grid; gap: 4px; animation: rptitle .7s .1s cubic-bezier(.2,.8,.2,1) both; text-shadow: 0 2px 14px rgba(0,0,0,.8); }
+.rp-title small { font: 600 11px 'JetBrains Mono', monospace; letter-spacing: .42em; color: var(--champ, #ffd48a); display: flex; align-items: center; gap: 10px; } .rp-title small::before { content: ''; width: 26px; height: 2px; background: var(--champ, #ffd48a); }
+.rp-title b { font: 700 clamp(28px, 5vw, 58px)/1 'Unbounded', 'Chakra Petch', sans-serif; letter-spacing: .02em; color: #fff; text-transform: uppercase; border-left: 4px solid var(--tc, #ffd48a); padding-left: 14px; }
+.rp-title span { font: 500 12px 'JetBrains Mono', monospace; letter-spacing: .3em; color: rgba(255,255,255,.7); padding-left: 18px; text-transform: uppercase; }
+.rp-title em { display: flex; gap: 8px; flex-wrap: wrap; padding-left: 18px; font-style: normal; } .rp-title u { text-decoration: none; font: 600 10.5px 'JetBrains Mono', monospace; letter-spacing: .2em; padding: 5px 10px; color: #fff; background: rgba(8,10,16,.66); backdrop-filter: blur(8px); clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%); border: 0; box-shadow: inset 0 0 0 1px rgba(255,255,255,.2); }
+.rp.top .rp-title small { color: #ffe2a8; }
+@keyframes rptitle { from { opacity: 0; transform: translateX(-30px); filter: blur(8px); } }
+.rp-skip { position: absolute; right: calc(4vw + var(--safe-r, 0px)); bottom: calc(9vh + 26px); display: flex; align-items: center; gap: 10px; font: 600 11px 'JetBrains Mono', monospace; letter-spacing: .3em; color: rgba(255,255,255,.75); }
+.rp-rec { position: absolute; right: calc(4vw + var(--safe-r, 0px)); top: calc(9vh + 22px); width: 12px; height: 12px; background: #ff3b4a; box-shadow: 0 0 14px #ff3b4a; border-radius: 50%; animation: recblink 1s steps(2, jump-none) infinite; } @keyframes recblink { 50% { opacity: .15; } }

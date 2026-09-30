@@ -67,7 +67,7 @@ Status: `[x]` shipped, `[~]` partial, `[ ]` planned. Priority inside each band i
 
 ### Depth Pass (brainstorm, ranked by impact per effort)
 Core is solid; this pass makes it alive. Each brick ships alone.
-1. **Killcam.** Ring buffer of every actor's position, aim and weapon for the last 4s. On death, replay the killer's POV at 0.5x with a slow-mo hit, ink-line letterbox, killer nameplate and weapon card, skippable with any button. Same buffer powers end-screen best-play replay.
+1. **[x] Killcam and top kill (shipped in 0.12).** Ring buffer of every actor's position, aim and weapon for the last 4s. On death, replay the killer's POV at 0.5x with a slow-mo hit, ink-line letterbox, killer nameplate and weapon card, skippable with any button. Same buffer powers end-screen best-play replay.
 2. **Impact layer.** Decals (scorch, bullet, blood-free ink splats), shell casings with physics, dust on landing and slide, muzzle light pulses, tracer trails, hit-spark by material, screen-edge damage direction wedges.
 3. **Fidelity.** Baked lightmap-style AO per map, SSAO-lite, volumetric god rays through windows, reflection probes on glass and water, PBR trims and normal maps on weapons, film grain and chromatic edge, HDR skies from the Milky Way shader in every map.
 4. **Motion.** Weapon reload, draw and inspect clips; camera roll on strafe; landing dip; sprint FOV kick; ledge-grab and mantle; melee lunge with target snap; footstep IK on stairs and ramps.
@@ -88,7 +88,7 @@ Core is solid; this pass makes it alive. Each brick ships alone.
 - [ ] Character creator (face, hair, skin, armor dyes) using the `look` save slot.
 - [ ] Skill trees and loadout perks using the `skills` save slot.
 - [ ] Solo campaign missions with briefings and bonus objectives beyond the mission board.
-- [ ] Killcam and match replay, best-play recap on the end screen.
+- [~] Match replay and a saved best-play recap (killcam and top kill shipped in 0.12).
 - [ ] Two more maps with the mapkit (a vertical city map and a large Big Team style arena).
 - [ ] Playlists and ranked queue on top of the PeerJS lobby; reconnect and host migration.
 - [ ] Sanctum: multiplayer social hub, cosmetics vendor, trophy wall driven by badges.
@@ -103,6 +103,7 @@ Core is solid; this pass makes it alive. Each brick ships alone.
 - [ ] Native wrapper (PWA install, gamepad haptics on supported devices).
 
 ### Done recently
+- [x] Depth Pass I: factions (Destiny and Spartan kits), killcam, top-kill cinematic, hit markers v2, bullet magnetism, exact wall collision for hit-scan and projectiles
 - [x] New Light rename and brand mark
 - [x] Real textured operators (Mualani, Kagome, Lucy) with palette variants
 - [x] Space menu stage with the Halo ring

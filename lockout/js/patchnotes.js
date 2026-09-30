@@ -1,6 +1,22 @@
 // Patch notes: the single source. `node tools/gen-notes.mjs` writes docs/PATCH_NOTES.md from this list; the in-game Patch Notes screen reads it directly.
 // Newest first. Section kinds: NEW, CHANGED, FIXED, KNOWN.
 export const PATCHES = [
+  { v: '0.12', date: '2026-09-30', name: 'Depth Pass I', blurb: 'Two factions, killcams, a top-kill cinematic, tighter hits and airtight walls.', sections: [
+    ['NEW', [
+      'TEAM DESTINY vs TEAM SPARTANS. Pick a faction in Setup: your side gets that kit and the enemy fields the other. CLASSIC keeps pure gunplay.',
+      'Destiny kit: blink (2 charges), glide, a real double jump and a charging Nova Bomb super.',
+      'Spartan kit: POWER DASH (2 charges, shoulder-charges and throws the first foe in the lane), one armor ability of your choice, faster shield recharge and 3 frags. Armor abilities: ARMOR LOCK (invulnerable, then a pulse that returns the damage you absorbed), JETPACK (hold to thrust, fuel recharges on the ground), DROP SHIELD (a dome that cuts damage by 60% and restarts shield recharge).',
+      'Killcam: a beat after you die, the last seconds replay from your killer\'s eyes, slowing on the killing shot. Any button skips.',
+      'TOP KILL: at match end the best kill of the game (distance, headshots, power weapons, multikills, air kills, streaks) plays as a slow-motion chase cinematic before the results.',
+      'Hit markers v2: chamfered ticks, orange when the target\'s shield is down, skull on headshots, a burst ring on kills, and stacked damage numbers beside the reticle.',
+      'Bullet magnetism: shots bend toward a foe near the reticle on every input device. Setting: Aim assist OFF / LIGHT / STANDARD.',
+    ]],
+    ['FIXED', [
+      'Shooting through walls: hit-scan now uses an exact ray-vs-box test instead of stepping, so thin rails and long shots can no longer skip a wall. Rockets, novas and grenades are swept the same way and cannot tunnel.',
+      'Fast movement (dash, blink, knockback) is sub-stepped so nobody is carried through geometry.',
+      'The weapon panel stretched over the screen in short windows.',
+    ]],
+  ] },
   { v: '0.11', date: '2026-09-30', name: 'New Light', blurb: 'The game gets its name, real textured operators and a sleeker sound.', sections: [
     ['NEW', [
       'Game renamed to NEW LIGHT (the Lockout map keeps its name). New brand mark on splash, title and tab icon.',

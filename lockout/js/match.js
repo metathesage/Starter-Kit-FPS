@@ -7,6 +7,7 @@ import { MODES, P_TEAMS, Objectives } from './modes.js';
 import { Sound } from './audio.js';
 import { Bus, clamp, rand, pick, forward, lerp, damp, angDiff } from './util.js';
 import { Brain } from './bots.js';
+import { Recorder } from './replay.js';
 
 export const EYE_STAND = 1.62, EYE_CROUCH = 1.15, H_STAND = 1.78, H_CROUCH = 1.3, RAD = 0.4;
 const RUN = 5.4, CROUCH_SPEED = 2.6, GRAV = 21, JUMP = 7.4;
@@ -584,7 +585,7 @@ export class Match {
   constructor(scene, fx, cfg) {
     this.scene = scene; this.fx = fx; this.cfg = cfg; this.bus = new Bus();
     this.diff = DIFFICULTY[cfg.difficulty] || DIFFICULTY.normal;
-    this.actors = []; this.projs = []; this.pickups = []; this.domes = [];
+    this.actors = []; this.projs = []; this.pickups = []; this.domes = []; this.rec = new Recorder(this);
     this.variant = cfg.variant || 'standard';
     this.mode = MODES[cfg.mode] ? cfg.mode : 'slayer'; this.hunt = !!MODES[this.mode].hunt; setHuntTeams(this.hunt); this.ffa = this.mode === 'rumble'; this.teams = this.ffa ? P_TEAMS : ['red', 'blue'];
     this.time = 0; this.state = 'countdown'; this.count = 3.99; this.limit = cfg.limit || MODES[this.mode].limits[1]; this.timeLimit = (cfg.minutes || 12) * 60; this.clock = this.timeLimit;
@@ -869,7 +870,7 @@ export class Match {
         fx.decal(hx, hy, hz, -dx, -dy, -dz, def.pellets ? 0.07 : def.id === 'sniper' ? 0.16 : 0.1);
         if (Math.random() < 0.5) fx.dust(hx, hy, hz, 2);
       }
-      if (i < 3 || !def.pellets) fx.tracer(mp, { x: hx, y: hy, z: hz }, def.tracer, def.snd === 'sniper' ? 0.04 : 0.018, def.snd === 'sniper' ? 0.16 : 0.07);
+      if (i < 3 || !def.pellets) { fx.tracer(mp, { x: hx, y: hy, z: hz }, def.tracer, def.snd === 'sniper' ? 0.04 : 0.018, def.snd === 'sniper' ? 0.16 : 0.07); this.rec.shot(a, mp, { x: hx, y: hy, z: hz }, def.tracer, def.snd === 'sniper' ? 0.04 : 0.018, def.snd === 'sniper' ? 0.16 : 0.07); }
     }
     void anyHead;
   }
@@ -891,6 +892,7 @@ export class Match {
   }
 
   explode(x, y, z, R, dmg, owner, weapon, direct = null) {
+    this.rec.boom(x, y, z, R);
     if (weapon === 'nova') this.fx.nova(x, y, z, R); else this.fx.explosion(x, y, z, R);
     this.sfx(weapon === 'nova' ? 'novaBoom' : 'explode', { x, y, z }, 1.4);
     this.bus.emit('explosion', { x, y, z }, R);
@@ -1109,6 +1111,7 @@ export class Match {
     }
     this.feed.push(rec);
     if (v.isPlayer) this.lastKillRec = rec;
+    try { this.rec.onKill(rec); } catch (e) { /* replay is best-effort */ }
     this.bus.emit('kill', rec);
     this.updateLeader();
     this.checkLead(suicide ? null : a);
@@ -1223,7 +1226,7 @@ export class Match {
       a.cmd.fireEdge = false; a.cmd.jump = false; a.cmd.melee = false; a.cmd.grenade = false; a.cmd.reload = false; a.cmd.swap = false; a.cmd.use = false; a.cmd.gswitch = false; a.cmd.zoom = false; a.cmd.blink = false; a.cmd.nova = false;
     }
     if (this.obj) this.obj.update(dt, live);
-    this.updateProjectiles(dt); this.updateDomes(dt);
+    this.updateProjectiles(dt); this.updateDomes(dt); this.rec.sample(dt);
     this.updatePickups(dt);
   }
 

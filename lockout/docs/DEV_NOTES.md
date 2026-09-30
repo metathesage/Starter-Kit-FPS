@@ -12,7 +12,8 @@ No build step. Three.js r186 is vendored in `vendor/`. URL flags: `?fast` skip s
 | File | Job |
 |---|---|
 | `main.js` | boot, screen flow, loop, camera, settings, menu stage, results, save screens |
-| `match.js` | Actor and Match: movement, weapons, perks, damage, kills, medals, pickups, snapshots |
+| `match.js` | Actor and Match: movement, weapons, perks, damage, kills, medals, pickups, snapshots. Factions (`factionFor`), Destiny kit (`abilities`, double jump) and Spartan kit (`spartanKit`, `doDash`, armor lock/jetpack/drop shield) live here |
+| `replay.js` | `Recorder` (30 Hz pose ring buffer, shots, booms, kill scoring, clips) and `ReplayPlayer` (ghost rigs, killer-POV and chase cameras). `main.js` drives killcam and the top-kill cinematic |
 | `modes.js` | mode rules (slayer, rumble, hunt, ctf, oddball) and objective HUD data |
 | `bots.js` | nav-graph AI, weapon scoring, aim and strafing |
 | `world.js` | map definitions, solids and collision (`groundAt`, `rayWorld`), visuals per map, `MAP_LIST` |
