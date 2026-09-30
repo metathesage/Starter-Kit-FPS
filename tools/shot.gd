@@ -36,9 +36,9 @@ func _process(_d: float) -> bool:
 		cam.current = true
 		cam.far = 400
 		var views = [
-			[Vector3(0, 55, 60), Vector3(0, 0, 0)] if id == "lockout" else [Vector3(0, 40, 45), Vector3.ZERO],
-			[Vector3(-46, 14, 0), Vector3(0, 3, 0)] if id == "lockout" else [Vector3(-27, 10, 0), Vector3(0, 2, 0)],
-			[Vector3(30, 9, 27), Vector3(0, 3, -4)] if id == "lockout" else [Vector3(24, 8, 21), Vector3(0, 2, -4)],
+			[Vector3(0, 55, 60), Vector3(0, 0, 0)] if id == "lockout" else ([Vector3(0, 46, 34), Vector3.ZERO] if id == "nuketown" else [Vector3(0, 40, 45), Vector3.ZERO]),
+			[Vector3(-46, 14, 0), Vector3(0, 3, 0)] if id == "lockout" else ([Vector3(0, 3.0, 14), Vector3(16, 2.5, -2)] if id == "nuketown" else [Vector3(-27, 10, 0), Vector3(0, 2, 0)]),
+			[Vector3(30, 9, 27), Vector3(0, 3, -4)] if id == "lockout" else ([Vector3(6, 2.0, 0), Vector3(-16, 3.0, 0)] if id == "nuketown" else [Vector3(24, 8, 21), Vector3(0, 2, -4)]),
 		]
 		cams = views
 	if f > 3 and f % 6 == 0 and i < cams.size() + 1:

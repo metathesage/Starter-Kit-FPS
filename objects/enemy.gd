@@ -1,5 +1,7 @@
 extends Node3D
 
+signal killed
+
 @export var player: Node3D
 
 @onready var raycast = $RayCast
@@ -41,6 +43,7 @@ func destroy():
 	Audio.play("sounds/enemy_destroy.ogg")
 
 	destroyed = true
+	killed.emit()
 	queue_free()
 
 # Shoot when timer hits 0

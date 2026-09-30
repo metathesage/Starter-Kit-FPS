@@ -7,6 +7,8 @@ const FONT_BODY := preload("res://fonts/rajdhani_semibold.ttf")
 const MAPS := [
 	{"scene": "res://scenes/lockout.tscn", "name": "LOCKOUT", "tag": "FORERUNNER  /  100 x 60", "accent": Color("39e3ff"),
 		"blurb": "Twin decks. Central tower. Two rail bridges. Every edge is sealed."},
+	{"scene": "res://scenes/nuketown.tscn", "name": "NUKETOWN 24/7", "tag": "SUBURBAN  /  60 x 34", "accent": Color("ffa02b"),
+		"blurb": "Two houses, one street, zero downtime. Kills respawn in seconds."},
 	{"scene": "res://scenes/beaver_creek.tscn", "name": "BEAVER CREEK", "tag": "BUNKERS  /  60 x 48", "accent": Color("d23a2c"),
 		"blurb": "Flat-shaded blocks. Walk-through halls. One bridge across the middle."},
 ]
@@ -59,8 +61,10 @@ func _ready() -> void:
 	title.add_theme_constant_override("line_spacing", -14)
 	col.add_child(title)
 
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 28)
+	var row := GridContainer.new()
+	row.columns = 3
+	row.add_theme_constant_override("h_separation", 24)
+	row.add_theme_constant_override("v_separation", 24)
 	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	col.add_child(row)
 
@@ -75,8 +79,6 @@ func _ready() -> void:
 		tw.tween_interval(0.12 * i)
 		tw.chain().tween_property(b, "modulate:a", 1.0, 0.5)
 	_first = buttons[0]
-	buttons[0].focus_neighbor_right = buttons[1].get_path()
-	buttons[1].focus_neighbor_left = buttons[0].get_path()
 
 	col.add_child(_label("A / ENTER  DEPLOY        D-PAD / STICK  MOVE        VIEW / TAB  BACK TO THIS SCREEN", FONT_BODY, 20, Color(1, 1, 1, 0.5)))
 	_first.grab_focus.call_deferred()
@@ -110,7 +112,7 @@ func _style(fill: Color, border: Color, width: int, offset := 0) -> StyleBoxFlat
 
 func _map_card(m: Dictionary) -> Button:
 	var b := Button.new()
-	b.custom_minimum_size = Vector2(520, 260)
+	b.custom_minimum_size = Vector2(360, 240)
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	b.focus_mode = Control.FOCUS_ALL
@@ -133,7 +135,7 @@ func _map_card(m: Dictionary) -> Button:
 	b.add_child(v)
 	var tag := _label(m.tag, FONT_BODY, 20, accent)
 	v.add_child(tag)
-	v.add_child(_label(m.name, FONT_DISPLAY, 52, Color.WHITE))
+	v.add_child(_label(m.name, FONT_DISPLAY, 38, Color.WHITE))
 	var blurb := _label(m.blurb, FONT_BODY, 24, Color(1, 1, 1, 0.7))
 	blurb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	v.add_child(blurb)

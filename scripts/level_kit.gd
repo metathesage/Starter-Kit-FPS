@@ -202,7 +202,7 @@ func seg(p0: Vector2, p1: Vector2, thick: float, y0: float, y1: float, color: Co
 
 
 ## Regular n-gon prism. `phase` in degrees rotates the vertices.
-func prism(center: Vector2, y0: float, y1: float, radius: float, sides: int, color: Color, phase := 0.0, mx := false, mz := false, kind := Kind.SOLID) -> void:
+func prism(center: Vector2, y0: float, y1: float, radius: float, sides: int, color: Color, phase := 0.0, mx := false, mz := false, kind := Kind.SOLID, solid := true) -> void:
 	var variants: Array = [[false, false]]
 	if mx:
 		variants.append([true, false])
@@ -231,7 +231,7 @@ func prism(center: Vector2, y0: float, y1: float, radius: float, sides: int, col
 			faces.append([i, (i + 1) % sides, sides + (i + 1) % sides, sides + i])
 		faces.append(bot)
 		faces.append(top)
-		_add_hull(pts, faces, color, kind, true)
+		_add_hull(pts, faces, color, kind, solid)
 
 
 ## Energy barrier (visible glass + tall invisible-to-the-eye collision). Nothing gets past it.
@@ -283,3 +283,34 @@ func spawn(pos: Vector3, yaw_deg: float, mx := false, mz := false) -> void:
 		if v[1]:
 			yaw = 180.0 - yaw
 		spawns.append({"pos": p, "yaw": deg_to_rad(yaw)})
+
+
+## Visual-only flat quad (road paint, hazard stripes). No collision, sits 1cm above `y`.
+func flat(mn: Vector2, size: Vector2, y: float, color: Color, mx := false, mz := false, kind := Kind.SOLID) -> void:
+	_hex(PackedVector3Array([
+		Vector3(mn.x, y, mn.y), Vector3(mn.x + size.x, y, mn.y), Vector3(mn.x + size.x, y, mn.y + size.y), Vector3(mn.x, y, mn.y + size.y),
+		Vector3(mn.x, y + 0.01, mn.y), Vector3(mn.x + size.x, y + 0.01, mn.y), Vector3(mn.x + size.x, y + 0.01, mn.y + size.y), Vector3(mn.x, y + 0.01, mn.y + size.y)]),
+		color, kind, mx, mz, false)
+
+
+## Halo-style ring arcing across the sky. Pure decoration.
+func sky_ring(radius := 900.0, tilt_deg := 62.0, color := Color("bcd8ff")) -> void:
+	var t := TorusMesh.new()
+	t.outer_radius = radius + 10.0
+	t.inner_radius = radius - 10.0
+	t.rings = 96
+	t.ring_segments = 8
+	var mi := MeshInstance3D.new()
+	mi.mesh = t
+	mi.name = "SkyRing"
+	mi.scale = Vector3(1, 5.0, 1)
+	mi.rotation_degrees = Vector3(tilt_deg, 20, 0)
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.albedo_color = color
+	m.emission_enabled = true
+	m.emission = color
+	m.emission_energy_multiplier = 0.8
+	mi.material_override = m
+	add_child(mi)

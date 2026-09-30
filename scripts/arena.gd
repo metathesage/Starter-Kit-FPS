@@ -6,12 +6,15 @@ extends Node3D
 const MAPS := {
 	"lockout": preload("res://maps/lockout.gd"),
 	"beaver_creek": preload("res://maps/beaver_creek.gd"),
+	"nuketown": preload("res://maps/nuketown.gd"),
 }
 const ENEMY := preload("res://objects/enemy.tscn")
 const FONT_DISPLAY := preload("res://fonts/chakra_petch_bold.ttf")
 const FONT_BODY := preload("res://fonts/rajdhani_semibold.ttf")
 
 var map: LevelKit
+var kills := 0
+var _kill_label: Label
 
 @onready var player: CharacterBody3D = $Player
 @onready var enemies: Node = $Enemies
@@ -27,12 +30,31 @@ func _ready() -> void:
 	player.spawn_points = map.spawns
 	player.respawn()
 	for p in map.enemy_spawns:
-		var e := ENEMY.instantiate()
-		e.player = player
-		e.position = p
-		enemies.add_child(e)
+		_spawn_enemy(p)
 	($HUD/Health as Label).label_settings.font = FONT_DISPLAY
 	_build_title_card()
+	_build_kill_counter()
+
+
+func _spawn_enemy(p: Vector3) -> void:
+	var e := ENEMY.instantiate()
+	e.player = player
+	e.position = p
+	e.killed.connect(_on_enemy_destroyed.bind(p))
+	enemies.add_child(e)
+
+
+# 24/7: every kill is replaced a few seconds later, so the fight never runs dry
+func _on_enemy_destroyed(p: Vector3) -> void:
+	kills += 1
+	_kill_label.text = "KILLS  %d" % kills
+	var tw := create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	_kill_label.pivot_offset = _kill_label.size * 0.5
+	tw.tween_property(_kill_label, "scale", Vector2(1.25, 1.25), 0.08)
+	tw.tween_property(_kill_label, "scale", Vector2.ONE, 0.2)
+	get_tree().create_timer(3.5).timeout.connect(func():
+		if is_inside_tree():
+			_spawn_enemy(p))
 
 
 func _apply_look() -> void:
@@ -82,6 +104,20 @@ func _build_title_card() -> void:
 	var tw := create_tween()
 	tw.tween_interval(3.5)
 	tw.tween_property(box, "modulate:a", 0.0, 1.2)
+
+
+func _build_kill_counter() -> void:
+	_kill_label = Label.new()
+	_kill_label.text = "KILLS  0"
+	_kill_label.add_theme_font_override("font", FONT_DISPLAY)
+	_kill_label.add_theme_font_size_override("font_size", 36)
+	_kill_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.6))
+	_kill_label.add_theme_constant_override("outline_size", 10)
+	_kill_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_kill_label.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	_kill_label.offset_top = 44
+	_kill_label.offset_right = -48
+	$HUD.add_child(_kill_label)
 
 
 func _unhandled_input(event: InputEvent) -> void:

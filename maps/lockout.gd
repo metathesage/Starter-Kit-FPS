@@ -28,6 +28,7 @@ func _init() -> void:
 
 func build() -> void:
 	arena_shell(50, 30, 16, SAND, STONE_D)
+	sky_ring(1100.0, 58.0)
 
 	# ---------- bases (mirrored in X) ----------
 	box(Vector3(45, 0, -13), Vector3(2, 6, 26), STONE, true)                     # back wall

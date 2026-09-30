@@ -51,6 +51,8 @@ Assets included in this package (2D sprites, 3D models and sound effects) are [C
 `scenes/menu.tscn` is the entry point: pick **Lockout** or **Beaver Creek** (keyboard, mouse or Xbox pad; View/Tab returns to the menu).
 Maps are built from code (`maps/*.gd` on top of `scripts/level_kit.gd`): convex-hull collision only, sealed perimeter, energy barriers on every elevated edge.
 
+Maps: Lockout, Nuketown 24/7 (kills respawn, kill counter), Beaver Creek.
+
 Regression test (headless, walks the real player along routes, then fuzzes for stuck/fall-out):
 
     godot --headless --fixed-fps 60 -s tools/map_test.gd -- lockout

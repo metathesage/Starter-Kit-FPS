@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/arena.tscn" id="1_arena"]
+
+[node name="Nuketown" instance=ExtResource("1_arena")]
+map_id = "nuketown"
