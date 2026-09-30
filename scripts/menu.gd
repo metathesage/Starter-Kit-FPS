@@ -80,6 +80,7 @@ func _ready() -> void:
 
 	col.add_child(_label("A / ENTER  DEPLOY        D-PAD / STICK  MOVE        VIEW / TAB  BACK TO THIS SCREEN", FONT_BODY, 20, Color(1, 1, 1, 0.5)))
 	_first.grab_focus.call_deferred()
+	_build_presence_chip()
 
 
 func _label(text: String, font: Font, size: int, color: Color) -> Label:
@@ -147,3 +148,79 @@ func _map_card(m: Dictionary) -> Button:
 		create_tween().tween_property(b, "scale", Vector2.ONE, 0.15))
 	b.mouse_entered.connect(b.grab_focus)
 	return b
+
+
+# ---------- players online ----------
+
+var _pres_dot: PanelContainer
+var _pres_label: Label
+var _pres_shown := 0.0
+var _pres_tween: Tween
+
+
+func _build_presence_chip() -> void:
+	var chip := PanelContainer.new()
+	chip.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	chip.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	chip.offset_top = 56
+	chip.offset_right = -72
+	var st := _style(Color(1, 1, 1, 0.06), Color(1, 1, 1, 0.28), 1)
+	st.content_margin_top = 12
+	st.content_margin_bottom = 12
+	st.content_margin_left = 20
+	st.content_margin_right = 22
+	chip.add_theme_stylebox_override("panel", st)
+	add_child(chip)
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 14)
+	h.alignment = BoxContainer.ALIGNMENT_CENTER
+	chip.add_child(h)
+	_pres_dot = PanelContainer.new()
+	_pres_dot.custom_minimum_size = Vector2(12, 12)
+	_pres_dot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	h.add_child(_pres_dot)
+	_pres_label = _label("CONNECTING", FONT_DISPLAY, 24, Color(1, 1, 1, 0.6))
+	h.add_child(_pres_label)
+	Presence.changed.connect(_on_presence)
+	if Presence.attempted:
+		_on_presence(Presence.count, Presence.connected)
+	var pulse := create_tween().set_loops()
+	pulse.tween_property(_pres_dot, "modulate:a", 0.25, 0.9).set_trans(Tween.TRANS_SINE)
+	pulse.tween_property(_pres_dot, "modulate:a", 1.0, 0.9).set_trans(Tween.TRANS_SINE)
+
+
+func _dot_style(c: Color) -> StyleBoxFlat:
+	var s := StyleBoxFlat.new()
+	s.bg_color = c
+	s.set_corner_radius_all(6)
+	s.shadow_color = Color(c.r, c.g, c.b, 0.7)
+	s.shadow_size = 8
+	return s
+
+
+func _on_presence(count: int, connected: bool) -> void:
+	if not is_instance_valid(_pres_label):
+		return
+	if not connected:
+		_pres_dot.add_theme_stylebox_override("panel", _dot_style(Color("6b7280")))
+		_pres_label.text = "OFFLINE"
+		_pres_label.add_theme_color_override("font_color", Color(1, 1, 1, 0.45))
+		return
+	_pres_dot.add_theme_stylebox_override("panel", _dot_style(Color("5dffa0")))
+	_pres_label.add_theme_color_override("font_color", Color.WHITE)
+	if _pres_tween:
+		_pres_tween.kill()
+	_pres_tween = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUART)
+	_pres_tween.tween_method(func(v: float):
+		_pres_shown = v
+		_pres_label.text = "%s ONLINE" % _fmt(int(round(v))), _pres_shown, float(count), 0.8)
+
+
+func _fmt(n: int) -> String:
+	var s := str(n)
+	var out := ""
+	for i in s.length():
+		if i > 0 and (s.length() - i) % 3 == 0:
+			out += ","
+		out += s[i]
+	return out

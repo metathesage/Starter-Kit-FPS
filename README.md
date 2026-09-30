@@ -55,3 +55,12 @@ Regression test (headless, walks the real player along routes, then fuzzes for s
 
     godot --headless --fixed-fps 60 -s tools/map_test.gd -- lockout
     godot --headless --fixed-fps 60 -s tools/map_test.gd -- beaver_creek
+
+## Players online
+
+The menu shows a live count (top right). It reads from a presence server; with none configured it shows OFFLINE (no fake numbers).
+
+    python3 tools/presence_server.py 8787          # run anywhere reachable
+    PRESENCE_URL=http://host:8787 godot --path .   # or set project setting game/presence_url
+
+Each client heartbeats every 20s; sessions expire after 45s.

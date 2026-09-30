@@ -25,6 +25,7 @@ config/icon="res://icon.png"
 [autoload]
 
 Audio="*res://scripts/audio.gd"
+Presence="*res://scripts/presence.gd"
 
 [display]
 
@@ -119,3 +120,7 @@ anti_aliasing/quality/screen_space_aa=1
 [physics]
 
 3d/physics_engine="Jolt Physics"
+
+[game]
+
+presence_url=""
