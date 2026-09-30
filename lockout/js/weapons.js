@@ -18,6 +18,11 @@ export const WEAPONS = {
   felwinter: { name: "Felwinter's Lie", short: "FELWINTER'S LIE", mag: 6, reserve: 24, reload: 2.2, cycle: 0.8, burst: 1, gap: 0, pellets: 11, dmg: 15, head: 1.0, spread: 0.018, spreadHip: 0.052, range: 28, falloff: [5, 19], opening: 1.25, zoom: [1.3], kick: 0.055, snd: 'fw', tracer: 0xff9a5a, ret: 'ring', slot: 0, power: 4, exotic: true, perk: ['SHOT PACKAGE', 'Pellets tighten sharply when aiming down sights. The first shot after a reload hits 25% harder.'] },
   gjallarhorn: { name: 'Gjallarhorn', short: 'GJALLARHORN', mag: 2, reserve: 6, reload: 2.9, cycle: 1.15, burst: 1, gap: 0, dmg: 110, radius: 4.6, speed: 30, spread: 0.002, range: 200, zoom: [1.6], kick: 0.05, snd: 'gjall', proj: 'wolf', ret: 'ring', slot: 0, power: 5, exotic: true, perk: ['WOLFPACK ROUNDS', 'The rocket splits mid-flight into three homing rockets that hunt the nearest target.'] },
   thorn: { name: 'Thorn', short: 'THORN', mag: 11, reserve: 44, reload: 1.7, cycle: 0.33, burst: 1, gap: 0, dmg: 28, head: 2.0, spread: 0.002, range: 105, zoom: [1.7], kick: 0.02, snd: 'thorn', tracer: 0x7dff5a, ret: 'dot', slot: 0, power: 5, exotic: true, poison: 5, perk: ['HUNTER\'S POISON', 'Hits poison the target: damage over time that blocks shield recharge. Stacks up to three times.'] },
+  ace: { name: 'Ace of Spades', short: 'ACE OF SPADES', mag: 7, reserve: 35, reload: 1.6, cycle: 0.3, burst: 1, gap: 0, dmg: 44, head: 2.0, spread: 0.0018, range: 110, zoom: [1.6], kick: 0.03, snd: 'hawk', tracer: 0xffffff, ret: 'dot', slot: 0, power: 5, exotic: true, memento: true, perk: ['MEMENTO MORI', 'Every reload loads a hotter magazine: shots deal 30% more damage until it runs dry.'] },
+  izanagi: { name: "Izanagi's Burden", short: "IZANAGI'S BURDEN", mag: 1, reserve: 14, reload: 0.95, cycle: 0.5, burst: 1, gap: 0, dmg: 105, head: 2.4, spread: 0.0004, spreadHip: 0.025, range: 240, zoom: [3.5], scope: 'sniper', kick: 0.045, snd: 'sniper', tracer: 0xfff2c0, ret: 'dot', slot: 0, power: 5, exotic: true, killReload: true, perk: ['HONED EDGE', 'One shot in the chamber. A kill reloads the blade instantly.'] },
+  chaperone: { name: 'Chaperone', short: 'CHAPERONE', mag: 4, reserve: 20, reload: 2.1, cycle: 0.85, burst: 1, gap: 0, dmg: 92, head: 1.35, spread: 0.003, spreadHip: 0.02, range: 48, falloff: [14, 34], zoom: [1.6], kick: 0.05, snd: 'shotgun', tracer: 0xffd9a0, ret: 'dot', slot: 0, power: 4, exotic: true, perk: ['SLUG ROUNDS', 'A single massive slug. Aim it like a rifle: it drops anything inside its range.'] },
+  vex: { name: 'Vex Mythoclast', short: 'VEX MYTHOCLAST', mag: 30, reserve: 120, reload: 2.0, cycle: 0.09, burst: 1, gap: 0, auto: true, dmg: 10.5, head: 1.7, spread: 0.014, spreadHip: 0.02, range: 70, zoom: [1.5], kick: 0.006, snd: 'lw', tracer: 0xbfe8ff, ret: 'ring', slot: 0, power: 5, exotic: true, killShield: 60, perk: ['TIMELESS ADAPTIVE', 'Each kill snaps a chunk of shield back into place.'] },
+  outbreak: { name: 'Outbreak Perfected', short: 'OUTBREAK', mag: 36, reserve: 144, reload: 2.0, cycle: 0.42, burst: 3, gap: 0.05, dmg: 8.6, head: 1.6, spread: 0.005, range: 95, zoom: [1.7], kick: 0.008, snd: 'br', tracer: 0xff4a3a, ret: 'dot', slot: 0, power: 5, exotic: true, poison: 2.6, perk: ['NANITE CULTURE', 'Hits seed nanites in the target. They poison, stack and block shield recharge.'] },
   hammer: { name: 'Gravity Hammer', short: 'GRAVITY HAMMER', mag: 100, reserve: 0, reload: 0, cycle: 1.1, burst: 1, gap: 0, dmg: 999, range: 3.0, lungeRange: 0, knock: 16, melee: true, kick: 0, snd: 'swing', ret: 'none', slot: 0, power: 3 },
   sword: { name: 'Energy Sword', short: 'ENERGY SWORD', mag: 100, reserve: 0, reload: 0, cycle: 0.6, burst: 1, gap: 0, dmg: 150, range: 2.6, lungeRange: 7.5, melee: true, kick: 0, snd: 'swing', ret: 'none', slot: 0, power: 3 },
 };
@@ -25,8 +30,13 @@ export const WEAPONS = {
 for (const [k, v] of Object.entries(WEAPONS)) v.id = k;
 
 // Silhouette icons (24-unit grid, single stroke) for HUD + pickups
-export const EXOTICS = ['hawkmoon', 'lastword', 'felwinter', 'gjallarhorn', 'thorn'];
+export const EXOTICS = ['hawkmoon', 'lastword', 'felwinter', 'gjallarhorn', 'thorn', 'ace', 'izanagi', 'chaperone', 'vex', 'outbreak'];
 export const ICONS = {
+  ace: 'M2 11h13l2 1h5v3h-5l-1 1h-3l-1 4H8l1-4-2-1H2z M9 8h5 M12 5l2 2-2 2-2-2z',
+  izanagi: 'M1 12h6l2-2h8l1 2h5 M1 12l3-2v4z M9 12v5 M14 12v4',
+  chaperone: 'M1 12h17l2-2h3v3h-3l-2 1H8l-2 3H4l1-3H1z',
+  vex: 'M2 12h6l2-3h8l1 2h3v3h-6l-1 3h-3l1-3H2z M12 6v3',
+  outbreak: 'M2 12h5l2-3h7l2 2h4v3h-6l-1 4H9l1-4H2z M13 7l2-2 2 2',
   hawkmoon: 'M2 11h13l2 1h5v3h-5l-1 1h-3l-1 4H8l1-4-2-1H2z M9 8h5',
   lastword: 'M2 10h14l3 1v3h-4l-1 1h-3l-1 5H8l1-5-1-1H2z M16 8v2',
   thorn: 'M2 11h12l2 1h6v3h-6l-1 1h-3l-1 4H8l1-4-1-1H2z M12 8l2-3 2 3 M16 8l2-3 2 3',

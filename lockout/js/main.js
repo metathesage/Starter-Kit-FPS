@@ -26,7 +26,7 @@ import { Net, friendlyError } from './net.js';
 import { initTouch } from './touch.js';
 
 const Q = new URLSearchParams(location.search);
-const settings = Object.assign({ sens: 1, padSens: 1, invertY: false, fov: 66, master: 0.8, sfx: 1, music: 0.5, shadows: true, bloom: true, quality: 'auto', reticle: '#ffffff', hudScale: 1, announcer: false }, store('settings', {}));
+const settings = Object.assign({ sens: 1, padSens: 1, invertY: false, fov: 66, master: 0.8, sfx: 1, music: 0.5, shadows: true, bloom: true, quality: 'auto', reticle: '#ffffff', hudScale: 1, announcer: true }, store('settings', {}));
 const loadout = Object.assign({ waifu: 0, team: 'blue', diff: 'normal', limit: 25, helmet: false, map: 'lockout', mode: 'slayer', variant: 'standard', limits: {} }, store('loadout', {}));
 if (!MODES[loadout.mode]) loadout.mode = 'slayer';
 if (Q.get('mode') && MODES[Q.get('mode')]) loadout.mode = Q.get('mode');
@@ -551,7 +551,7 @@ function showResults() {
   hud.showBoard(false); hud.root.classList.add('hidden');
   Input.unlock();
   const m = match, p = m.player, win = m.winner;
-  const won = win === p.team;
+  const won = win === p.team; Sound.vo(won ? '@win' : '@lose');
   const title = win === 'tie' ? 'DRAW' : won ? 'VICTORY' : 'DEFEAT';
   $('#results').style.setProperty('--team', win === 'tie' ? '#8fa1bd' : TEAM[win].css);
   $('#resKicker').textContent = 'MATCH COMPLETE · ' + MODES[m.mode].name;
@@ -642,7 +642,7 @@ async function enterHub() {
   $$('.screen').forEach((s) => s.classList.remove('active')); UI.cur = null; UI.rows = [];
   if (showcase) showcase.root.visible = false; hud.root.classList.add('hidden');
   state = 'hub'; document.body.classList.add('playing'); Input.lock();
-  Wow.intro('WELCOME TO', 'THE SANCTUM', 'A QUIET PLACE BETWEEN FIGHTS');
+  Wow.intro('WELCOME TO', 'THE SANCTUM', 'A QUIET PLACE BETWEEN FIGHTS'); Sound.vo('@hub');
 }
 function hubScreen(fn) { state = 'hubmenu'; hub.busy = true; hub.closeCard(); hub.show(false); document.body.classList.remove('playing'); Input.unlock(); fn(); }
 function resumeHub() { UI.hide(UI.cur); hub.show(true); hub.busy = false; state = 'hub'; document.body.classList.add('playing'); hub.q('#hhPrompt').dataset.k = ''; Input.lock(); }
@@ -820,7 +820,7 @@ function play(dt) {
   p.rig.root.visible = m.thirdPerson || !p.alive || (m.state === 'countdown' && m.count > 0.6);
   updateCamera(dt);
   // viewmodel
-  const scope = p.alive && p.def && (p.def.id === 'sniper' || p.def.id === 'br') && p.zoomLevel > 0;
+  const scope = p.alive && p.def && (p.def.id === 'sniper' || p.def.scope === 'sniper' || p.def.id === 'br') && p.zoomLevel > 0;
   const showVM = p.alive && !m.thirdPerson && !scope && !(m.state === 'countdown' && m.count > 0.7);
   viewmodel.update(dt, p, Input.look, p.lastMoveSpeed, WEAPONS);
   fx.setScale(H * renderer.getPixelRatio(), camera.fov);

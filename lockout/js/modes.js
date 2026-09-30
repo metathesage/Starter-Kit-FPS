@@ -9,7 +9,7 @@ export const MODES = {
   rumble: { id: 'rumble', short: 'RUMBLE', name: 'RUMBLE PIT', unit: 'KILLS', limits: [15, 25, 40], teams: false, blurb: 'Eight operators, no teams. Every gun is pointed at you. The kill leader wears a crown.' },
   hunt: { id: 'hunt', short: 'HUNT', name: 'WARLOCK HUNT', unit: 'KILLS', limits: [20, 30, 50], teams: true, hunt: true, blurb: 'Void warlocks against Spartans. Warlocks glide, blink and charge a Nova Bomb. Spartans have the guns and the numbers. Break the cast.' },
   ctf: { id: 'ctf', short: 'CTF', name: 'CAPTURE THE FLAG', unit: 'CAPTURES', limits: [3, 5, 8], teams: true, obj: true, blurb: 'Steal the enemy flag and bring it home while yours is safe. The carrier moves slower and cannot hide.' },
-  oddball: { id: 'oddball', short: 'ODDBALL', name: 'ODDBALL', unit: 'SECONDS', limits: [60, 100, 150], teams: true, obj: true, blurb: 'Hold the ball to score. The carrier is armed with nothing but a fist. Protect them.' },
+  oddball: { id: 'oddball', short: 'ODDBALL', name: 'ODDBALL', unit: 'SECONDS', limits: [60, 100, 150], teams: true, obj: true, blurb: 'Hold the ball to score. The carrier can still shoot: protect them and keep them alive.' },
 };
 
 const R2 = (v) => Math.round(v * 100) / 100;

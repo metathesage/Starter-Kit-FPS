@@ -23,7 +23,7 @@ export const POI = {
 {
   const ids = ['br', 'magnum', 'smg', 'shotgun', 'sniper', 'rocket', 'carbine', 'plasmarifle', 'needler', 'hammer', 'sword'];
   ids.forEach((id, i) => { const col = i < 6 ? 0 : 1, row = col ? i - 6 : i; POI.weapons.push({ id, x: col ? -8.4 : -12.8, y: 2.7, z: -27.4 - row * 2.7 - (col ? 1.35 : 0) }); });
-  ['hawkmoon', 'lastword', 'felwinter', 'gjallarhorn', 'thorn'].forEach((id, i) => POI.exotics.push({ id, x: [-3.6, 3.6, -3.6, 3.6, 0][i], y: 2.7, z: [-45.8, -45.8, -49.6, -49.6, -50.3][i] }));
+  ['hawkmoon', 'lastword', 'felwinter', 'gjallarhorn', 'thorn', 'ace', 'izanagi', 'chaperone', 'vex', 'outbreak'].forEach((id, i) => POI.exotics.push({ id, x: [-3.6, 3.6, -3.6, 3.6, 0, -3.6, 3.6, -1.9, 1.9, 0][i], y: 2.7, z: [-45.8, -45.8, -49.6, -49.6, -50.3, -47.7, -47.7, -49.6, -49.6, -45.7][i] }));
   const ops = ['aoi', 'kira', 'nova', 'yuna', 'mira', 'ivy', 'hana', 'zero', 'eos'];
   ops.forEach((id, i) => POI.operators.push({ id, x: 7.4 + (i % 3) * 2.9, y: 2.0, z: -27.4 - Math.floor(i / 3) * 4.6 }));
   ['lockout', 'cryostat', 'mesa', 'overgrowth', 'warsat', 'sanctum'].forEach((id, i) => POI.maps.push({ id, x: i < 3 ? -11 + i * 3.4 : 4.6 + (i - 3) * 3.4, y: 2.62, z: -40.9 }));

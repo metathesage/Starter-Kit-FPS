@@ -213,17 +213,30 @@ export const Sound = {
       }
       if (ctx.state !== 'running' || Math.random() > 0.5) return; if (kind === 'wind') tone(sfxBus, { type: 'sine', f0: 240 + Math.random() * 200, f1: 180, dur: 2.4, gain: 0.02, atk: 1 }); else { tone(sfxBus, { type: 'triangle', f0: 90 + Math.random() * 40, f1: 60, dur: 1.4, gain: 0.05, atk: 0.4 }); noise(sfxBus, { dur: 0.5, f0: 900, f1: 200, gain: 0.05, type: 'bandpass', q: 5, at: 0.3 }); } }, kind === 'garden' ? 2600 : 7000);
   },
-  announcer: false, _sayT: 0,
-  // optional announcer: the browser's own speech synth, pitched low and clipped. Off by default.
+  announcer: true, _sayT: 0, _vo: { man: null, buf: new Map(), busy: 0, loading: null },
+  // narrator: pre-rendered holographic-AI clips (audio/vo). Text is normalised to a key; unknown lines stay silent.
+  async _voLoad() {
+    const V = this._vo; if (V.man) return V.man; if (V.loading) return V.loading;
+    return (V.loading = fetch('audio/vo/manifest.json').then((r) => r.json()).then((m) => (V.man = m)).catch(() => (V.man = {})));
+  },
   say(text) {
-    if (!this.announcer || typeof speechSynthesis === 'undefined' || !text) return;
-    const now = performance.now(); if (now - this._sayT < 500) return; this._sayT = now;
-    try {
-      const u = new SpeechSynthesisUtterance(String(text).replace(/<[^>]*>/g, ' ').toLowerCase());
-      const vs = speechSynthesis.getVoices(), v = vs.find((x) => /^en/i.test(x.lang) && /male|daniel|alex|david|fred|google uk english male/i.test(x.name)) || vs.find((x) => /^en/i.test(x.lang));
-      if (v) u.voice = v; u.pitch = 0.5; u.rate = 1.12; u.volume = Math.min(1, vol.master * 1.1);
-      speechSynthesis.cancel(); speechSynthesis.speak(u);
-    } catch { /* no speech support */ }
+    if (!this.announcer || !text) return;
+    const c = ensure(); if (!c) return;
+    const key = String(text).replace(/<[^>]*>/g, ' ').toUpperCase().replace(/\s+/g, ' ').trim();
+    this.vo(key);
+  },
+  async vo(key) {
+    const c = ensure(); if (!c || !this.announcer) return;
+    const V = this._vo, man = await this._voLoad();
+    let file = man[key]; if (!file) { const vs = Object.keys(man).filter((k) => k.startsWith(key) && /\d$/.test(k)); if (vs.length) file = man[vs[(Math.random() * vs.length) | 0]]; }
+    if (!file) return;
+    const now = performance.now(); if (V.busy > now && !key.startsWith('@')) return;   // never talk over the narrator, except scene lines
+    let b = V.buf.get(file);
+    if (!b) { try { const r = await fetch('audio/vo/' + file); b = await c.decodeAudioData(await r.arrayBuffer()); V.buf.set(file, b); } catch { return; } }
+    if (!V.bus) { V.bus = c.createGain(); V.bus.gain.value = 1.15; V.bus.connect(comp); }
+    const src = c.createBufferSource(); src.buffer = b; src.connect(V.bus); src.start();
+    V.busy = performance.now() + b.duration * 1000 + 120;
+    const t = c.currentTime; musBus.gain.cancelScheduledValues(t); musBus.gain.setTargetAtTime(vol.music * 0.35 * 0.35, t, 0.05); musBus.gain.setTargetAtTime(vol.music * 0.35, t + b.duration + 0.1, 0.4);
   },
   music(mode) {
     musicMode = mode;

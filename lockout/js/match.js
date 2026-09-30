@@ -30,7 +30,7 @@ export const DIFFICULTY = {
 let _uid = 1;
 // weapons that can earn a PERFECT: every shot of the engagement landed, headshot finish, no damage taken. Value = min hits.
 const ENERGY = new Set(['plasmarifle', 'needler', 'carbine', 'thorn']);
-const SHELLS = new Set(['br', 'magnum', 'smg', 'shotgun', 'sniper', 'hawkmoon', 'lastword', 'felwinter']);
+const SHELLS = new Set(['br', 'magnum', 'smg', 'shotgun', 'sniper', 'hawkmoon', 'lastword', 'felwinter', 'ace', 'izanagi', 'chaperone', 'vex', 'outbreak']);
 const PERFECT_W = new Map([['br', 4], ['carbine', 5], ['magnum', 3], ['sniper', 1], ['hawkmoon', 3], ['thorn', 3]]);
 
 export class Actor {
@@ -325,7 +325,6 @@ export class Actor {
 
   weaponsUpdate(dt) {
     const m = this.m, c = this.cmd, w = this.weapon, def = this.def;
-    if (this.carry === 'ball') { c.fire = false; c.fireEdge = false; c.reload = false; c.grenade = false; c.zoom = false; }
     this.fireT -= dt; this.swapT -= dt; this.fireBuf = c.fireEdge ? 0.16 : this.fireBuf - dt;
     if (this.meleeT > 0) this.meleeT -= dt;
     if (this.throwT > 0) this.throwT -= dt;
@@ -356,7 +355,7 @@ export class Actor {
     if (this.reloadT > 0) {
       this.reloadT -= dt;
       if (this.reloadT <= 0 && w) {
-        const n = Math.min(def.mag - w.mag, w.res); w.mag += n; w.res -= n; w.fresh = true;
+        const n = Math.min(def.mag - w.mag, w.res); w.mag += n; w.res -= n; w.fresh = true; if (def.memento) w.memento = true;
       }
       return;
     }
@@ -723,7 +722,7 @@ export class Match {
       }
       const hx = ox + dx * tt, hy = oy + dy * tt, hz = oz + dz * tt;
       if (hitA) {
-        let dmg = def.dmg * (hh ? def.head : 1) * openMul * (def.hipMul && a.zoomLevel === 0 ? def.hipMul : 1);
+        let dmg = def.dmg * (hh ? def.head : 1) * openMul * (def.memento && wslot && wslot.memento ? 1.3 : 1) * (def.hipMul && a.zoomLevel === 0 ? def.hipMul : 1);
         if (def.falloff) { const d = tt; dmg *= d <= def.falloff[0] ? 1 : clamp(1 - (d - def.falloff[0]) / (def.falloff[1] - def.falloff[0]), 0.08, 1); }
         if (a.brain) dmg *= 1;
         this.damage(hitA, dmg, { attacker: a, weapon: def.id, head: hh, kind: 'bullet', dir: { x: dx, y: dy, z: dz }, point: { x: hx, y: hy, z: hz } });
@@ -962,6 +961,9 @@ export class Match {
     if (suicide) { if (scoring) this.score[v.team] = Math.max(0, this.score[v.team] - 1); }
     else {
       a.kills++; a.streak++; if (scoring) this.score[a.team]++;
+      { const kd = WEAPONS[wid], ks = a.weapon;
+        if (kd && kd.killReload && ks && a.def && a.def.id === wid) { const n = Math.min(kd.mag - ks.mag, ks.res); ks.mag += n; ks.res -= n; a.reloadT = 0; ks.fresh = true; if (a.isPlayer) Sound.play('charge', { vol: 0.5 }); }
+        if (kd && kd.killShield) a.shield = Math.min(SHIELD_MAX, a.shield + kd.killShield); }
       if (a.cls === 'warlock' && wid !== 'nova') a.sup = Math.min(1, a.sup + 0.2);
       v.lastKiller = a.id;
       // assists

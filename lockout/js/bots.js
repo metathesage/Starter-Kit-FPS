@@ -3,7 +3,7 @@ import * as W from './world.js';
 import { WEAPONS } from './weapons.js';
 import { clamp, rand, chance, angDiff, forward, pick } from './util.js';
 
-const RANGE = { hawkmoon: 95, lastword: 44, felwinter: 16, gjallarhorn: 52, thorn: 90, br: 85, magnum: 55, smg: 34, shotgun: 12, sniper: 120, rocket: 50, sword: 3, hammer: 3.2, carbine: 90, plasmarifle: 38, needler: 42 };
+const RANGE = { hawkmoon: 95, lastword: 44, felwinter: 16, gjallarhorn: 52, thorn: 90, ace: 95, izanagi: 130, chaperone: 40, vex: 60, outbreak: 85, br: 85, magnum: 55, smg: 34, shotgun: 12, sniper: 120, rocket: 50, sword: 3, hammer: 3.2, carbine: 90, plasmarifle: 38, needler: 42 };
 
 export class Brain {
   constructor(actor, match, diff) { this.a = actor; this.m = match; this.d = diff; this.reset(); }
@@ -33,6 +33,11 @@ export class Brain {
       case 'felwinter': return dist < 12 ? 9.6 : dist < 18 ? 3 : 0.5;
       case 'gjallarhorn': return dist > 8 && dist < 48 ? 8.8 : 2;
       case 'thorn': return dist > 8 ? 7.6 : 5.5;
+      case 'ace': return dist > 12 ? 8.6 : 7;
+      case 'izanagi': return dist > 30 ? 9.2 : dist > 18 ? 3 : 0.5;
+      case 'chaperone': return dist < 28 ? 8.4 : 3;
+      case 'vex': return dist < 40 ? 8 : 4;
+      case 'outbreak': return dist > 10 ? 7.8 : 5.5;
       case 'sword': return dist < 9 ? 9 : 0;
       case 'hammer': return dist < 6 ? 9 : 0;
       case 'carbine': return dist > 25 ? 6.5 : 5;
@@ -206,8 +211,8 @@ export class Brain {
         }
         this.edgeT -= dt;
         if (c.fire && this.edgeT <= 0 && !def.auto) { c.fireEdge = true; this.edgeT = def.cycle * rand(1.0, 1.35) / d.acc; }
-        if (wid === 'sniper' && a.zoomLevel === 0 && dist > 25) c.zoom = true;
-        if (wid !== 'sniper' && a.zoomLevel > 0) c.zoom = true;
+        if ((wid === 'sniper' || wid === 'izanagi') && a.zoomLevel === 0 && dist > 25) c.zoom = true;
+        if (wid !== 'sniper' && wid !== 'izanagi' && a.zoomLevel > 0) c.zoom = true;
       }
       // melee at close range
       if (dist < 2.1 && this.meleeCd <= 0 && (wid !== 'shotgun' || chance(0.1)) && errY < 0.4) { c.melee = true; this.meleeCd = 1.1; }

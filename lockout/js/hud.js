@@ -134,7 +134,7 @@ export class HUD {
     B('luck', (a) => { if (a === this.p) Wow.kick(0.4); });
     B('medal', (a, name, icon) => { if (a === this.p) { this.medal(name, icon); Wow.kick(0.4); } });
     B('announce', (t, team) => this.announce(t, team));
-    B('count', (n) => { const c = this.el.count; c.textContent = n > 0 ? n : 'GO'; c.classList.remove('on'); void c.offsetWidth; c.classList.add('on'); if (n === 3) { this.modeIntro(); Wow.intro(MODES[this.match.mode].name, ((MAP_LIST.find((m) => MAP && m.id === MAP.id) || {}).name || (MAP && MAP.name) || 'LOCKOUT').toUpperCase(), `FIRST TO ${this.match.limit} ${MODES[this.match.mode].unit}`); } });
+    B('count', (n) => { const c = this.el.count; c.textContent = n > 0 ? n : 'GO'; c.classList.remove('on'); void c.offsetWidth; c.classList.add('on'); if (n === 3) { Sound.vo('@start'); this.modeIntro(); Wow.intro(MODES[this.match.mode].name, ((MAP_LIST.find((m) => MAP && m.id === MAP.id) || {}).name || (MAP && MAP.name) || 'LOCKOUT').toUpperCase(), `FIRST TO ${this.match.limit} ${MODES[this.match.mode].unit}`); } });
     B('shot', (a) => { if (a === this.p) Input.rumble(0.25, 0.5, 60); });
     B('explosion', (pos, R) => { const d = Math.hypot(this.p.x - pos.x, this.p.z - pos.z); if (d < R * 2.5) Input.rumble(1, 0.7, 260); });
     this.el.feed.innerHTML = ''; this.el.medals.innerHTML = '';
@@ -228,6 +228,7 @@ export class HUD {
     [...E.hp.children].forEach((c, i) => c.classList.toggle('on', i < hpOn));
     const low = p.alive && p.shield <= 0.5;
     document.body.classList.toggle('low-shield', low);
+    if (low && !this._lowPrev && performance.now() - (this._lowT || 0) > 25000) { Sound.vo('@shield'); this._lowT = performance.now(); } this._lowPrev = low;
     document.body.classList.toggle('overshield', p.alive && p.over > 0);
     if (low) { this.alarmT -= dt; if (this.alarmT <= 0) { Sound.play('alarm', { vol: 0.7 }); this.alarmT = 0.85; } }
     // active power-ups
@@ -300,7 +301,7 @@ export class HUD {
     }
     // reticle
     const retId = def ? def.ret : 'none';
-    const zoomScope = p.alive && def && def.id === 'sniper' && p.zoomLevel > 0;
+    const zoomScope = p.alive && def && (def.id === 'sniper' || def.scope === 'sniper') && p.zoomLevel > 0;
     const brScope = p.alive && def && def.id === 'br' && p.zoomLevel > 0;
     if (retId !== this.retId) { this.retId = retId; E.retSvg.innerHTML = RETICLES[retId] || ''; E.ret.classList.toggle('none', retId === 'none'); }
     E.ret.style.display = p.alive && !zoomScope && !brScope && !m.thirdPerson ? '' : 'none';

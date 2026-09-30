@@ -30,7 +30,7 @@ export const Wow = {
     el('wow-flash', '', 1000);
     el('wow-lvl', `<small>LEVEL UP</small><b>${level}</b><span>NEW REWARDS UNLOCKED</span>`, 3900);
     this.confetti(); this.kick(0.9);
-    Sound.play('win', { vol: 0.5 });
+    Sound.play('win', { vol: 0.5 }); Sound.vo('@levelup');
   },
 
   confetti(n = 170) {
