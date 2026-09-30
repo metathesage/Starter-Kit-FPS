@@ -3,7 +3,7 @@ import { clamp } from './util.js';
 
 const KEY = {
   fire: [], zoom: [],
-  jump: ['Space'], crouch: ['KeyC', 'ControlLeft', 'ShiftLeft'], reload: ['KeyR'], use: ['KeyE'],
+  jump: ['Space'], crouch: ['KeyC', 'ControlLeft'], sprint: ['ShiftLeft', 'ShiftRight'], reload: ['KeyR'], use: ['KeyE'],
   swap: ['KeyQ'], grenade: ['KeyG'], gswitch: ['KeyT'], melee: ['KeyF'], score: ['Tab'],
   cam: ['KeyV'], blink: ['KeyX'], nova: ['KeyZ'], confirm: ['Enter', 'Space'], back: ['Backspace'], pause: ['Escape', 'KeyP'],
   up: ['ArrowUp', 'KeyW'], down: ['ArrowDown', 'KeyS'], left: ['ArrowLeft', 'KeyA'], right: ['ArrowRight', 'KeyD'],
@@ -11,7 +11,7 @@ const KEY = {
 // Xbox standard mapping
 const PAD = {
   jump: [0], confirm: [0], melee: [1], back: [1], reload: [2], use: [2], swap: [3], gswitch: [4], blink: [4], nova: [5],
-  score: [8], pause: [9], crouch: [10], zoom: [11],
+  score: [8], pause: [9], sprint: [10], crouch: [13], zoom: [11],
   up: [12], down: [13], left: [14], right: [15],
 };
 const ACTIONS = Object.keys(KEY);
@@ -151,10 +151,10 @@ export const Input = {
 
   glyph(action) {
     if (this.last === 'pad') {
-      return ({ fire: 'RT', zoom: 'RS', jump: 'A', crouch: 'LS', reload: 'X', use: 'X', swap: 'Y', grenade: 'LT', gswitch: 'LB', blink: 'LB', nova: 'RB', melee: 'B', score: 'VIEW', pause: 'MENU', confirm: 'A', back: 'B', cam: 'RS', up: 'D-PAD', down: 'D-PAD', left: 'D-PAD', right: 'D-PAD' })[action] || '?';
+      return ({ fire: 'RT', zoom: 'RS', jump: 'A', crouch: 'D-PAD', sprint: 'LS', reload: 'X', use: 'X', swap: 'Y', grenade: 'LT', gswitch: 'LB', blink: 'LB', nova: 'RB', melee: 'B', score: 'VIEW', pause: 'MENU', confirm: 'A', back: 'B', cam: 'RS', up: 'D-PAD', down: 'D-PAD', left: 'D-PAD', right: 'D-PAD' })[action] || '?';
     }
     if (this.last === 'touch') return 'TAP';
-    return ({ fire: 'LMB', zoom: 'RMB', jump: 'SPACE', crouch: 'C', reload: 'R', use: 'E', swap: 'Q', grenade: 'G', gswitch: 'T', blink: 'X', nova: 'Z', melee: 'F', score: 'TAB', pause: 'ESC', confirm: 'ENTER', back: 'ESC', cam: 'V', up: '↑', down: '↓', left: '←', right: '→' })[action] || '?';
+    return ({ fire: 'LMB', zoom: 'RMB', jump: 'SPACE', crouch: 'C', sprint: 'SHIFT', reload: 'R', use: 'E', swap: 'Q', grenade: 'G', gswitch: 'T', blink: 'X', nova: 'Z', melee: 'F', score: 'TAB', pause: 'ESC', confirm: 'ENTER', back: 'ESC', cam: 'V', up: '↑', down: '↓', left: '←', right: '→' })[action] || '?';
   },
 };
 

@@ -81,6 +81,13 @@ export class HUD {
       <div class="h-death"><div class="dd"><div class="k">ELIMINATED BY</div><div class="nm"></div><div class="rs"></div></div></div>
       <div class="h-board"></div><div class="h-fps"></div>`;
     // compass strip: ticks every 5 degrees across three turns so it wraps
+    root.insertAdjacentHTML('beforeend', `<div class="h-brs"><div class="brs-win"><svg viewBox="0 0 600 300" preserveAspectRatio="xMidYMid meet">
+      <path class="cb" d="M6 40V6h34M560 6h34v34M594 260v34h-34M40 294H6v-34"/>
+      <path d="M46 150H268M332 150H554M300 26V118M300 182V274"/>
+      ${[92, 134, 176, 218, 258].map((x, i) => `<path d="M${x} ${i % 2 ? 143 : 138}V${i % 2 ? 157 : 162}M${600 - x} ${i % 2 ? 143 : 138}V${i % 2 ? 157 : 162}"/>`).join('')}
+      <path d="M300 64h10M300 92h10M300 208h16M300 234h26M300 260h36" class="dr"/>
+      <path d="M284 150h32M300 134v32" class="ct"/><circle cx="300" cy="150" r="7"/><circle cx="300" cy="150" r="1.6" class="dot"/></svg>
+      <div class="brs-zt">2.2X</div><div class="brs-rg"><small>RNG</small><b>---</b></div><div class="brs-am"><small>MAG</small><b>0</b></div></div></div>`);
     const cmp = root.querySelector('.cmp-track'); let ch = '';
     const CARD = { 0: 'N', 90: 'E', 180: 'S', 270: 'W' };
     for (let d = -360; d <= 720; d += 5) {
@@ -93,7 +100,7 @@ export class HUD {
       sc: { blue: q('.sc-row.blue'), red: q('.sc-row.red') }, clock: q('.sc-clock'), mode: q('.sc-mode'), feed: q('.feed'), radar: q('.h-radar canvas'),
       wIcon: q('.wp-icon'), wName: q('.wp-name'), wMag: q('.wp-mag'), wRes: q('.wp-res'), wRel: q('.wp-reload'), ret: q('.h-reticle'), retSvg: q('.h-reticle svg'),
       hit: q('.h-hit'), ann: q('.h-announce'), count: q('.h-count'), modeBig: q('.h-mode'), medals: q('.h-medals'), prompt: q('.h-prompt'), cam: q('.h-cam'),
-      death: q('.h-death'), dName: q('.dd .nm'), dRes: q('.dd .rs'), board: q('.h-board'), fps: q('.h-fps'), flash: q('.h-flash'), dmg: q('.h-dmg'), scope: q('.h-scope'), zt: q('.h-scope .zt'), rg: q('.h-scope .rg b'), am: q('.h-scope .am b'),
+      death: q('.h-death'), dName: q('.dd .nm'), dRes: q('.dd .rs'), board: q('.h-board'), fps: q('.h-fps'), flash: q('.h-flash'), dmg: q('.h-dmg'), scope: q('.h-scope'), brs: q('.h-brs'), brZt: q('.brs-zt'), brRg: q('.brs-rg b'), brAm: q('.brs-am b'), zt: q('.h-scope .zt'), rg: q('.h-scope .rg b'), am: q('.h-scope .am b'),
       tut: q('.h-tut'), obj: q('.h-obj'), lead: q('.sc-lead'), elim: q('.h-elim'), skull: q('.h-skull'), pu: q('.pu-row'), cmpTrack: cmp, cmpHd: q('.cmp-hd'), markers: q('.h-markers'), weaponBox: q('.h-weapon'), abil: q('.h-abil'), novaw: q('.h-novaw'), novawD: q('.h-novaw span'), novaBox: q('.ab.nova'), novaPg: q('.ab.nova .pg'), novaPct: q('.ab.nova .pct'), novaKd: q('.ab.nova .kd'), blinkKd: q('.ab.blink .kd'), pips: root.querySelectorAll('.ab.blink .pips i'), grRow: q('.gr-row') };
     this.el.hp.innerHTML = '<i></i>'.repeat(5);
     this.rctx = this.el.radar.getContext('2d');
@@ -143,7 +150,7 @@ export class HUD {
     this.tut = !Profile.d.seen.tutorial;
     if (this.tut) {
       const wl2 = this.p.cls === 'warlock';
-      const rows = [['fire', 'FIRE'], ['zoom', 'ZOOM'], ['jump', wl2 ? 'JUMP / HOLD TO GLIDE' : 'JUMP'], wl2 ? ['blink', 'BLINK'] : ['grenade', 'GRENADE'], ...(wl2 ? [['nova', 'NOVA BOMB']] : []), ['melee', 'MELEE'], ['reload', 'RELOAD'], ['swap', 'SWAP WEAPON'], ['score', 'SCOREBOARD']];
+      const rows = [['fire', 'FIRE'], ['zoom', 'ZOOM'], ['jump', wl2 ? 'JUMP / HOLD TO GLIDE' : 'JUMP'], ['sprint', 'SPRINT'], wl2 ? ['blink', 'BLINK'] : ['grenade', 'GRENADE'], ...(wl2 ? [['nova', 'NOVA BOMB']] : []), ['melee', 'MELEE'], ['reload', 'RELOAD'], ['swap', 'SWAP WEAPON'], ['score', 'SCOREBOARD']];
       this.el.tut.innerHTML = `<div class="tt-h">FIELD MANUAL</div>${rows.map(([a, t]) => `<div class="tt-r">${glyph(a)}<span>${t}</span></div>`).join('')}<div class="tt-f">Kill to score. Break line of sight to recharge shields.</div>`;
       this.el.tut.classList.add('on');
     } else this.el.tut.classList.remove('on');
@@ -294,12 +301,19 @@ export class HUD {
     // reticle
     const retId = def ? def.ret : 'none';
     const zoomScope = p.alive && def && def.id === 'sniper' && p.zoomLevel > 0;
+    const brScope = p.alive && def && def.id === 'br' && p.zoomLevel > 0;
     if (retId !== this.retId) { this.retId = retId; E.retSvg.innerHTML = RETICLES[retId] || ''; E.ret.classList.toggle('none', retId === 'none'); }
-    E.ret.style.display = p.alive && !zoomScope && !m.thirdPerson ? '' : 'none';
+    E.ret.style.display = p.alive && !zoomScope && !brScope && !m.thirdPerson ? '' : 'none';
     E.ret.classList.toggle('enemy', !!ctx.aimEnemy);
     const tk = E.retSvg.querySelector('.tk');
     if (tk && def) { const sp = (def.spread + p.bloom + (p.lastMoveSpeed / 5.4) * def.spread * 0.6) * 22; tk.style.transform = `scale(${1 + clamp(sp, 0, 1.2)})`; }
     E.scope.classList.toggle('on', zoomScope);
+    E.brs.classList.toggle('on', brScope); this.root.classList.toggle('brscoped', !!brScope);
+    if (brScope) {
+      E.brZt.textContent = def.zoom[p.zoomLevel - 1] + 'X'; E.brAm.textContent = w ? w.mag : 0;
+      const t = ctx.aimEnemy; E.brRg.textContent = t ? Math.hypot(t.x - p.x, t.y - p.y, t.z - p.z).toFixed(0) + ' M' : '---';
+      E.brs.classList.toggle('lock', !!t);
+    }
     if (zoomScope) {
       E.zt.textContent = def.zoom[p.zoomLevel - 1] + 'X'; E.am.textContent = w ? w.mag : 0;
       const t = ctx.aimEnemy; E.rg.textContent = t ? Math.hypot(t.x - p.x, t.y - p.y, t.z - p.z).toFixed(0) + ' M' : '---';

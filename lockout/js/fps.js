@@ -62,6 +62,7 @@ export class Viewmodel {
     let rx = this.kick * 0.05 + this.sway.y * 0.6, ry = this.sway.x * 0.8 + 0.02, rz = -bobx * 1.2;
     if (id === 'sword') { px = 0.26; py = -0.26; pz = -0.5; ry = 0.35; rz = -0.15; rx += 0.1; }
     
+    { const sp = p.sprintT || 0; if (sp > 0.001) { px -= 0.06 * sp; py -= 0.07 * sp; pz += 0.03 * sp; rx += 0.55 * sp; ry -= 0.4 * sp; rz += 0.12 * sp + Math.sin(this.bob * 0.5) * 0.03 * sp; } }
     // reload dip
     if (p.reloadT > 0 && def.reload) {
       const k = 1 - p.reloadT / def.reload, dip = Math.sin(Math.min(1, k) * Math.PI);

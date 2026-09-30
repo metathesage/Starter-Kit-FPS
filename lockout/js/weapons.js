@@ -198,7 +198,7 @@ function normalizeProp(scene, o) {
   scene.position.sub(c); root.scale.setScalar(k);
   const out = new THREE.Group(); out.add(root);
   out.traverse((m) => { if (!m.isMesh) return; m.frustumCulled = false; const mt = m.material; if (mt && mt.map) { mt.emissiveMap = mt.map; mt.emissive.setScalar(o.glow ?? 0.4); } if (mt && 'metalness' in mt) { mt.metalness = Math.min(mt.metalness, 0.3); mt.roughness = Math.max(mt.roughness, 0.6); } });
-  return toonify(out, { width: 0.004, glow: o.glow ?? 0.4, saturate: o.sat });
+  return toonify(out, { width: 0.002, glow: o.glow ?? 0.4, saturate: o.sat, soft: true });
 }
 
 function normalizeModel(scene, id, o) {
@@ -233,7 +233,7 @@ function normalizeModel(scene, id, o) {
     if (mt.map) { mt.emissiveMap = mt.map; mt.emissive.setScalar(o.glow ?? 0.34); }   // baked textures read dark under scene lights: self-light a little
     if ('metalness' in mt) { mt.metalness = Math.min(mt.metalness, 0.3); mt.roughness = Math.max(mt.roughness, 0.62); }
   });
-  return toonify(out, { width: 0.0045, glow: o.glow ?? 0.34, saturate: o.sat });
+  return toonify(out, { width: 0.0022, glow: o.glow ?? 0.34, saturate: o.sat, soft: true });
 }
 
 const _cache = {};

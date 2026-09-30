@@ -11,6 +11,7 @@ import { Profile, rollCallsign } from './profile.js';
 import { Hub } from './hub.js';
 import { Post } from './post.js';
 import { Wow } from './wow.js';
+import { watchIcons } from './icons.js';
 import * as MS from './missions.js';
 import { MODES } from './modes.js';
 import { showArmory, showRecord, emblemHtml, titleText } from './armory.js';
@@ -71,7 +72,7 @@ const TIPS = [
 const canvas = $('#game');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
 renderer.autoClear = false;
-const post = new Post(renderer); Wow.init(post);
+const post = new Post(renderer); Wow.init(post); watchIcons();
 const GRADE = {
   lockout: { tint: [0.97, 1, 1.06], sat: 1.08, con: 1.06, bloom: 0.6, vig: 0.24, thr: 1.1 },
   cryostat: { tint: [0.94, 1.02, 1.1], sat: 1.1, con: 1.08, bloom: 0.7, vig: 0.26, thr: 1.0 },
@@ -99,7 +100,7 @@ addEventListener('resize', resize);
 // ---- state ----------------------------------------------------------------------------
 let hub = null, missionActive = null;
 let state = 'splash', world = null, fx = null, viewmodel = null, hud = null, match = null, showcase = null;
-let trauma = 0, camKick = 0, fovCur = 62, menuT = 0, last = performance.now(), padCrouch = false, fpsAcc = 0, fpsN = 0, showFps = Q.has('fps'), muted = false;
+let trauma = 0, camKick = 0, fovCur = 62, menuT = 0, last = performance.now(), padCrouch = false, padSprint = false, fpsAcc = 0, fpsN = 0, showFps = Q.has('fps'), muted = false;
 let hitstop = 0, showWeapon = null, mstats = null, lastDevice = 'kbm', endShown = false, quick = Q.has('quick'), fast = Q.has('fast') || Q.has('quick'), netAcc = 0, netEdges = 0;
 const shakeN = { t: 0 };
 window.__game = { get post() { return post; }, get hub() { return hub; }, ensureMap: (id) => ensureMap(id), World, get world() { return world; }, render: () => render(false), Net, hostLobby: () => hostLobby(), joinLobby: (c) => joinLobby(c), startOnlineHost: () => startOnlineHost(), renderer, get fx() { return fx; }, get match() { return match; }, get state() { return state; }, get scene() { return scene; }, get camera() { return camera; }, start: () => startMatch(), Input, THREE };
@@ -174,8 +175,8 @@ addEventListener('click', () => { skipSplash = true; });
 let cardsRow = null, cardEls = [];
 function buildMenus() {
   // controls screen
-  const K = [['Move', 'W A S D'], ['Look', 'MOUSE'], ['Fire', 'LMB'], ['Zoom', 'RMB'], ['Jump', 'SPACE'], ['Crouch', 'C'], ['Reload', 'R'], ['Pick up / swap', 'E'], ['Swap weapon', 'Q'], ['Grenade', 'G'], ['Switch grenade', 'T'], ['Melee', 'F'], ['Scoreboard', 'TAB'], ['Chase camera', 'V'], ['Pause', 'ESC']];
-  const P = [['Move', 'LS'], ['Look', 'RS'], ['Fire', 'RT'], ['Grenade', 'LT'], ['Zoom', 'RS'], ['Jump', 'A'], ['Melee', 'B'], ['Reload / pick up', 'X'], ['Swap weapon', 'Y'], ['Switch grenade', 'LB'], ['Crouch', 'LS'], ['Scoreboard', 'VIEW'], ['Pause', 'MENU']];
+  const K = [['Move', 'W A S D'], ['Look', 'MOUSE'], ['Fire', 'LMB'], ['Zoom', 'RMB'], ['Jump', 'SPACE'], ['Sprint', 'SHIFT'], ['Crouch', 'C'], ['Reload', 'R'], ['Pick up / swap', 'E'], ['Swap weapon', 'Q'], ['Grenade', 'G'], ['Switch grenade', 'T'], ['Melee', 'F'], ['Scoreboard', 'TAB'], ['Chase camera', 'V'], ['Pause', 'ESC']];
+  const P = [['Move', 'LS'], ['Look', 'RS'], ['Fire', 'RT'], ['Grenade', 'LT'], ['Zoom', 'RS'], ['Jump', 'A'], ['Melee', 'B'], ['Reload / pick up', 'X'], ['Swap weapon', 'Y'], ['Switch grenade', 'LB'], ['Sprint (toggle)', 'LS'], ['Crouch', 'D-PAD'], ['Scoreboard', 'VIEW'], ['Pause', 'MENU']];
   const cap = (t) => t.split(' ').map((x) => `<span class="glyph">${x}</span>`).join('');
   const pad = (t) => `<span class="glyph pad ${['A', 'B', 'X', 'Y'].includes(t) ? t : 'wide'}">${t}</span>`;
   $('#ctrlGrid').innerHTML = `<div class="ctrl-col"><h3>KEYBOARD + MOUSE</h3>${K.map(([a, b]) => `<div class="ctrl-row"><span>${a}</span><span>${cap(b)}</span></div>`).join('')}</div>
@@ -730,6 +731,7 @@ function playerInput(p) {
   c.fire = Input.held.fire; if (Input.pressed.fire) c.fireEdge = true;
   if (Input.held.jump) c.jump = true;
   if (Input.last === 'pad') { if (Input.pressed.crouch) padCrouch = !padCrouch; c.crouch = padCrouch; } else c.crouch = Input.held.crouch;
+  if (Input.last === 'pad') { if (Input.pressed.sprint) padSprint = !padSprint; if (Math.hypot(mv.x, mv.y) < 0.25 || Input.held.fire || Input.held.zoom) padSprint = false; c.sprint = padSprint; } else c.sprint = Input.held.sprint;
   if (Input.pressed.melee) c.melee = true; if (Input.pressed.grenade) c.grenade = true; if (Input.pressed.reload) c.reload = true;
   if (Input.pressed.swap) c.swap = true; if (Input.pressed.use) c.use = true; if (Input.pressed.zoom) c.zoom = true; if (Input.pressed.gswitch) c.gswitch = true;
   if (Input.pressed.blink) c.blink = true; if (Input.pressed.nova) c.nova = true;
@@ -760,7 +762,7 @@ function updateCamera(dt) {
   const sx = (Math.sin(shakeN.t * 1.3) + Math.sin(shakeN.t * 2.7)) * 0.5 * tr * 0.05, sy = (Math.sin(shakeN.t * 1.7 + 2) + Math.sin(shakeN.t * 3.1)) * 0.5 * tr * 0.05, sr = Math.sin(shakeN.t * 2.1) * tr * 0.05;
   const zoom = p.alive ? p.fovZoom : 1;
   const base = settings.fov;
-  const tf = 2 * Math.atan(Math.tan((base * Math.PI) / 360) / zoom) * (180 / Math.PI);
+  const tf = 2 * Math.atan(Math.tan(((base + (p.alive ? (p.sprintT || 0) * 7 : 0)) * Math.PI) / 360) / zoom) * (180 / Math.PI);
   fovCur = damp(fovCur, tf, 16, dt);
   if (Math.abs(camera.fov - fovCur) > 0.01) { camera.fov = fovCur; camera.updateProjectionMatrix(); }
   if (p.alive && !m.thirdPerson) {
@@ -818,7 +820,7 @@ function play(dt) {
   p.rig.root.visible = m.thirdPerson || !p.alive || (m.state === 'countdown' && m.count > 0.6);
   updateCamera(dt);
   // viewmodel
-  const scope = p.alive && p.def && p.def.id === 'sniper' && p.zoomLevel > 0;
+  const scope = p.alive && p.def && (p.def.id === 'sniper' || p.def.id === 'br') && p.zoomLevel > 0;
   const showVM = p.alive && !m.thirdPerson && !scope && !(m.state === 'countdown' && m.count > 0.7);
   viewmodel.update(dt, p, Input.look, p.lastMoveSpeed, WEAPONS);
   fx.setScale(H * renderer.getPixelRatio(), camera.fov);
@@ -829,7 +831,7 @@ function play(dt) {
 }
 
 function idleOnline(dt) {
-  const m = match, p = m.player; p.cmd.mx = p.cmd.mz = 0; p.cmd.fire = false; p.cmd.crouch = false;
+  const m = match, p = m.player; p.cmd.mx = p.cmd.mz = 0; p.cmd.fire = false; p.cmd.crouch = false; p.cmd.sprint = false;
   const n = Math.max(1, Math.ceil(dt * 60)); for (let i = 0; i < n; i++) m.update(dt / n);
   netTick(dt); fx.update(dt); world.snow.update(dt, camera.position, m.time); updateCamera(dt); render(false);
 }

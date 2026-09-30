@@ -9,6 +9,14 @@ export function toonGradient() {
   return _grad;
 }
 
+let _soft = null;   // gentler bands for hard-surface props: more steps, brighter shadows, still reads as cel
+export function softGradient() {
+  if (_soft) return _soft;
+  const v = [120, 165, 205, 235, 252, 255], d = new Uint8Array(v.flatMap((x) => [x, x, x, 255]));
+  _soft = new THREE.DataTexture(d, v.length, 1, THREE.RGBAFormat); _soft.minFilter = _soft.magFilter = THREE.NearestFilter; _soft.needsUpdate = true;
+  return _soft;
+}
+
 const _inkCache = new Map();
 export function inkMaterial(color, width) {
   const key = color + ':' + width; if (_inkCache.has(key)) return _inkCache.get(key);
@@ -34,9 +42,9 @@ export function smoothNormals(geo) {
 }
 
 // convert every standard material under `root` to toon and add an outline shell. Idempotent per mesh.
-export function toonify(root, { ink = 0x07080d, width = 0.006, glow = null, saturate } = {}) {
-  saturate ??= 1.12;
-  const grad = toonGradient(), swap = new Map(), inks = [];
+export function toonify(root, { ink = 0x07080d, width = 0.006, glow = null, saturate, soft = false } = {}) {
+  saturate ??= soft ? 1.04 : 1.12;
+  const grad = soft ? softGradient() : toonGradient(), swap = new Map(), inks = [];
   root.traverse((m) => {
     if (!m.isMesh || m.userData.toon || m.userData.outline || !m.material) return;
     m.userData.toon = true;

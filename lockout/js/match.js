@@ -45,7 +45,7 @@ export class Actor {
     this.kills = 0; this.deaths = 0; this.assists = 0; this.streak = 0; this.medals = {}; this.lastKiller = -1; this.multiT = -99; this.multi = 0;
     this.alive = false; this.deadT = 0; this.respawnAt = 0;
     this.x = 0; this.y = 0; this.z = 0; this.vx = 0; this.vy = 0; this.vz = 0; this.yaw = 0; this.pitch = 0;
-    this.grounded = true; this.crouch = 0; this.h = H_STAND;
+    this.grounded = true; this.crouch = 0; this.h = H_STAND; this.sprintT = 0; this.noSprintT = 0;
     this.weapons = []; this.cur = 0; this.gren = { frag: 2, plasma: 2 }; this.gtype = 'frag';
     this.shield = SHIELD_MAX; this.health = HEALTH_MAX; this.over = 0; this.overT = 0; this.camoT = 0; this.boostT = 0; this.nd = 0; this.ndT = -9;
     this.carry = null; this.dmgBy = new Map(); this.brain = null; this.kick = 0; this.stepD = 0; this.lastFireT = -9; this.lastMoveSpeed = 0;
@@ -149,6 +149,12 @@ export class Actor {
     this.crouch = damp(this.crouch, crouching ? 1 : 0, 14, dt);
     this.h = lerp(H_STAND, H_CROUCH, this.crouch);
     let spd = crouching ? CROUCH_SPEED : RUN;
+    // sprint: hold to run 40% faster, forward only; firing, zooming or crouching cancels it
+    if (c.fire || c.melee || this.zoomLevel > 0) this.noSprintT = 0.28; else this.noSprintT = Math.max(0, this.noSprintT - dt);
+    const fwd = c.mx * -Math.sin(this.yaw) + c.mz * -Math.cos(this.yaw);
+    const sprinting = !!c.sprint && !crouching && !frozen && this.noSprintT <= 0 && this.reloadT <= 0 && fwd > 0.35 && !this.lunge;
+    this.sprintT = damp(this.sprintT, sprinting ? 1 : 0, 9, dt); this.sprinting = sprinting;
+    if (sprinting) spd *= 1.4;
     if (this.zoomLevel > 0) spd *= 0.65;
     if (this.carry === 'flag') spd *= 0.94;
     if (this.reloadT > 0 && this.def && (this.def.id === 'sniper')) spd *= 0.85;
