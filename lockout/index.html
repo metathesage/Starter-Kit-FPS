@@ -34,6 +34,7 @@
 <section id="loading" class="screen" data-screen="loading">
   <div class="ld-top"><span>LOCKOUT</span><span id="loadStage">Booting</span></div>
   <div class="ld-pct"><span id="loadPct">000</span><small>%</small></div>
+  <div class="ld-map"><small>DEPLOYING TO</small><b id="ldMapName">LOCKOUT</b></div>
   <div class="ld-tip" id="loadTip"></div>
   <div class="ld-bar"><i id="loadBar"></i></div>
 </section>
@@ -92,6 +93,8 @@
     <div class="opts" id="recOpts"></div>
     <h3 class="rc-h">CHALLENGES <span id="recReset"></span></h3><div class="ch-list" id="recCh"></div>
     <div class="rc-stats" id="recStats"></div>
+    <h3 class="rc-h">WEAPON KILLS</h3><div class="wk-list" id="recWk"></div>
+    <h3 class="rc-h">MATCH HISTORY</h3><div class="hist" id="recHist"></div>
     <h3 class="rc-h">SERVICE BADGES</h3><div class="rc-badges" id="recBadges"></div>
     <h3 class="rc-h">MEDALS</h3><div class="res-medals" id="recMedals"></div>
     <div class="panel-foot"><button class="btn" id="btnRecBack"><span>BACK</span><i></i></button></div>
@@ -179,6 +182,7 @@
 <section id="results" class="screen" data-screen="results">
   <div class="panel wide results">
     <div class="res-banner" id="resBanner"><div class="res-kicker" id="resKicker"></div><div class="res-title" id="resTitle"></div><div class="res-score" id="resScore"></div></div>
+    <div class="res-cards" id="resCards"></div>
     <div class="res-table" id="resTable"></div>
     <div class="res-xp" id="resXp"></div>
     <div class="res-medals" id="resMedals"></div>

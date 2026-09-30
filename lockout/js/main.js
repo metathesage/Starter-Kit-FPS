@@ -12,6 +12,7 @@ import { Hub } from './hub.js';
 import { Post } from './post.js';
 import { Wow } from './wow.js';
 import { watchIcons } from './icons.js';
+import { buildSpace } from './space.js';
 import * as MS from './missions.js';
 import { MODES } from './modes.js';
 import { showArmory, showRecord, emblemHtml, titleText } from './armory.js';
@@ -499,9 +500,15 @@ function netTick(dt) {
 }
 
 // ---- match lifecycle --------------------------------------------------------------------------
+function setLoadArt(id) {
+  const L = $('#loading'); L.style.setProperty('--map', `url(img/maps/${id}.webp)`);
+  const nm = (World.MAP_LIST.find((q) => q.id === id) || { name: id }).name; const e = $('#ldMapName'); if (e) e.textContent = nm.toUpperCase();
+  L.classList.remove('kb'); void L.offsetWidth; L.classList.add('kb');
+}
 async function ensureMap(id) {
   if (World.MAP && World.MAP.id === id && world) return;
   state = 'loading'; UI.show('loading'); $('#loadTip').textContent = TIPS[(Math.random() * TIPS.length) | 0];
+  setLoadArt(id);
   await setProg(0.02, 'Loading ' + id.toUpperCase());
   world = await World.loadMap(scene, renderer, id, (p, l) => setProg(0.02 + p * 0.96, l));
   applySettings(); renderer.toneMappingExposure = EXPOSURE[id] || 1.05; post.setGrade(GRADE[id] || GRADE.lockout);
@@ -525,10 +532,12 @@ function beginMatch(m, w) {
   const st = w || match.player.style;
   viewmodel.setup(match.player.team, st.hair, st.eye, skinHex());
   hud.root.classList.remove('hidden'); hud.bind(match);
-  mstats = { kills: 0, heads: 0, perfects: 0, sniper: 0, sword: 0, grenade: 0, caps: 0, ballSec: 0, medals: {}, streakBest: 0, awarded: false };
-  match.bus.on('kill', (r) => { if (r.killer === match.player && !r.suicide) { if (!Net.online) hitstop = r.head || r.weapon === 'sword' || r.weapon === 'hammer' ? 0.1 : 0.06; trauma = Math.min(1, trauma + 0.12); mstats.kills++; if (r.head) mstats.heads++; if (r.weapon === 'sniper') mstats.sniper++; if (r.weapon === 'sword') mstats.sword++; if (r.weapon === 'frag' || r.weapon === 'plasma') mstats.grenade++; mstats.streakBest = Math.max(mstats.streakBest, match.player.streak); } });
+  mstats = { kills: 0, heads: 0, perfects: 0, sniper: 0, sword: 0, grenade: 0, caps: 0, ballSec: 0, medals: {}, streakBest: 0, awarded: false, shots: 0, hits: 0, wk: {}, t0: performance.now() };
+  match.bus.on('kill', (r) => { if (r.killer === match.player && !r.suicide) { if (!Net.online) hitstop = r.head || r.weapon === 'sword' || r.weapon === 'hammer' ? 0.1 : 0.06; trauma = Math.min(1, trauma + 0.12); mstats.kills++; mstats.wk[r.weapon] = (mstats.wk[r.weapon] || 0) + 1; if (r.head) mstats.heads++; if (r.weapon === 'sniper') mstats.sniper++; if (r.weapon === 'sword') mstats.sword++; if (r.weapon === 'frag' || r.weapon === 'plasma') mstats.grenade++; mstats.streakBest = Math.max(mstats.streakBest, match.player.streak); } });
   match.bus.on('medal', (a, n) => { if (a === match.player) { mstats.medals[n] = (mstats.medals[n] || 0) + 1; if (n === 'PERFECT') mstats.perfects++; } });
   match.bus.on('obj', (t, a) => { if (a === match.player) { if (t === 'cap') mstats.caps++; else if (t === 'ballsec') mstats.ballSec++; } });
+  match.bus.on('shot', (a) => { if (a === match.player) mstats.shots++; });
+  match.bus.on('hit', (a) => { if (a === match.player) mstats.hits++; });
   match.bus.on('shake', (a) => { trauma = Math.min(1, trauma + a); });
   match.bus.on('shot', (a, def) => { if (a === match.player && def) { viewmodel.kickNow(0.4 + def.kick * 8); camKick = Math.min(0.06, camKick + def.kick * 0.35); } });
   match.bus.on('state', (s) => { if (s === 'ended') onMatchEnd(); });
@@ -566,6 +575,10 @@ function showResults() {
   const ranked = m.ranking();
   $('#resTable').innerHTML = `<table class="tbl">${head}${m.ffa ? rows(ranked) : order.map((t) => rows(ranked.filter((a) => a.team === t))).join('')}</table>`;
   award(m, p, won, win === 'tie');
+  { const S = mstats || { shots: 0, hits: 0, heads: 0, streakBest: 0, medals: {} }, mn = Object.values(S.medals).reduce((a, b) => a + b, 0), acc = S.shots ? Math.round((S.hits / S.shots) * 100) : 0, kd = p.deaths ? (p.kills / p.deaths).toFixed(2) : p.kills.toFixed(2);
+    const mvp = m.ranking()[0], C = (l, v, cls = '') => `<div class="rcard ${cls}"><b data-n="${v}">0</b><span>${l}</span></div>`;
+    $('#resCards').innerHTML = (mvp ? `<div class="mvp"><em>MVP</em><b>${mvp.name}</b><span>${mvp.kills} KILLS</span></div>` : '') + C('KILLS', p.kills, 'hot') + C('DEATHS', p.deaths) + C('ASSISTS', p.assists) + `<div class="rcard"><b data-n="${kd}" data-d="2">0</b><span>K/D</span></div>` + `<div class="rcard"><b data-n="${acc}" data-s="%">0</b><span>ACCURACY</span></div>` + C('HEADSHOTS', S.heads || 0) + C('BEST STREAK', S.streakBest || 0) + C('MEDALS', mn, 'gold');
+    countUps($('#resCards')); }
   const mres = missionActive ? MS.resolve(missionActive, won, mstats, Object.values(mstats.medals).reduce((a, b) => a + b, 0)) : null;
   if (mres) $('#resXp').insertAdjacentHTML('afterbegin', `<div class="ms-res ${mres.cleared ? 'ok' : 'no'}"><em>MISSION</em><b>${missionActive.name}</b><span>${mres.cleared ? (mres.first ? 'CLEARED' : 'REPEAT CLEAR') : 'FAILED'}</span>${mres.cleared ? `<i>+${mres.credits} CR${mres.bonusHit ? '  ·  BONUS: ' + missionActive.bonus.text.toUpperCase() : ''}</i>` : '<i>Win the match to clear it.</i>'}</div>`);
   const med = Object.entries(p.medals);
@@ -591,6 +604,16 @@ function showResults() {
     }
   }
   Sound.music('menu');
+  requestAnimationFrame(() => { const pn = document.querySelector('#results .panel'); if (pn) pn.scrollTop = 0; });
+}
+
+// count numbers up from zero (results cards)
+function countUps(root) {
+  root.querySelectorAll('[data-n]').forEach((el, i) => {
+    const to = parseFloat(el.dataset.n) || 0, dec = +(el.dataset.d || 0), suf = el.dataset.s || '', t0 = performance.now() + 500 + i * 90, dur = 900;
+    const tick = (t) => { const k = Math.max(0, Math.min(1, (t - t0) / dur)), e = 1 - Math.pow(1 - k, 3); el.textContent = (to * e).toFixed(dec) + suf; if (k < 1) requestAnimationFrame(tick); };
+    requestAnimationFrame(tick);
+  });
 }
 
 // XP, credits, stats, unlocks and badges for a finished match (once)
@@ -609,6 +632,7 @@ function award(m, p, won, tie) {
   st.kills += S.kills; st.deaths += p.deaths; st.assists += p.assists; st.headshots += S.heads; st.perfects += S.perfects; st.sniper += S.sniper; st.sword += S.sword; st.grenade += S.grenade;
   st.caps += S.caps; st.ballTime += S.ballSec; st.matches++; if (won) st.wins++; st.streakBest = Math.max(st.streakBest, S.streakBest);
   for (const [n, c] of Object.entries(S.medals)) d.medals[n] = (d.medals[n] || 0) + c;
+  { const sc = m.ffa ? `#${m.ranking().indexOf(p) + 1}` : `${Math.floor(m.score.blue)}-${Math.floor(m.score.red)}`; Profile.logMatch({ won, tie, map: loadout.map, mode: m.mode, shots: S.shots, hits: S.hits, dur: Math.round((performance.now() - S.t0) / 1000), medals: medalN, xp, k: S.kills, d: p.deaths, a: p.assists, wk: S.wk, sc }); }
   const res = Profile.addXp(xp, cr);
   const news = C.newlyUnlocked(fromLevel, Profile.level, WAIFUS), badges = C.newBadges();
   void before;
@@ -845,8 +869,24 @@ function render(showVM) {
 
 const menuPtr = { x: 0, y: 0, sx: 0, sy: 0 };
 addEventListener('pointermove', (e) => { menuPtr.x = e.clientX / innerWidth - 0.5; menuPtr.y = e.clientY / innerHeight - 0.5; });
+let space = null;
 function menuFrame(dt) {
   menuT += dt;
+  const inSpace = state === 'menu' && UI.cur !== 'setup';
+  if (inSpace && !space) { space = buildSpace(scene); space.place(new THREE.Vector3(0, 0, -1)); }
+  if (space) space.root.visible = inSpace;
+  renderer.toneMappingExposure = inSpace ? 0.8 : (EXPOSURE[World.MAP ? World.MAP.id : 'lockout'] || 1.05);
+  if (inSpace) {
+    const C = space.root.position; camera.fov = 44; camera.updateProjectionMatrix(); camera.userData.dpr = renderer.getPixelRatio();
+    menuPtr.sx += (menuPtr.x - menuPtr.sx) * Math.min(1, dt * 3); menuPtr.sy += (menuPtr.y - menuPtr.sy) * Math.min(1, dt * 3);
+    camera.position.set(C.x + 0.55 + Math.sin(menuT * 0.23) * 0.25 - menuPtr.sx * 0.9, C.y + 1.32 + Math.sin(menuT * 0.31) * 0.06 - menuPtr.sy * 0.3, C.z + 4.0 + Math.cos(menuT * 0.19) * 0.12);
+    camera.up.set(0, 1, 0); camera.lookAt(C.x + 0.55, C.y + 1.12 + menuPtr.sy * 0.25, C.z);
+    if (showcase && showcase.sam) showcase.sam.base = 0.1;
+    if (showcase) { showcase.root.position.set(C.x + 0.55, C.y, C.z); showcase.root.rotation.y = Math.PI + 0.32 + Math.sin(menuT * 0.4) * 0.1 + menuPtr.sx * 0.4; animateRig(showcase, dt, { speed: 0, lx: 0, lz: 1, weaponId: showWeapon, grounded: true, pitch: Math.sin(menuT * 0.5) * 0.05 }); showcase.root.position.y = C.y + 0.12 + Math.sin(menuT * 0.9) * 0.04; }
+    space.plat.position.set(0.55, 0, 0);
+    space.update(dt, camera); fx && fx.update(dt); fx && fx.setScale(H * renderer.getPixelRatio(), 44);
+    render(false); return;
+  }
   const px = Input.last === 'kbm' ? 0 : 0;
   camera.fov = 44; camera.updateProjectionMatrix();
   const mc = MENU[World.MAP ? World.MAP.id : 'lockout'];
@@ -857,6 +897,7 @@ function menuFrame(dt) {
     camera.position.x += (-dz / l) * menuPtr.sx * 1.1; camera.position.z += (dx / l) * menuPtr.sx * 1.1; camera.position.y -= menuPtr.sy * 0.4;
   }
   camera.up.set(0, 1, 0); camera.lookAt(...mc.look);
+  if (showcase && showcase.sam) showcase.sam.base = showcase.sam.cfg.glow;
   if (showcase) {
     showcase.root.rotation.y = 2.05 + Math.sin(menuT * 0.4) * 0.12 + menuPtr.sx * 0.35;
     animateRig(showcase, dt, { speed: 0, lx: 0, lz: 1, weaponId: showWeapon, grounded: true, pitch: Math.sin(menuT * 0.5) * 0.05 });
