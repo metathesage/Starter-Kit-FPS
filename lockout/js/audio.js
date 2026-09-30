@@ -4,6 +4,28 @@ import { rand } from './util.js';
 let ctx = null, master = null, sfxBus = null, musBus = null, noiseBuf = null, comp = null;
 let musicTimer = null, musicMode = 'off', beat = 0;
 const vol = { master: 0.8, sfx: 1, music: 0.5 };
+// licensed guitar-driven score (see audio/music/CREDITS.txt); the procedural music below is the fallback
+const TRACKS = { menu: ['aries'], zen: ['aries'], match: ['atheria', 'calamity', 'messengers', 'vilified'] };
+let trackEl = null, trackKind = null, trackI = 0, trackOK = true, trackGain = null;
+function stopTrack() {
+  const el = trackEl; trackEl = null; if (!el) return;
+  if (trackGain && ctx) { const g = trackGain; g.gain.cancelScheduledValues(ctx.currentTime); g.gain.setTargetAtTime(0, ctx.currentTime, 0.25); trackGain = null; }
+  setTimeout(() => { try { el.pause(); el.src = ''; } catch { /* gone */ } }, 900);
+}
+function startTrack(kind, keep) {
+  if (!ctx) return;
+  const list = TRACKS[kind]; trackKind = kind;
+  if (!keep) trackI = kind === 'match' ? (Math.random() * list.length) | 0 : 0;
+  const el = new Audio(); el.preload = 'auto'; el.loop = list.length === 1; el.src = `audio/music/${list[trackI % list.length]}.mp3`;
+  try {
+    const src = ctx.createMediaElementSource(el), g = ctx.createGain(); g.gain.value = 0; src.connect(g); g.connect(musBus);
+    g.gain.setTargetAtTime(kind === 'menu' || kind === 'zen' ? 2.6 : 2.3, ctx.currentTime, 1.2);
+    trackEl = el; trackGain = g;
+    el.addEventListener('ended', () => { if (trackEl === el && trackKind === kind) { trackI++; stopTrack(); startTrack(kind, true); } });
+    el.addEventListener('error', () => { if (trackEl === el) { trackOK = false; trackEl = null; Sound.music(musicMode); } });
+    el.play().catch(() => { if (trackEl === el) { trackOK = false; trackEl = null; Sound.music(musicMode); } });
+  } catch { trackOK = false; }
+}
 
 function ensure() {
   if (ctx) return ctx;
@@ -213,6 +235,7 @@ export const Sound = {
       }
       if (ctx.state !== 'running' || Math.random() > 0.5) return; if (kind === 'wind') tone(sfxBus, { type: 'sine', f0: 240 + Math.random() * 200, f1: 180, dur: 2.4, gain: 0.02, atk: 1 }); else { tone(sfxBus, { type: 'triangle', f0: 90 + Math.random() * 40, f1: 60, dur: 1.4, gain: 0.05, atk: 0.4 }); noise(sfxBus, { dur: 0.5, f0: 900, f1: 200, gain: 0.05, type: 'bandpass', q: 5, at: 0.3 }); } }, kind === 'garden' ? 2600 : 7000);
   },
+  trackInfo() { return trackEl ? { src: trackEl.src.split('/').pop(), t: +trackEl.currentTime.toFixed(2), paused: trackEl.paused, ok: trackOK } : { ok: trackOK }; },
   announcer: true, _sayT: 0, _vo: { man: null, buf: new Map(), busy: 0, loading: null },
   // narrator: pre-rendered holographic-AI clips (audio/vo). Text is normalised to a key; unknown lines stay silent.
   async _voLoad() {
@@ -241,7 +264,9 @@ export const Sound = {
   music(mode) {
     musicMode = mode;
     if (musicTimer) { clearInterval(musicTimer); musicTimer = null; }
+    stopTrack();
     if (mode === 'off' || !ctx) return;
+    if (TRACKS[mode] && trackOK) { startTrack(mode); return; }
     beat = 0;
     musicTimer = setInterval(musicStep, mode === 'zen' ? 560 : 320);
   },
