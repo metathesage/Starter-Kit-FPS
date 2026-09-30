@@ -34,8 +34,8 @@ export const DIFFICULTY = {
 
 let _uid = 1;
 // weapons that can earn a PERFECT: every shot of the engagement landed, headshot finish, no damage taken. Value = min hits.
-const ENERGY = new Set(['plasmarifle', 'needler', 'carbine', 'thorn']);
-const SHELLS = new Set(['br', 'magnum', 'smg', 'shotgun', 'sniper', 'hawkmoon', 'lastword', 'felwinter', 'ace', 'izanagi', 'chaperone', 'vex', 'outbreak']);
+const ENERGY = new Set(['plasmarifle', 'needler', 'carbine', 'thorn', 'volt']);
+const SHELLS = new Set(['br', 'magnum', 'smg', 'shotgun', 'sniper', 'hawkmoon', 'lastword', 'felwinter', 'ace', 'izanagi', 'chaperone', 'vex', 'outbreak', 'g7scout', 'r99']);
 const PERFECT_W = new Map([['br', 4], ['carbine', 5], ['magnum', 3], ['sniper', 1], ['hawkmoon', 3], ['thorn', 3]]);
 
 export class Actor {
@@ -43,7 +43,7 @@ export class Actor {
     this.m = match; this.id = id ?? _uid++; if (id !== null && id >= _uid) _uid = id + 1; this.remote = remote; this.netT = null; this.spawnSeq = 0; this.name = name; this.team = team; this.isPlayer = isPlayer; this.style = style;
     this.fac = fac ?? match.factionFor(team, isPlayer); this.cls = this.fac === 'destiny' ? 'warlock' : 'spartan';
     this.aa = aa ?? (isPlayer ? match.cfg.aa || 'lock' : ['lock', 'jet', 'drop'][(Math.random() * 3) | 0]);
-    this.dashCh = DASH_MAX; this.dashT = 0; this.dashing = 0; this.dashV = { x: 0, z: 0 }; this.rammed = null; this.lockT = 0; this.lockAbs = 0; this.aaCd = 0; this.fuel = JET_FUEL; this.jumpsLeft = 1; this._jp = false; this.jetting = false;
+    this.dashCh = DASH_MAX; this.dashT = 0; this.dashing = 0; this.dashV = { x: 0, z: 0 }; this.rammed = null; this.lockT = 0; this.lockAbs = 0; this.aaCd = 0; this.fuel = JET_FUEL; this.jumpsLeft = 1; this._jp = false; this.jetting = false; this.mantle = null;
     this.blinkCh = BLINK_MAX; this.blinkT = 0; this.sup = 0.3; this.novaT = 0; this.castDmg = 0; this.glide = false;
     this.rig = buildWaifu({ model: style.model, look: style.look, warlock: this.cls === 'warlock', team, hair: style.hair, eye: style.eye, helmet: helmet ?? (isPlayer ? match.cfg.helmet === true : false), haloColor: isPlayer ? match.cfg.haloColor : undefined, skin: isPlayer ? match.cfg.skinTint : null });
     this.rig.root.visible = false;
@@ -77,7 +77,7 @@ export class Actor {
     const wl = this.cls === 'warlock';
     this.gren = wl ? { frag: 0, plasma: 0 } : { frag: 2, plasma: 2 }; this.gtype = 'frag';
     this.blinkCh = BLINK_MAX; this.blinkT = 0; this.novaT = 0; this.castDmg = 0; this.glide = false; if (wl) this.sup = Math.min(this.sup, 0.35);
-    this.dashCh = DASH_MAX; this.dashT = 0; this.dashing = 0; this.lockT = 0; this.lockAbs = 0; this.aaCd = 0; this.fuel = JET_FUEL; this.jumpsLeft = 1; this.jetting = false;
+    this.dashCh = DASH_MAX; this.dashT = 0; this.dashing = 0; this.lockT = 0; this.lockAbs = 0; this.aaCd = 0; this.fuel = JET_FUEL; this.jumpsLeft = 1; this.jetting = false; this.mantle = null;
     if (this.fac === 'spartan') this.gren = { frag: 3, plasma: 2 };
     this.resetTimers(); this.spawnProt = 2.2; this.dmgBy.clear(); this.poison = null;
     this.spawnSeq++; this.netT = null; this.carry = null; this.pf = null;
@@ -181,7 +181,9 @@ export class Actor {
       // destiny double jump: a second lift in the air with a burst ring
       this.jumpsLeft--; this.vy = JUMP * 0.98; this.glide = false; m.fx.burst(this.x, this.y + 0.1, this.z, [0.6, 0.85, 1], 14, 3.5); m.sfx('blink', this, 0.45); if (this.isPlayer) Sound.play('jump', { vol: 0.5 });
     }
+    if (this.mantle) { this.mantleStep(dt); this.lastMoveSpeed = 0; return; }
     this.physics(dt, wx, wz, false);
+    if (!frozen && !this.grounded && c.jump && this.novaT <= 0 && this.lockT <= 0 && (c.mx || c.mz)) this.tryMantle();
     this.separate();
     // embedded in geometry (knockback, spawn overlap, edge cases): pop out to the nearest walkable spot
     if (W.blocked(this.x, this.z, this.y, RAD * 0.55, this.h)) {
@@ -229,6 +231,34 @@ export class Actor {
     m.sfx('blink', this, 0.9);
     m.bus.emit('blink', this);
     return true;
+  }
+
+  // ---- ledge mantle: hold jump toward any platform edge inside arm's reach and haul up onto it ----------
+  tryMantle() {
+    const c = this.cmd, l = Math.hypot(c.mx, c.mz); if (l < 0.2) return;
+    const dx = c.mx / l, dz = c.mz / l, px = this.x + dx * (RAD + 0.18), pz = this.z + dz * (RAD + 0.18);
+    // scan the wall in front from chest height up for its top edge (solid -> empty)
+    let top = null;
+    if (!W.pointSolid(px, this.y + 0.55, pz)) return;
+    for (let yy = this.y + 0.6; yy <= this.y + 2.35; yy += 0.05) if (!W.pointSolid(px, yy, pz)) { top = yy; break; }
+    if (top === null) return;
+    // find where to stand: a little way in from the edge, with floor at the ledge height and room above
+    for (const dd of [0.72, 0.95, 1.25]) {
+      const ex = this.x + dx * dd, ez = this.z + dz * dd, g = W.groundAt(ex, ez, top + 0.12);
+      if (!Number.isFinite(g) || Math.abs(g - top) > 0.16 || g - this.y < 0.4) continue;
+      if (W.blocked(ex, ez, g, RAD, this.h) || W.ceilingBetween(ex, ez, g, g + this.h) < Infinity) continue;
+      this.mantle = { t: 0, T: 0.3 + 0.05 * (g - this.y), sx: this.x, sy: this.y, sz: this.z, ex, ey: g, ez, dx, dz };
+      this.vx = this.vz = this.vy = 0; this.glide = false; this.zoomLevel = 0;
+      this.m.sfx('land', this, 0.35);
+      return;
+    }
+  }
+  mantleStep(dt) {
+    const M = this.mantle; M.t += dt; const k = Math.min(1, M.t / M.T);
+    const yk = 1 - Math.pow(1 - Math.min(1, k * 1.5), 3), hk = Math.pow(Math.max(0, (k - 0.3) / 0.7), 2) * (3 - 2 * Math.max(0, (k - 0.3) / 0.7));
+    this.x = M.sx + (M.ex - M.sx) * hk; this.z = M.sz + (M.ez - M.sz) * hk; this.y = M.sy + (M.ey - M.sy) * yk;
+    this.grounded = false; this.vx = this.vz = this.vy = 0;
+    if (k >= 1) { this.x = M.ex; this.z = M.ez; this.y = M.ey; this.grounded = true; this.vx = M.dx * 2.2; this.vz = M.dz * 2.2; this.mantle = null; this.m.sfx('step', this, 0.5); }
   }
 
   // ---- spartan kit (Reach): power dash on the blink key, one armor ability on the nova key -------------
@@ -648,7 +678,7 @@ export class Match {
     if (v === 'snipers') return [slot('sniper')];
     if (v === 'swords') return [slot('sword'), slot('magnum')];
     if (v === 'iconic') { const ex = EXOTICS.filter((x) => x !== 'gjallarhorn'), a1 = ex[(Math.random() * ex.length) | 0], a2 = ex.filter((x) => x !== a1)[(Math.random() * (ex.length - 1)) | 0]; return [slot(a1), slot(a2)]; }
-    if (v === 'fiesta') { const ids = ['br', 'magnum', 'smg', 'shotgun', 'sniper', 'rocket', 'carbine', 'plasmarifle', 'needler', 'sword', 'hammer', ...EXOTICS]; return [slot(ids[(Math.random() * ids.length) | 0])]; }
+    if (v === 'fiesta') { const ids = ['br', 'magnum', 'smg', 'r99', 'shotgun', 'sniper', 'rocket', 'carbine', 'plasmarifle', 'needler', 'sword', 'hammer', ...EXOTICS]; return [slot(ids[(Math.random() * ids.length) | 0])]; }
     if (a && a.cls === 'warlock') return [slot('br'), slot('magnum')];
     return [slot('br')];
   }
@@ -662,6 +692,7 @@ export class Match {
 
   // ---- pickups --------------------------------------------------------------
   addPickup(p) {
+    if (p.id === 'smg' && !p.dropped && Math.random() < 0.5) p = { ...p, id: 'r99' };   // the R-99 shares the SMG slot on half the racks
     if (p.id === 'exotic') { p = { ...p, id: EXOTICS[(Math.random() * EXOTICS.length) | 0], rot: true }; }
     const isPower = POWER.has(p.id);
     const g = new THREE.Group();

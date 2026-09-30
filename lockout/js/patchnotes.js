@@ -1,6 +1,19 @@
 // Patch notes: the single source. `node tools/gen-notes.mjs` writes docs/PATCH_NOTES.md from this list; the in-game Patch Notes screen reads it directly.
 // Newest first. Section kinds: NEW, CHANGED, FIXED, KNOWN.
 export const PATCHES = [
+  { v: '0.15', date: '2026-09-30', name: 'Any Platform', blurb: 'Climb anything, characters stay visible, three new Legend weapons.', sections: [
+    ['NEW', [
+      'LEDGE MANTLE: jump toward any platform edge and hold jump to haul yourself up. Crates, rocks, pylons, pillars and rails up to about 3 metres are now reachable on every map. Checked by an automated climb test over all five maps.',
+      'G7 SCOUT (semi-auto marksman rifle, kills restore shield), VOLT (energy SMG, kills restore shield) and R-99 (rapid-fire SMG, replaces half of the SMG racks). G7 and Volt roll as Legend pickups.',
+    ]],
+    ['FIXED', [
+      'Characters going invisible after a killcam or top-kill replay: the replay hid every live rig and never gave them back.',
+      'Camera snapping on step-ups: the eye now eases over stair and crate steps.',
+    ]],
+    ['KNOWN', [
+      'Bots do not mantle yet. G7 and Volt grips are approximate. Wraith, the CAR skins and the Heirloom are still out.',
+    ]],
+  ] },
   { v: '0.14', date: '2026-09-30', name: 'Rigged', blurb: 'First authored, animated operators, and a full controls suite.', sections: [
     ['NEW', [
       'LOBA and REVENANT: authored characters with real skeletons and real animation clips (idle, walk, jog, sprint, crouch, jump, aim, shoot, reload, death). Legs follow locomotion while the arms hold the aim pose. Both are in the roster and in the bot pool.',

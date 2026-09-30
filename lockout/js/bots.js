@@ -3,7 +3,7 @@ import * as W from './world.js';
 import { WEAPONS } from './weapons.js';
 import { clamp, rand, chance, angDiff, forward, pick } from './util.js';
 
-const RANGE = { hawkmoon: 95, lastword: 44, felwinter: 16, gjallarhorn: 52, thorn: 90, ace: 95, izanagi: 130, chaperone: 40, vex: 60, outbreak: 85, br: 85, magnum: 55, smg: 34, shotgun: 12, sniper: 120, rocket: 50, sword: 3, hammer: 3.2, carbine: 90, plasmarifle: 38, needler: 42 };
+const RANGE = { g7scout: 110, r99: 34, volt: 38, hawkmoon: 95, lastword: 44, felwinter: 16, gjallarhorn: 52, thorn: 90, ace: 95, izanagi: 130, chaperone: 40, vex: 60, outbreak: 85, br: 85, magnum: 55, smg: 34, shotgun: 12, sniper: 120, rocket: 50, sword: 3, hammer: 3.2, carbine: 90, plasmarifle: 38, needler: 42 };
 
 export class Brain {
   constructor(actor, match, diff) { this.a = actor; this.m = match; this.d = diff; this.reset(); }

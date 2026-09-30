@@ -108,7 +108,7 @@ addEventListener('resize', resize);
 let hub = null, missionActive = null;
 let state = 'splash', world = null, fx = null, viewmodel = null, hud = null, match = null, showcase = null;
 let trauma = 0, camKick = 0, fovCur = 62, menuT = 0, last = performance.now(), padCrouch = false, padSprint = false, fpsAcc = 0, fpsN = 0, showFps = Q.has('fps'), muted = false;
-let camRoll = 0, replay = null, kcAt = -1, topDone = false, rpUI = null, hitstop = 0, showWeapon = null, mstats = null, lastDevice = 'kbm', endShown = false, quick = Q.has('quick'), fast = Q.has('fast') || Q.has('quick'), netAcc = 0, netEdges = 0;
+let camEyeY = 0, camRoll = 0, replay = null, kcAt = -1, topDone = false, rpUI = null, hitstop = 0, showWeapon = null, mstats = null, lastDevice = 'kbm', endShown = false, quick = Q.has('quick'), fast = Q.has('fast') || Q.has('quick'), netAcc = 0, netEdges = 0;
 const shakeN = { t: 0 };
 window.__game = { Comms, showBindings: () => showBindings(() => showTitle()), get post() { return post; }, get hub() { return hub; }, ensureMap: (id) => ensureMap(id), World, get world() { return world; }, render: () => render(false), Net, hostLobby: () => hostLobby(), joinLobby: (c) => joinLobby(c), startOnlineHost: () => startOnlineHost(), renderer, get fx() { return fx; }, get match() { return match; }, get state() { return state; }, get scene() { return scene; }, get camera() { return camera; }, start: () => startMatch(), Input, THREE };
 
@@ -898,7 +898,8 @@ function updateCamera(dt) {
   fovCur = damp(fovCur, tf, 16, dt);
   if (Math.abs(camera.fov - fovCur) > 0.01) { camera.fov = fovCur; camera.updateProjectionMatrix(); }
   if (p.alive && !m.thirdPerson) {
-    camera.position.set(p.x, p.eye, p.z);
+    camEyeY = (!p.grounded || Math.abs(p.eye - camEyeY) > 1.2 || m.state === 'countdown') ? p.eye : damp(camEyeY, p.eye, 24, dt);   // soften step-ups and stair snaps
+    camera.position.set(p.x, camEyeY, p.z);
     camera.rotation.set(p.pitch + camKick + sy, p.yaw + sx, sr + camRoll);
   } else if (p.alive) {
     const f = forward(p.yaw, p.pitch, { x: 0, y: 0, z: 0 });
@@ -945,7 +946,11 @@ function rpShow(kind, clip) {
     <div class="rp-skip">${glyph('confirm')}<span>SKIP</span></div><i class="rp-rec"></i>`;
   document.body.classList.add('is-replay');
 }
-function rpHide() { document.body.classList.remove('is-replay'); if (rpUI) rpUI.className = 'rp'; }
+function rpHide() {
+  document.body.classList.remove('is-replay'); if (rpUI) rpUI.className = 'rp';
+  // the replay hides every live rig; put the living ones back (their own update only sets visibility on spawn)
+  if (match) for (const a of match.actors) a.rig.root.visible = a.alive ? (!a.isPlayer || match.thirdPerson) : a.deadT < 6;
+}
 function startReplay(clip, kind, done) {
   if (!replay || !clip) return false;
   try { replay.start(clip, kind, () => { rpHide(); if (done) done(); }); } catch (e) { replay.stop(); return false; }

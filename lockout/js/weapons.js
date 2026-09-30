@@ -22,6 +22,9 @@ export const WEAPONS = {
   izanagi: { name: "Izanagi's Burden", short: "IZANAGI'S BURDEN", mag: 1, reserve: 14, reload: 0.95, cycle: 0.5, burst: 1, gap: 0, dmg: 105, head: 2.4, spread: 0.0004, spreadHip: 0.025, range: 240, zoom: [3.5], scope: 'sniper', kick: 0.045, snd: 'sniper', tracer: 0xfff2c0, ret: 'dot', slot: 0, power: 5, exotic: true, killReload: true, perk: ['HONED EDGE', 'One shot in the chamber. A kill reloads the blade instantly.'] },
   chaperone: { name: 'Chaperone', short: 'CHAPERONE', mag: 4, reserve: 20, reload: 2.1, cycle: 0.85, burst: 1, gap: 0, dmg: 92, head: 1.35, spread: 0.003, spreadHip: 0.02, range: 48, falloff: [14, 34], zoom: [1.6], kick: 0.05, snd: 'shotgun', tracer: 0xffd9a0, ret: 'dot', slot: 0, power: 4, exotic: true, perk: ['SLUG ROUNDS', 'A single massive slug. Aim it like a rifle: it drops anything inside its range.'] },
   vex: { name: 'Vex Mythoclast', short: 'VEX MYTHOCLAST', mag: 30, reserve: 120, reload: 2.0, cycle: 0.09, burst: 1, gap: 0, auto: true, dmg: 10.5, head: 1.7, spread: 0.014, spreadHip: 0.02, range: 70, zoom: [1.5], kick: 0.006, snd: 'lw', tracer: 0xbfe8ff, ret: 'ring', slot: 0, power: 5, exotic: true, killShield: 60, perk: ['TIMELESS ADAPTIVE', 'Each kill snaps a chunk of shield back into place.'] },
+  g7scout: { name: 'G7 Scout', short: 'G7 SCOUT', mag: 10, reserve: 50, reload: 1.9, cycle: 0.2, burst: 1, gap: 0, dmg: 25, head: 2.05, spread: 0.0016, range: 155, zoom: [2.4], kick: 0.02, snd: 'magnum', tracer: 0xc8ff9a, ret: 'dot', slot: 0, power: 3, exotic: true, killShield: 30, perk: ['PRECISION FRAME', 'Semi-auto rifle with rifle reach. Every kill restores a chunk of shield.'] },
+  r99: { name: 'R-99 SMG', short: 'R-99', mag: 24, reserve: 168, reload: 1.55, cycle: 0.054, burst: 1, gap: 0, auto: true, dmg: 6.2, head: 1.5, spread: 0.019, spreadHip: 0.03, range: 52, falloff: [18, 44], zoom: [1.5], kick: 0.005, snd: 'smg', tracer: 0xffc88a, ret: 'ring', slot: 0, power: 1 },
+  volt: { name: 'Volt SMG', short: 'VOLT', mag: 26, reserve: 130, reload: 1.45, cycle: 0.078, burst: 1, gap: 0, auto: true, dmg: 7.4, head: 1.45, spread: 0.016, range: 58, zoom: [1.4], kick: 0.004, snd: 'plasmar', tracer: 0xd08cff, ret: 'ring', slot: 0, power: 1, exotic: true, killShield: 18, perk: ['ENERGISED', 'Charged rounds. Each kill snaps some shield back.'] },
   outbreak: { name: 'Outbreak Perfected', short: 'OUTBREAK', mag: 36, reserve: 144, reload: 2.0, cycle: 0.42, burst: 3, gap: 0.05, dmg: 8.6, head: 1.6, spread: 0.005, range: 95, zoom: [1.7], kick: 0.008, snd: 'br', tracer: 0xff4a3a, ret: 'dot', slot: 0, power: 5, exotic: true, poison: 2.6, perk: ['NANITE CULTURE', 'Hits seed nanites in the target. They poison, stack and block shield recharge.'] },
   hammer: { name: 'Gravity Hammer', short: 'GRAVITY HAMMER', mag: 100, reserve: 0, reload: 0, cycle: 1.1, burst: 1, gap: 0, dmg: 999, range: 3.0, lungeRange: 0, knock: 16, melee: true, kick: 0, snd: 'swing', ret: 'none', slot: 0, power: 3 },
   sword: { name: 'Energy Sword', short: 'ENERGY SWORD', mag: 100, reserve: 0, reload: 0, cycle: 0.6, burst: 1, gap: 0, dmg: 150, range: 2.6, lungeRange: 7.5, melee: true, kick: 0, snd: 'swing', ret: 'none', slot: 0, power: 3 },
@@ -30,11 +33,14 @@ export const WEAPONS = {
 for (const [k, v] of Object.entries(WEAPONS)) v.id = k;
 
 // Silhouette icons (24-unit grid, single stroke) for HUD + pickups
-export const EXOTICS = ['hawkmoon', 'lastword', 'felwinter', 'gjallarhorn', 'thorn', 'ace', 'izanagi', 'chaperone', 'vex', 'outbreak'];
+export const EXOTICS = ['hawkmoon', 'lastword', 'felwinter', 'gjallarhorn', 'thorn', 'ace', 'izanagi', 'chaperone', 'vex', 'outbreak', 'g7scout', 'volt'];
 export const ICONS = {
   ace: 'M2 11h13l2 1h5v3h-5l-1 1h-3l-1 4H8l1-4-2-1H2z M9 8h5 M12 5l2 2-2 2-2-2z',
   izanagi: 'M1 12h6l2-2h8l1 2h5 M1 12l3-2v4z M9 12v5 M14 12v4',
   chaperone: 'M1 12h17l2-2h3v3h-3l-2 1H8l-2 3H4l1-3H1z',
+  g7scout: 'M1 12h15l2-2h5 M1 12l3-2v4z M8 12v3h3v-3 M13 10v-3h4',
+  r99: 'M3 11h14l3 1h2v3h-4l-1 3h-3l1-3h-6l-2 3H4l1-4z M11 8h5',
+  volt: 'M2 11h13l2-1h5v4h-5l-1 4h-3l1-4H8l-2 3H4l1-3z M14 6l-2 3h3l-2 3',
   vex: 'M2 12h6l2-3h8l1 2h3v3h-6l-1 3h-3l1-3H2z M12 6v3',
   outbreak: 'M2 12h5l2-3h7l2 2h4v3h-6l-1 4H9l1-4H2z M13 7l2-2 2 2',
   hawkmoon: 'M2 11h13l2 1h5v3h-5l-1 1h-3l-1 4H8l1-4-2-1H2z M9 8h5',
@@ -215,7 +221,22 @@ function normalizeProp(scene, o) {
   return toonify(out, { width: 0.002, glow: o.glow ?? 0.4, saturate: o.sat, soft: true });
 }
 
+// rigged weapon files: freeze the bind pose into plain meshes (outlines, boxes and instancing all need real vertex positions)
+function bakeSkinned(scene) {
+  scene.updateMatrixWorld(true);
+  const list = []; scene.traverse((m) => { if (m.isSkinnedMesh) list.push(m); });
+  for (const m of list) {
+    m.skeleton.update();
+    const g = m.geometry.clone(), P = m.geometry.attributes.position, out = new Float32Array(P.count * 3), v = new THREE.Vector3();
+    for (let i = 0; i < P.count; i++) { m.getVertexPosition(i, v); out[i * 3] = v.x; out[i * 3 + 1] = v.y; out[i * 3 + 2] = v.z; }
+    g.setAttribute('position', new THREE.BufferAttribute(out, 3)); g.deleteAttribute('skinIndex'); g.deleteAttribute('skinWeight'); g.computeVertexNormals(); g.computeBoundingBox(); g.computeBoundingSphere();
+    const s = new THREE.Mesh(g, m.material); s.name = m.name; s.position.copy(m.position); s.quaternion.copy(m.quaternion); s.scale.copy(m.scale);
+    if (m.parent) { m.parent.add(s); m.parent.remove(m); }
+  }
+}
+
 function normalizeModel(scene, id, o) {
+  bakeSkinned(scene);
   const len = o.length || DEFAULT_LEN[id] || 0.9;
   const inner = new THREE.Group(); inner.add(scene);
   if (o.rotY) inner.rotation.y = (o.rotY * Math.PI) / 180;

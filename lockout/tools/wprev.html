@@ -1,0 +1,20 @@
+<!doctype html><meta charset="utf-8"><title>weapon preview</title>
+<style>body{margin:0;background:#20242c}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"../vendor/three.module.js"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from '../vendor/jsm/loaders/GLTFLoader.js';
+const files = new URLSearchParams(location.search).get('f').split(',');
+const W = 420, H = 240, cv = document.createElement('canvas'); cv.width = W * files.length; cv.height = H; document.body.appendChild(cv);
+const r = new THREE.WebGLRenderer({ canvas: cv, antialias: true, preserveDrawingBuffer: true }); r.setScissorTest(true); r.setSize(W * files.length, H, false);
+const sc = new THREE.Scene(); sc.background = new THREE.Color(0x30343e); const dl = new THREE.DirectionalLight(0xffffff, 2); dl.position.set(3, 4, 5); sc.add(new THREE.HemisphereLight(0xffffff, 0x445566, 2.4), dl);
+const cam = new THREE.OrthographicCamera(-0.7, 0.7, 0.4, -0.4, 0.1, 50); cam.position.set(5, 0, 0); cam.lookAt(0, 0, 0);
+const L = new GLTFLoader();
+for (let i = 0; i < files.length; i++) {
+  const g = await L.loadAsync(files[i]); const root = new THREE.Group(); root.add(g.scene); sc.add(root);
+  const box = new THREE.Box3().setFromObject(root), c = box.getCenter(new THREE.Vector3()), s = box.getSize(new THREE.Vector3()); const k = 1 / Math.max(s.x, s.y, s.z); root.scale.setScalar(k); root.position.copy(c).multiplyScalar(-k);
+  const mk = new THREE.Mesh(new THREE.SphereGeometry(0.03), new THREE.MeshBasicMaterial({ color: 0xff3040 })); mk.position.set(0.2, 0, -0.5); sc.add(mk);   // marks the -Z (muzzle) end
+  r.setViewport(i * W, 0, W, H); r.setScissor(i * W, 0, W, H); r.render(sc, cam); sc.remove(root); sc.remove(mk);
+}
+window.__done = true;
+</script>

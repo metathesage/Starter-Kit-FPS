@@ -77,7 +77,9 @@ Core is solid; this pass makes it alive. Each brick ships alone.
 8. **Asset pipeline (free tools).** Pollinations for concept and texture images (works now, no key). Blender headless for kitbashing and armor. TRELLIS and Hunyuan3D HF Spaces for image-to-3D (anonymous ZeroGPU quota is spent for about 18 hours; a free HF token lifts it). Higgsfield `generate_3d` is connected but spends credits, so it stays opt-in.
 
 ### Now (next few sessions)
-- [ ] **Real rigged characters.** Replace load-time skinning with authored skeletons and clips (idle, run, sprint, strafe, jump, land, melee, hit, death, emotes). Options: Mixamo-style auto-rig on our meshes, Rigify in Blender, or a rigged pack. Retarget onto the game's rig and drop the hand-placed joint tables.
+- [~] **Real rigged characters.** Loba and Revenant ship with authored skeletons and real clips (`js/clipped.js`: lower and upper body clip sets, idle, walk, jog, sprint, crouch, jump, aim, shoot, reload, death). Still to do: Wraith (her skeleton units do not match her animation, needs a fix in Blender), strafe and backpedal clips, melee, hit reactions, emotes, weapon grip tuning, and moving Mualani, Kagome, Lucy and the angel onto the same pipeline (Mixamo auto-rig or Rigify).
+- [ ] **Rigged weapon animation.** The weapon files carry Idle, Fire, Reload and Inspect clips with Muzzle, Sight_ADS and Grip_Forehand nodes. Today they are frozen to their bind pose at load; play the clips in the viewmodel.
+- [ ] **Weapon skins from the extra files.** R-99 Avalanche and Cutting Edge, CAR variants (the feather mythic needs a scale fix), Heirloom Grand Slam.
 - [ ] **Armor kit.** Modular pieces (helm, pauldrons, chest, greaves, back piece) authored in Blender, attached to bones, with dye slots and rarity tiers. Ties into the Armory and drops.
 - [ ] **Match-loading reliability.** Loading diagnostics are in; add a boot self-test screen (`?diag`) that reports every asset, shader and audio failure.
 - [ ] **Weapon animation.** Author reload, draw and inspect clips for the hero weapons instead of procedural dips.
