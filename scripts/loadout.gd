@@ -40,7 +40,7 @@ func _ready() -> void:
 	col.add_theme_constant_override("separation", 20)
 	root.add_child(col)
 	col.add_child(_label("DEPLOYING TO  " + _map_name(), FONT_BODY, 22, Color(1, 1, 1, 0.55)))
-	col.add_child(_label("CHOOSE YOUR CLASS", FONT_DISPLAY, 64, Color.WHITE))
+	col.add_child(_label("CHOOSE YOUR CLASS", FONT_DISPLAY, 54, Color.WHITE))
 
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 28)
@@ -92,7 +92,7 @@ func _card(id: String) -> Button:
 	var accent: Color = h.accent
 	var b := Button.new()
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	b.custom_minimum_size = Vector2(500, 380)
+	b.custom_minimum_size = Vector2(500, 430)
 	b.focus_mode = Control.FOCUS_ALL
 	b.add_theme_stylebox_override("normal", _style(Color(1, 1, 1, 0.05), Color(1, 1, 1, 0.22), 1))
 	b.add_theme_stylebox_override("hover", _style(Color(1, 1, 1, 0.09), Color(1, 1, 1, 0.5), 1))
@@ -103,25 +103,74 @@ func _card(id: String) -> Button:
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.offset_left = 32
 	v.offset_top = 26
-	v.offset_right = -32
+	v.offset_right = -215
 	v.offset_bottom = -26
 	v.add_theme_constant_override("separation", 8)
 	b.add_child(v)
 	v.add_child(_label(h.role, FONT_BODY, 22, accent))
 	v.add_child(_label(h.name, FONT_DISPLAY, 54, Color.WHITE))
-	v.add_child(_label("HEALTH %d      SPEED %.1f      SPRINT %.1f" % [h.health, h.speed, h.sprint], FONT_BODY, 22, Color(1, 1, 1, 0.75)))
-	v.add_child(_label("PASSIVE  " + h.passive, FONT_BODY, 22, Color(1, 1, 1, 0.6)))
+	v.add_child(_label("HP %d   SPD %.1f   SPRINT %.1f" % [h.health, h.speed, h.sprint], FONT_BODY, 21, Color(1, 1, 1, 0.75)))
+	v.add_child(_label("PASSIVE  " + h.passive, FONT_BODY, 20, Color(1, 1, 1, 0.6)))
 	var sp := Control.new()
 	sp.custom_minimum_size = Vector2(0, 8)
 	sp.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(sp)
 	for k in ["a1", "a2"]:
 		var a: Dictionary = h[k]
-		var t := _label("%s  /  %.0fs\n%s" % [a.name, a.cd, a.desc], FONT_BODY, 22, Color.WHITE)
+		var t := _label("%s  /  %.0fs\n%s" % [a.name, a.cd, a.desc], FONT_BODY, 20, Color.WHITE)
 		t.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		v.add_child(t)
 	for c in v.get_children():
 		c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# animated rig preview on the right of the card
+	var model := HeroModel.new().setup(id)
+	var vpc := SubViewportContainer.new()
+	vpc.stretch = true
+	vpc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vpc.set_anchors_preset(Control.PRESET_RIGHT_WIDE)
+	vpc.offset_left = -225
+	vpc.offset_right = -4
+	vpc.offset_top = 8
+	vpc.offset_bottom = -8
+	b.add_child(vpc)
+	var vp := SubViewport.new()
+	vp.own_world_3d = true
+	vp.transparent_bg = true
+	vp.msaa_3d = Viewport.MSAA_4X
+	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	vpc.add_child(vp)
+	var cam := Camera3D.new()
+	cam.fov = 34
+	cam.position = Vector3(0, 1.05, 4.2)
+	vp.add_child(cam)
+	cam.look_at(Vector3(0, 0.98, 0))
+	var key := DirectionalLight3D.new()
+	key.rotation_degrees = Vector3(-35, 30, 0)
+	key.light_energy = 2.4
+	vp.add_child(key)
+	var rim := OmniLight3D.new()
+	rim.position = Vector3(-1.6, 1.8, -1.6)
+	rim.light_color = accent
+	rim.light_energy = 3.5
+	rim.omni_range = 8.0
+	vp.add_child(rim)
+	var env := Environment.new()
+	env.background_mode = Environment.BG_CLEAR_COLOR
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.ambient_light_color = Color(0.5, 0.55, 0.7)
+	env.ambient_light_energy = 1.1
+	var we := WorldEnvironment.new()
+	we.environment = env
+	vp.add_child(we)
+	var pivot := Node3D.new()
+	vp.add_child(pivot)
+	pivot.add_child(model)
+	pivot.rotation.y = 0.5 if id == "spartan" else -0.5
+	var spin := create_tween().set_loops()
+	spin.tween_property(pivot, "rotation:y", pivot.rotation.y + 0.55, 3.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	spin.tween_property(pivot, "rotation:y", pivot.rotation.y - 0.55, 3.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	b.focus_entered.connect(func(): model.focused = true)
+	b.focus_exited.connect(func(): model.focused = false)
 	b.pressed.connect(func():
 		Game.hero_id = id
 		get_tree().change_scene_to_file(Game.map_scene))

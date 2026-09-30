@@ -18,7 +18,7 @@ const HEROES := {
 		"health": 150, "speed": 4.4, "sprint": 5.8, "jump": 7.0, "slide_time": 0.7, "slide_boost": 1.15,
 		"passive": "Regenerates health after 4 seconds unhit.",
 		"a1": {"id": "aegis", "name": "AEGIS", "cd": 15.0, "desc": "6 second shield that soaks 120 damage."},
-		"a2": {"id": "slam", "name": "SEISMIC SLAM", "cd": 10.0, "desc": "Leap. Press again to dive. Shockwave destroys drones within 9 m."},
+		"a2": {"id": "slam", "name": "SEISMIC SLAM", "cd": 10.0, "desc": "Leap, press again to dive. Shockwave hits 9 m."},
 	},
 }
 

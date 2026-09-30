@@ -13,7 +13,9 @@ const MAPS := [
 		"blurb": "Two houses, one street, zero downtime."},
 	{"scene": "res://scenes/terminal.tscn", "name": "TERMINAL", "tag": "CONCOURSE  /  70 x 36", "accent": Color("ffd166"),
 		"blurb": "Mezzanine galleries over a carousel floor."},
-	{"scene": "res://scenes/rust.tscn", "name": "RUST", "tag": "OIL YARD  /  56 x 40", "accent": Color("e9812a"),
+	{"scene": "res://scenes/rust.tscn", "name": "RUST", "tag": "OIL RIG  /  56 x 55", "accent": Color("e9812a"),
+		"blurb": "The real plate: derricks, tanks, pipelines."},
+	{"scene": "res://scenes/oil_yard.tscn", "name": "OIL YARD", "tag": "HAND-BUILT  /  56 x 40", "accent": Color("b0572b"),
 		"blurb": "Sniper tower, containers, walkable huts."},
 	{"scene": "res://scenes/cinder.tscn", "name": "CINDER", "tag": "TWO SITES  /  80 x 40", "accent": Color("ff4655"),
 		"blurb": "Attack or defend A and B through three lanes."},
@@ -74,8 +76,13 @@ func _ready() -> void:
 	row.columns = 4
 	row.add_theme_constant_override("h_separation", 24)
 	row.add_theme_constant_override("v_separation", 24)
-	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	col.add_child(row)
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var scroll := ScrollContainer.new()
+	scroll.follow_focus = true
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.add_child(row)
+	col.add_child(scroll)
 
 	var buttons: Array[Button] = []
 	for i in MAPS.size():

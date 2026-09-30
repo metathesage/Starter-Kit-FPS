@@ -1,64 +1,68 @@
 extends LevelKit
-## RUST — oil yard. Central sniper tower on stilts, shipping containers, drum clusters,
-## two huts with walkable roofs. 56m x 40m, mirrored in X and Z.
+## RUST — the real layout. Loads the ripped GLB, scales it to 0.25, re-centres it on the floor,
+## re-skins it with a height-tinted shader and wraps it in invisible walls so nothing leaves the plate.
 
-const DIRT := Color("a07a52")
-const RUST := Color("b0572b")
-const RUST_D := Color("6f3a22")
-const TIN := Color("8a8f8c")
-const TIN_D := Color("5b605f")
-const ORANGE := Color("e9812a")
-const BLUE := Color("3d6f9e")
-const GLOW := Color("ffb347")
+const SRC := "res://models/maps/rust.glb"
+const UNIT := 0.25
+# GLB-space centre of the plate and top of its floor (units of the source model)
+const CENTER := Vector2(74.04, -113.09)
+const FLOOR_Y := 15.0
+
+const SKIN := """
+shader_type spatial;
+render_mode cull_disabled;
+varying vec3 wpos;
+varying vec3 wnrm;
+void vertex() { wpos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz; wnrm = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz); }
+void fragment() {
+	float up = smoothstep(0.55, 0.9, wnrm.y);
+	vec3 sand = vec3(0.58, 0.42, 0.27);
+	vec3 rust = vec3(0.42, 0.20, 0.10);
+	vec3 steel = vec3(0.34, 0.37, 0.38);
+	float h = clamp(wpos.y / 26.0, 0.0, 1.0);
+	vec3 side = mix(rust, steel, smoothstep(0.15, 0.7, h));
+	vec3 c = mix(side, sand, up);
+	float grid = step(0.94, fract(wpos.x * 0.5)) + step(0.94, fract(wpos.z * 0.5));
+	c *= 1.0 - 0.08 * clamp(grid, 0.0, 1.0) * up;
+	c *= 0.72 + 0.28 * smoothstep(0.0, 6.0, wpos.y + 1.0);
+	ALBEDO = c;
+	ROUGHNESS = 1.0;
+}
+"""
 
 
 func _init() -> void:
 	map_name = "RUST"
-	map_tag = "OIL YARD  /  56 x 40"
+	map_tag = "OIL RIG  /  56 x 55"
 	sky_top = Color("6f9fd0")
-	sky_horizon = Color("ffe1b0")
+	sky_horizon = Color("ffdcae")
 	ground_color = Color("6a5238")
 	sun_color = Color("ffe6bd")
-	sun_energy = 1.25
+	sun_energy = 0.75
 	sun_rotation = Vector3(-46, -40, 0)
-	ambient_energy = 1.4
+	ambient_energy = 0.9
+	fog_color = Color("e2b98a")
+	fog_density = 0.004
 
 
 func build() -> void:
-	arena_shell(28, 20, 10, DIRT, RUST_D)
-	# tower
-	box(Vector3(3, 0, 3), Vector3(1.2, 5.6, 1.2), TIN_D, true, true)
-	box(Vector3(-4.5, 5.6, -4.5), Vector3(9, 0.4, 9), TIN)
-	ramp(Vector3(-2, 0, 4.5), Vector3(4, 6, 12), 3, RUST, false, true)
-	barrier(Vector2(-4.35, -4.5), Vector2(-4.35, 4.5), 6, GLOW, 3.5)
-	barrier(Vector2(4.35, -4.5), Vector2(4.35, 4.5), 6, GLOW, 3.5)
-	barrier(Vector2(-4.5, 4.35), Vector2(-2, 4.35), 6, GLOW, 3.5, false, true)
-	barrier(Vector2(2, 4.35), Vector2(4.5, 4.35), 6, GLOW, 3.5, false, true)
-	# containers
-	box(Vector3(10, 0, 10), Vector3(8, 2.6, 2.6), BLUE, true, true)
-	box(Vector3(8, 0, 3), Vector3(2.6, 2.6, 7), RUST, true, true)
-	box(Vector3(-16, 0, -14), Vector3(10, 2.6, 2.6), ORANGE, false, false)
-	# huts (touch the outer wall, no pockets): front door + side windows
-	wall_z(-4, 4, 21, 0.4, 0, 3, TIN, [[-1.2, 1.2, 0, 2.5]], true)
-	wall_x(21, 28, 3.6, 0.4, 0, 3, TIN, [[23, 25, 1.0, 2.2]], true, true)
-	wall_z(-4, 4, 27.6, 0.4, 0, 3, TIN, [], true)
-	box(Vector3(21, 3, -4), Vector3(7, 0.3, 8), TIN_D, true)
-	ramp(Vector3(22, 0, 4), Vector3(4, 3.3, 7), 3, RUST_D, true, true)
-	barrier(Vector2(21.15, -4), Vector2(21.15, 4), 3.3, GLOW, 3.5, true)
-	barrier(Vector2(21, 3.85), Vector2(22, 3.85), 3.3, GLOW, 3.5, true, true)
-	barrier(Vector2(26, 3.85), Vector2(27.8, 3.85), 3.3, GLOW, 3.5, true, true)
-	# drums + pipe
-	for d in [Vector2(12, -6), Vector2(13.3, -6.4), Vector2(12.6, -7.3)]:
-		prism(d, 0, 1.0, 0.45, 8, ORANGE, 0, true)
-	box(Vector3(-12, 0, -18), Vector3(24, 0.9, 0.6), RUST_D, false, true)
-	# spawns / enemies
-	spawn(Vector3(14, 0.05, 6), 90, true, true)
-	spawn(Vector3(24, 0.05, 14), 90, true, true)
-	for p in [Vector3(12, 3.5, 0), Vector3(-12, 3.5, 0), Vector3(0, 9, 0), Vector3(20, 4.5, 14), Vector3(-20, 4.5, -14), Vector3(0, 4, 14), Vector3(0, 4, -14)]:
+	var packed: PackedScene = load(SRC)
+	var root := packed.instantiate() as Node3D
+	root.name = "RustMesh"
+	add_child(root)
+	root.scale = Vector3.ONE * UNIT
+	root.position = Vector3(-CENTER.x * UNIT, -FLOOR_Y * UNIT, -CENTER.y * UNIT - 1.5)
+	var sh := Shader.new()
+	sh.code = SKIN
+	var mat := ShaderMaterial.new()
+	mat.shader = sh
+	for m in root.find_children("*", "MeshInstance3D", true, false):
+		var mi := m as MeshInstance3D
+		mi.material_override = mat
+		mi.create_trimesh_collision()
+	invisible_bounds(28.2, 27.7, 34.0)
+	# spawns: open, flat floor found by probing the mesh (near the source project's spawn spots)
+	for p in [Vector2(-9, -14.5), Vector2(15, 8.5), Vector2(-10, 10.5), Vector2(10, -12.5), Vector2(0, -20.5), Vector2(0, 15.5)]:
+		spawn(Vector3(p.x, 0.1, p.y), rad_to_deg(atan2(p.x, p.y)))
+	for p in [Vector3(-8, 4, 0), Vector3(8, 4, 0), Vector3(0, 6, 12), Vector3(0, 6, -12), Vector3(0, 12, 0)]:
 		enemy_spawns.append(p)
-	nav_paths = [
-		PackedVector3Array([Vector3(14, 0.05, 6), Vector3(14, 0, 0), Vector3(6, 0, 0), Vector3(6, 0, 14), Vector3(6, 0, 18.5), Vector3(0, 0, 18.5),
-			Vector3(0, 0, 17), Vector3(0, 3, 10), Vector3(0, 6, 4.8), Vector3(0, 6, 0), Vector3(0, 6, -4.8), Vector3(0, 3, -10), Vector3(0, 0, -17)]),
-		PackedVector3Array([Vector3(14, 0.05, 6), Vector3(18, 0, 0), Vector3(24, 0, 0), Vector3(26, 0, -2), Vector3(21.8, 0, 0), Vector3(18, 0, 0), Vector3(18, 0, 8),
-			Vector3(24, 0, 13), Vector3(24, 1.4, 8), Vector3(24, 3.3, 3)]),
-	]

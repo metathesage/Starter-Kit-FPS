@@ -32,7 +32,7 @@ func _phys(name: String) -> void: pass
 func _physics_process(_d: float) -> bool:
 	f += 1
 	p = a.player
-	for e in a.enemies.get_children(): e.get_node("Timer").stop()
+	for e in a.enemies.get_children(): e.get_node("Timer").stop()  # (enemy timer is already stopped; drones only fire via wind-up)
 	if f == 3:
 		p.position = Vector3(-9, 3.0, -3)   # plateau top is y 2.5 in the_pit; drop onto it
 		p.velocity = Vector3.ZERO

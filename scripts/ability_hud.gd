@@ -59,7 +59,9 @@ func _draw() -> void:
 			draw_arc(c, r + 6, 0, TAU, 64, accent, 3.0, true)
 		else:
 			draw_arc(c, r, 0, TAU, 64, accent, 3.0, true)
-		_icon(def.id, c, col)
+		var ic := Icons.tex(_icon_name(def.id), 96)
+		if ic:
+			draw_texture_rect(ic, Rect2(c - Vector2(24, 24), Vector2(48, 48)), false, col)
 		var key := _key_label(slot)
 		var kw := BODY.get_string_size(key, HORIZONTAL_ALIGNMENT_LEFT, -1, 22).x
 		draw_string(BODY, c + Vector2(-kw * 0.5, r + 26), key, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color(1, 1, 1, 0.75))
@@ -67,6 +69,14 @@ func _draw() -> void:
 			var txt := "%.0f" % ceilf(remaining)
 			var tw := FONT.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 30).x
 			draw_string(FONT, c + Vector2(-tw * 0.5, 10), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 30, Color.WHITE)
+	# weapon chip (left of the ability chips)
+	var wi: Texture2D = Icons.tex("rifle" if player.weapon_index == 1 else "pistol", 96)
+	if wi:
+		var wc := Vector2(sz.x * 0.5 - (r * 2 + 60), sz.y - 60 - r)
+		draw_texture_rect(wi, Rect2(wc - Vector2(28, 28), Vector2(56, 56)), false, Color(1, 1, 1, 0.85))
+		var wn := "REPEATER" if player.weapon_index == 1 else "BLASTER"
+		var ww := BODY.get_string_size(wn, HORIZONTAL_ALIGNMENT_LEFT, -1, 20).x
+		draw_string(BODY, wc + Vector2(-ww * 0.5, r + 26), wn, HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color(1, 1, 1, 0.7))
 	# class tag
 	var tag: String = "%s  /  %s" % [hero.name, hero.role]
 	draw_string(BODY, Vector2(48, sz.y - 96), tag, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color(accent.r, accent.g, accent.b, 0.9))
@@ -108,21 +118,12 @@ func _frame(sz: Vector2, col: Color, w: float) -> void:
 	draw_rect(Rect2(sz.x - w, 0, w, sz.y), col)
 
 
-func _icon(id: String, c: Vector2, col: Color) -> void:
-	var w := 3.0
+func _icon_name(id: String) -> String:
 	match id:
-		"thruster":  # three chevrons
-			for k in 3:
-				var x := c.x - 14 + k * 14
-				draw_polyline(PackedVector2Array([Vector2(x - 6, c.y - 12), Vector2(x + 6, c.y), Vector2(x - 6, c.y + 12)]), col, w, true)
-		"camo":  # eye
-			draw_arc(c + Vector2(0, 12), 22, deg_to_rad(215), deg_to_rad(325), 16, col, w, true)
-			draw_arc(c + Vector2(0, -12), 22, deg_to_rad(35), deg_to_rad(145), 16, col, w, true)
-			draw_circle(c, 6, col)
-		"aegis":  # shield
-			draw_polyline(PackedVector2Array([Vector2(c.x - 16, c.y - 16), Vector2(c.x + 16, c.y - 16), Vector2(c.x + 16, c.y + 2),
-				Vector2(c.x, c.y + 18), Vector2(c.x - 16, c.y + 2), Vector2(c.x - 16, c.y - 16)]), col, w, true)
-		"slam":  # down arrow + shock line
-			draw_line(c + Vector2(0, -16), c + Vector2(0, 8), col, w, true)
-			draw_polyline(PackedVector2Array([c + Vector2(-9, -1), c + Vector2(0, 9), c + Vector2(9, -1)]), col, w, true)
-			draw_line(c + Vector2(-18, 17), c + Vector2(18, 17), col, w, true)
+		"thruster":
+			return "bolt"
+		"camo":
+			return "eye"
+		"aegis":
+			return "shield"
+	return "chevrons"

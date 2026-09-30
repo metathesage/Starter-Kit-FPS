@@ -10,6 +10,7 @@ const MAPS := {
 	"the_pit": preload("res://maps/the_pit.gd"),
 	"terminal": preload("res://maps/terminal.gd"),
 	"rust": preload("res://maps/rust.gd"),
+	"oil_yard": preload("res://maps/oil_yard.gd"),
 	"cinder": preload("res://maps/cinder.gd"),
 	"triad": preload("res://maps/triad.gd"),
 }
@@ -81,6 +82,16 @@ func _apply_look() -> void:
 	env.ambient_light_color = map.sky_horizon.lerp(Color.WHITE, 0.4)
 	env.ambient_light_energy = map.ambient_energy * 0.45
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	env.fog_enabled = true
+	env.fog_light_color = map.fog_color if map.fog_color.a > 0.0 else map.sky_horizon.lerp(Color.WHITE, 0.25)
+	env.fog_density = map.fog_density
+	env.fog_sky_affect = 0.4
+	env.ssao_enabled = true
+	env.ssao_radius = 1.2
+	env.ssao_intensity = 1.6
+	env.adjustment_enabled = true
+	env.adjustment_saturation = 1.08
+	env.adjustment_contrast = 1.05
 	env.glow_enabled = true
 	env.glow_intensity = 0.6
 	env.glow_bloom = 0.05

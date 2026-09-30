@@ -17,6 +17,8 @@ var jump_release := false
 var failures := 0
 var frame := 0
 var fuzz_run := 0
+var spawn_i := 0
+var spawn_t := 0
 var fuzz_time := 0.0
 var fuzz_heading := 0.0
 var fuzz_anchor := Vector3.ZERO
@@ -65,8 +67,8 @@ func _physics_process(delta: float) -> bool:
 		player = arena.player
 		for e in arena.enemies.get_children():
 			e.queue_free()
-		print("hulls: ", map.get_node("Collision").get_child_count(), "  routes: ", map.nav_paths.size())
-		_start_route()
+		print("hulls: ", map.get_node("Collision").get_child_count(), "  routes: ", map.nav_paths.size(), "  spawns: ", map.spawns.size())
+		phase = "spawn"
 		return false
 	if frame < 4:
 		return false
@@ -75,9 +77,36 @@ func _physics_process(delta: float) -> bool:
 		Input.action_release("jump")
 		jump_release = false
 
+	if phase == "spawn":
+		return _spawn_step()
 	if phase == "route":
 		return _route_step(delta)
 	return _fuzz_step(delta)
+
+
+func _spawn_step() -> bool:
+	# every spawn must settle on solid floor, not inside geometry or in the air
+	if spawn_t == 0:
+		var sp: Dictionary = map.spawns[spawn_i]
+		player.position = sp.pos
+		player.velocity = Vector3.ZERO
+		player.gravity = 0.0
+	spawn_t += 1
+	if spawn_t > 40:
+		var ok: bool = player.is_on_floor() and player.position.y > -0.5 and player.position.y < 12.0
+		if not ok:
+			failures += 1
+			print("FAIL spawn %d at %s settled at %s floor=%s" % [spawn_i, map.spawns[spawn_i].pos, player.position, player.is_on_floor()])
+		spawn_t = 0
+		spawn_i += 1
+		if spawn_i >= map.spawns.size():
+			if map.nav_paths.is_empty():
+				phase = "fuzz"
+				_fuzz_begin()
+			else:
+				phase = "route"
+				_start_route()
+	return false
 
 
 func _route_step(delta: float) -> bool:

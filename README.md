@@ -74,3 +74,8 @@ Pick a class after choosing a map. **Spartan** (mobility): sprint, long slides, 
 Crouch: C / Ctrl / B. Sprint: Shift / L3. Slide: crouch while sprinting.
 
     godot --headless --fixed-fps 60 -s tools/ability_test.gd
+
+## Assets
+
+`models/maps/rust.glb` is the project's own Rust map mesh (from Drive). `maps/rust.gd` scales it by 0.25, re-skins it with a height-tinted shader and wraps it in invisible walls; spawns are probed onto open floor.
+Icons (`scripts/icons.gd`) use the project's ui-*/wp-* icon paths. Third-party or ripped meshes are for private prototyping; replace them before any public release.

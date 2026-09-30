@@ -4,11 +4,11 @@ extends LevelKit
 ## Ground ring, elevated central tower on pylons, two bridges to the base decks,
 ## ramps up to every deck, energy barriers on every elevated edge. No voids.
 
-const STONE := Color("59627a")
-const STONE_D := Color("4b546b")
-const STONE_L := Color("7b869f")
-const SAND := Color("b8a684")
-const SAND_D := Color("8a7b5f")
+const STONE := Color("5f6d89")
+const STONE_D := Color("3c4864")
+const STONE_L := Color("93a4c2")
+const SAND := Color("8d9ab3")
+const SAND_D := Color("6a7893")
 const CYAN := Color("39e3ff")
 const ORANGE := Color("ff8a2b")
 const TOWER_Y := 6.0
@@ -17,13 +17,16 @@ const TOWER_Y := 6.0
 func _init() -> void:
 	map_name = "LOCKOUT"
 	map_tag = "2 BASE  /  SYMMETRIC  /  100 x 60"
-	sky_top = Color("2d5b8f")
-	sky_horizon = Color("f0c28e")
-	ground_color = Color("6a5d48")
-	sun_color = Color("ffd9a8")
-	sun_energy = 1.05
+	sky_top = Color("46587c")
+	sky_horizon = Color("d5deec")
+	ground_color = Color("55627f")
+	sun_color = Color("e9f0ff")
+	sun_energy = 0.85
 	sun_rotation = Vector3(-38, 52, 0)
-	ambient_energy = 1.5
+	ambient_energy = 1.7
+	fog_color = Color("b9c7dc")
+	fog_density = 0.011
+	snow = true
 
 
 func build() -> void:
@@ -74,6 +77,14 @@ func build() -> void:
 			barrier(mid + d * 3.0, pb, 6, CYAN)
 		else:
 			barrier(pa, pb, 6, CYAN)
+
+	# ---------- cables (visual) + far spire ----------
+	for sx in [1.0, -1.0]:
+		for sz in [-6.0, 6.0]:
+			cable(Vector3(sx * 26.2, 7.2, sz), Vector3(sx * 12.5, 7.4, sz * 0.6), 2.2, Color("1c2233"))
+	cable(Vector3(-26.2, 7.4, 0), Vector3(26.2, 7.4, 0), 6.0, Color("1c2233"), 0.06, 16)
+	prism(Vector2(0, -42), 4, 30, 5.5, 12, STONE, 0, false, false, Kind.SOLID, false)
+	prism(Vector2(0, -42), 30, 34, 6.5, 12, STONE_L, 0, false, false, Kind.SOLID, false)
 
 	# ---------- ground cover ----------
 	box(Vector3(16, 0, 10), Vector3(4, 1.2, 4), SAND_D, true, true)

@@ -20,6 +20,9 @@ var sun_color := Color(1, 0.95, 0.85)
 var sun_energy := 1.2
 var sun_rotation := Vector3(-55, 35, 0)
 var ambient_energy := 0.9
+var fog_color := Color(0, 0, 0, 0)   # alpha 0 = derive from sky horizon
+var fog_density := 0.004
+var snow := false
 var map_name := "MAP"
 var map_tag := ""
 
@@ -35,6 +38,8 @@ func _ready() -> void:
 	add_child(_body)
 	build()
 	_commit()
+	if snow:
+		add_snow()
 
 
 func build() -> void:
@@ -187,7 +192,7 @@ func ramp(mn: Vector3, size: Vector3, dir: int, color: Color, mx := false, mz :=
 
 
 ## Box between two XZ points (any angle), y0..y1, given thickness.
-func seg(p0: Vector2, p1: Vector2, thick: float, y0: float, y1: float, color: Color, mx := false, mz := false, kind := Kind.SOLID) -> void:
+func seg(p0: Vector2, p1: Vector2, thick: float, y0: float, y1: float, color: Color, mx := false, mz := false, kind := Kind.SOLID, solid := true) -> void:
 	var d := (p1 - p0)
 	if d.length() < 0.01:
 		return
@@ -198,7 +203,7 @@ func seg(p0: Vector2, p1: Vector2, thick: float, y0: float, y1: float, color: Co
 		pts.append(Vector3(c[i].x, y0, c[i].y))
 	for i in 4:
 		pts.append(Vector3(c[i].x, y1, c[i].y))
-	_hex(pts, color, kind, mx, mz)
+	_hex(pts, color, kind, mx, mz, solid)
 
 
 ## Regular n-gon prism. `phase` in degrees rotates the vertices.
@@ -348,3 +353,76 @@ func wall_z(z0: float, z1: float, x0: float, t: float, y0: float, y1: float, col
 		cur = o[1]
 	if z1 > cur:
 		box(Vector3(x0, y0, cur), Vector3(t, y1 - y0, z1 - cur), color, mx, mz)
+
+
+## Collision-only box (invisible walls, roofs).
+func collide_box(mn: Vector3, size: Vector3) -> void:
+	var s := BoxShape3D.new()
+	s.size = size
+	var cs := CollisionShape3D.new()
+	cs.shape = s
+	cs.position = mn + size * 0.5
+	_body.add_child(cs)
+
+
+## Invisible perimeter + roof around a centred rectangle.
+func invisible_bounds(half_x: float, half_z: float, height: float, floor_y := 0.0) -> void:
+	bounds = AABB(Vector3(-half_x, floor_y, -half_z), Vector3(half_x * 2, height, half_z * 2))
+	var t := 2.0
+	collide_box(Vector3(-half_x - t, floor_y - 6, -half_z - t), Vector3(t, height + 30, half_z * 2 + t * 2))
+	collide_box(Vector3(half_x, floor_y - 6, -half_z - t), Vector3(t, height + 30, half_z * 2 + t * 2))
+	collide_box(Vector3(-half_x, floor_y - 6, -half_z - t), Vector3(half_x * 2, height + 30, t))
+	collide_box(Vector3(-half_x, floor_y - 6, half_z), Vector3(half_x * 2, height + 30, t))
+	collide_box(Vector3(-half_x, floor_y + height, -half_z), Vector3(half_x * 2, 2, half_z * 2))
+
+
+## Thin non-colliding cable between two 3D points, drooping by `sag` at the middle.
+func cable(a: Vector3, b: Vector3, sag: float, color: Color, thick := 0.08, segs := 10) -> void:
+	var prev := a
+	for i in range(1, segs + 1):
+		var t := float(i) / segs
+		var p := a.lerp(b, t)
+		p.y -= sag * 4.0 * t * (1.0 - t)
+		_thin_box(prev, p, thick, color)
+		prev = p
+
+
+func _thin_box(a: Vector3, b: Vector3, th: float, color: Color) -> void:
+	var d := b - a
+	if d.length() < 0.001:
+		return
+	var dn := d.normalized()
+	var u := dn.cross(Vector3.UP)
+	if u.length() < 0.01:
+		u = dn.cross(Vector3.RIGHT)
+	u = u.normalized() * th
+	var v := dn.cross(u).normalized() * th
+	var pts := PackedVector3Array([a - u - v, a + u - v, a + u + v, a - u + v, b - u - v, b + u - v, b + u + v, b - u + v])
+	_hex(pts, color, Kind.SOLID, false, false, false)
+
+
+## Falling snow over the whole arena.
+func add_snow() -> void:
+	var p := CPUParticles3D.new()
+	p.name = "Snow"
+	p.amount = 900
+	p.lifetime = 9.0
+	p.preprocess = 9.0
+	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
+	p.emission_box_extents = Vector3(bounds.size.x * 0.5, 0.5, bounds.size.z * 0.5)
+	p.position = Vector3(0, 22, 0)
+	p.direction = Vector3(0.15, -1, 0.05)
+	p.spread = 8.0
+	p.gravity = Vector3.ZERO
+	p.initial_velocity_min = 2.0
+	p.initial_velocity_max = 3.2
+	var m := QuadMesh.new()
+	m.size = Vector2(0.09, 0.09)
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	mat.albedo_color = Color(1, 1, 1, 0.85)
+	m.material = mat
+	p.mesh = m
+	p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(p)
