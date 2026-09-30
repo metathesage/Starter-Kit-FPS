@@ -65,6 +65,17 @@ A browser arena shooter with Halo's rules of engagement (shields, sandbox weapon
 ## Roadmap
 Status: `[x]` shipped, `[~]` partial, `[ ]` planned. Priority inside each band is top to bottom.
 
+### Depth Pass (brainstorm, ranked by impact per effort)
+Core is solid; this pass makes it alive. Each brick ships alone.
+1. **Killcam.** Ring buffer of every actor's position, aim and weapon for the last 4s. On death, replay the killer's POV at 0.5x with a slow-mo hit, ink-line letterbox, killer nameplate and weapon card, skippable with any button. Same buffer powers end-screen best-play replay.
+2. **Impact layer.** Decals (scorch, bullet, blood-free ink splats), shell casings with physics, dust on landing and slide, muzzle light pulses, tracer trails, hit-spark by material, screen-edge damage direction wedges.
+3. **Fidelity.** Baked lightmap-style AO per map, SSAO-lite, volumetric god rays through windows, reflection probes on glass and water, PBR trims and normal maps on weapons, film grain and chromatic edge, HDR skies from the Milky Way shader in every map.
+4. **Motion.** Weapon reload, draw and inspect clips; camera roll on strafe; landing dip; sprint FOV kick; ledge-grab and mantle; melee lunge with target snap; footstep IK on stairs and ramps.
+5. **Loading screens.** Operator turntable with rim light, map fly-through pulled from the map file, live progress ring, scrolling lore and tip ticker, radar sweep that resolves into the playable map, animated deco frame that opens on ready.
+6. **Interactivity.** Destructible props (crates, glass), doors and lifts, shootable sanctum targets, jump pads, gravity lifts, grenade cook-and-throw physics, environmental hazards, hub mini-games between matches.
+7. **Reactive world.** Announcer callouts tied to streaks, crowd of holographic spectators in the arena rim, map sky and fog shift with match time, weather variants.
+8. **Asset pipeline (free tools).** Pollinations for concept and texture images (works now, no key). Blender headless for kitbashing and armor. TRELLIS and Hunyuan3D HF Spaces for image-to-3D (anonymous ZeroGPU quota is spent for about 18 hours; a free HF token lifts it). Higgsfield `generate_3d` is connected but spends credits, so it stays opt-in.
+
 ### Now (next few sessions)
 - [ ] **Real rigged characters.** Replace load-time skinning with authored skeletons and clips (idle, run, sprint, strafe, jump, land, melee, hit, death, emotes). Options: Mixamo-style auto-rig on our meshes, Rigify in Blender, or a rigged pack. Retarget onto the game's rig and drop the hand-placed joint tables.
 - [ ] **Armor kit.** Modular pieces (helm, pauldrons, chest, greaves, back piece) authored in Blender, attached to bones, with dye slots and rarity tiers. Ties into the Armory and drops.
