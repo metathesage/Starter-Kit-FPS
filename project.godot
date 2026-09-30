@@ -16,7 +16,7 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 
 config/name="Starter Kit FPS"
 config/tags=PackedStringArray("starterkit")
-run/main_scene="res://scenes/main.tscn"
+run/main_scene="res://scenes/menu.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
 boot_splash/bg_color=Color(0.92549, 0.92549, 0.960784, 1)
 boot_splash/image="res://splash-screen.png"
@@ -115,3 +115,7 @@ weapon_toggle={
 [rendering]
 
 anti_aliasing/quality/screen_space_aa=1
+
+[physics]
+
+3d/physics_engine="Jolt Physics"

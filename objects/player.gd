@@ -32,6 +32,8 @@ var container_offset = Vector3(1.2, -1.1, -2.75)
 
 var tween: Tween
 
+var spawn_points: Array = []  # [{pos, yaw}] provided by the arena
+
 signal health_updated
 
 @onready var camera = $Head/Camera
@@ -46,12 +48,21 @@ signal health_updated
 # Functions
 
 func _ready():
+	_ready_physics()
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	
 	weapon = weapons[weapon_index] # Weapon must never be nil
 	initiate_change_weapon(weapon_index)
 
-func _process(delta):
+func _ready_physics() -> void:
+	floor_snap_length = 0.6
+	floor_max_angle = deg_to_rad(50.0)
+	floor_stop_on_slope = true
+	floor_constant_speed = true
+	floor_block_on_wall = true
+	max_slides = 6
+
+func _physics_process(delta):
 	# Handle functions
 	handle_controls(delta)
 	handle_gravity(delta)
@@ -91,8 +102,23 @@ func _process(delta):
 	
 	# Falling/respawning
 	
-	if position.y < -10:
-		get_tree().reload_current_scene()
+	if position.y < -12:
+		respawn()
+
+# Teleport to a spawn point (used on start and if the player ever leaves the map)
+
+func respawn():
+	if spawn_points.is_empty():
+		return
+	var sp: Dictionary = spawn_points.pick_random()
+	position = sp.pos
+	velocity = Vector3.ZERO
+	gravity = 0.0
+	movement_velocity = Vector3.ZERO
+	rotation_target = Vector3(0, sp.yaw, 0)
+	rotation.y = sp.yaw
+	camera.rotation.x = 0.0
+	reset_physics_interpolation()
 
 # Mouse movement
 
