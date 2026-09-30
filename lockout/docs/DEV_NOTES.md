@@ -92,3 +92,31 @@ The host rejects `.glb`, so every model ships as `.b64.txt` and the loaders retr
 
 ## Credits and licences
 See `audio/music/CREDITS.txt`. Drive-supplied models are the owner's files; keep their source and licence next to them before any public release.
+
+## COST WARNING: fix cache reads or move to a cheaper working system (ASAP)
+
+Measured from the build session log (2026-09-29 to 2026-09-30, see the build ledger artifact):
+
+| Measure | Value |
+|---|---|
+| Model steps | 1,437 |
+| Average context re-read per step | about 435K tokens (peak about 785K) |
+| List-price cost of the session | about $166 |
+| Share that is cache reads | about 75% ($124) |
+| Share that is new code and text (output) | about 13% ($21) |
+
+The bill is not the code being written. It is the whole project being re-read on every single step. Cost is roughly (number of steps) x (context size), so a big context times a long back-and-forth is what hurts. This is not sustainable for a long roadmap (12 planned items is roughly $30 to $100 each range at current habits).
+
+**Decision needed: either shrink the context per step, or change the working system. Do this before starting the next big roadmap item.**
+
+Things to try, cheapest first:
+1. **Short sessions, one topic each.** Start a fresh session per roadmap item. Use `HALO.md`, `docs/DEV_NOTES.md` and `docs/PATCH_NOTES.md` as the memory instead of a 400K-token history. Biggest single lever.
+2. **Batch asks.** One message with five related changes costs far less than five messages, because each step re-reads everything.
+3. **Stop giant reads.** `js/main.js`, `js/match.js`, `css/premium.css`, `js/world.js` are large. Read ranges, grep first, never dump whole files or screenshots into context. Keep test output short (tail it).
+4. **Split the big files** into modules (main.js into screens, input, net, replay glue; premium.css into per-screen files) so a change only pulls the part it touches.
+5. **Cheaper model for grunt work** (asset conversion scripts, docs, patch notes, mechanical edits) and keep the strongest model for design and hard bugs. Lower effort for routine edits.
+6. **Automate what never needs a model:** the scripted tests already in the scratchpad (raycast audit, climb audit, stress walk, screenshot rigs) should live in `tools/test/` and run from one command, so verification does not cost model steps.
+7. **Keep the prompt cache warm.** Do not reorder early context or restart mid-task; cache writes are paid again when the prefix changes.
+8. **If it still costs too much:** move heavy generation (assets, docs, repetitive refactors) to scripts or a smaller model, and use the big model only for review and design. Consider a hard per-item budget (for example 15 requests or $40) and stop at the limit.
+
+Track it: rerun the ledger after each roadmap item and compare cost per item against this baseline (typical request about $2.70, average about $4.40, roughly 17 active minutes each).

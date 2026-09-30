@@ -77,6 +77,7 @@ Core is solid; this pass makes it alive. Each brick ships alone.
 8. **Asset pipeline (free tools).** Pollinations for concept and texture images (works now, no key). Blender headless for kitbashing and armor. TRELLIS and Hunyuan3D HF Spaces for image-to-3D (anonymous ZeroGPU quota is spent for about 18 hours; a free HF token lifts it). Higgsfield `generate_3d` is connected but spends credits, so it stays opt-in.
 
 ### Now (next few sessions)
+- [ ] **Cost of building (urgent).** About 75% of spend is the model re-reading a huge context every step (average 435K tokens per step). Shrink it or change the workflow before the next big item. Plan and numbers in `docs/DEV_NOTES.md`, section COST WARNING.
 - [~] **Real rigged characters.** Loba and Revenant ship with authored skeletons and real clips (`js/clipped.js`: lower and upper body clip sets, idle, walk, jog, sprint, crouch, jump, aim, shoot, reload, death). Still to do: Wraith (her skeleton units do not match her animation, needs a fix in Blender), strafe and backpedal clips, melee, hit reactions, emotes, weapon grip tuning, and moving Mualani, Kagome, Lucy and the angel onto the same pipeline (Mixamo auto-rig or Rigify).
 - [ ] **Rigged weapon animation.** The weapon files carry Idle, Fire, Reload and Inspect clips with Muzzle, Sight_ADS and Grip_Forehand nodes. Today they are frozen to their bind pose at load; play the clips in the viewmodel.
 - [ ] **Weapon skins from the extra files.** R-99 Avalanche and Cutting Edge, CAR variants (the feather mythic needs a scale fix), Heirloom Grand Slam.
