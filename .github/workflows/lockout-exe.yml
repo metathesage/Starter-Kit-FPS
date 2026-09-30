@@ -4,6 +4,9 @@ name: LOCKOUT desktop exe
 # Run it from Actions > "LOCKOUT desktop exe" > Run workflow. Download the exe from the run's Artifacts.
 
 on:
+  push:
+    branches: [claude/cool-cerf-h4a27x, main]
+    paths: ['desktop/**', '.github/workflows/lockout-exe.yml']
   workflow_dispatch:
     inputs:
       game_ref:
@@ -22,7 +25,7 @@ jobs:
       - name: Game (web build source)
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.game_ref }}
+          ref: ${{ inputs.game_ref || 'claude/halo-2-lockout-clone-97czlr' }}
           path: game
 
       - uses: actions/setup-node@v4
