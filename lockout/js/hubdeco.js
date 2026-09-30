@@ -131,6 +131,31 @@ function guardian(M) {
   g.userData.kind = 'guardian'; g.scale.setScalar(0.88); return g;
 }
 
+// sculpted guardians (Blender, models/hub/*.glb): marble warlock-mages, materials swapped by name
+const GUARD_IDS = ['aurelia', 'seraph', 'vesta', 'tempest'];
+async function loadGuardians(M) {
+  const out = [];
+  try {
+    const { GLTFLoader } = await import('../vendor/jsm/loaders/GLTFLoader.js'); const loader = new GLTFLoader();
+    const stone2 = M.stone.clone(); stone2.color.set(0xe4dfd6);
+    const glow = new THREE.MeshStandardMaterial({ color: 0x9fe8ff, emissive: 0x9fe8ff, emissiveIntensity: 2.6, roughness: 0.3 });
+    const SW = { marble: M.stone, marble2: stone2, gold: M.gold, glow, dark: new THREE.MeshStandardMaterial({ color: 0x16171d, roughness: 0.5 }) };
+    for (const id of GUARD_IDS) {
+      const url = `models/hub/${id}.glb`; let gltf;
+      try { gltf = await loader.loadAsync(url); }
+      catch (e0) {
+        const r = await fetch(url.replace(/\.glb$/, '.b64.txt')); if (!r.ok) throw e0;
+        const bin = atob((await r.text()).trim()), buf = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+        gltf = await new Promise((res, rej) => loader.parse(buf.buffer, '', res, rej));
+      }
+      const g = gltf.scene;
+      g.traverse((o) => { if (o.isMesh) { o.material = SW[o.material.name] || M.stone; o.castShadow = true; } });
+      g.userData.kind = 'guardian'; out.push(g);
+    }
+  } catch (e) { console.warn('guardian models unavailable, using procedural', e); return []; }
+  return out;
+}
+
 // ------------------------------------------------------------ build
 export async function buildSanctumVisuals(A, scene, renderer, onProgress) {
   const { solids, prismGeo, boxGeo, haloTex, makeSnow } = A;
@@ -292,9 +317,10 @@ export async function buildSanctumVisuals(A, scene, renderer, onProgress) {
   // ---- statues on the pedestals
   const statues = new THREE.Group(); root.add(statues);
   const poses = ['raise', 'offer', 'reach', 'still'];
+  const GU = await loadGuardians(M); let gi = 0;
   POI.statues.forEach((q, i) => {
-    const top = q.y + q.top, f = q.k === 'goddess' ? goddess(M, poses[i % 4], 1.55 + (q.hw > 1.2 ? 0.25 : 0)) : guardian(M);
-    if (q.big) f.scale.multiplyScalar(q.big);
+    const top = q.y + q.top, f = q.k === 'goddess' ? goddess(M, poses[i % 4], 1.55 + (q.hw > 1.2 ? 0.25 : 0)) : GU.length ? (() => { const k = gi++, t = GU[(q.big ? k % 2 : k) % GU.length].clone(); t.scale.setScalar(1.75); if (k >= GU.length && !q.big) t.scale.x *= -1; return t; })() : guardian(M);
+    if (q.big) f.scale.multiplyScalar(q.big * (GU.length ? 0.8 : 1));
     f.position.set(q.x, top, q.z); f.rotation.y = q.yaw; statues.add(f);
     // gold band + sunburst backdrop
     strip(gold, q.x, top - 0.09, q.z, q.hw * 2 + 0.06, 0.06, q.hw * 2 + 0.06);
