@@ -74,6 +74,35 @@ function tone(o, { type = 'sine', f0 = 440, f1 = f0, dur = 0.2, gain = 0.3, at =
   os.start(t); os.stop(t + dur + 0.05);
 }
 
+// ---- futuristic UI palette: FM ticks, glass partials, air sweeps, sub thumps, all through a short bright reverb ----
+let verbIn = null;
+function verb() {
+  if (verbIn) return verbIn;
+  const conv = ctx.createConvolver(), len = Math.floor(ctx.sampleRate * 1.6), ir = ctx.createBuffer(2, len, ctx.sampleRate);
+  for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); let prev = 0; for (let i = 0; i < len; i++) { const n = Math.random() * 2 - 1; d[i] = (n - prev * 0.6) * Math.pow(1 - i / len, 2.8); prev = n; } }
+  conv.buffer = ir; const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 500; const wet = ctx.createGain(); wet.gain.value = 0.55;
+  verbIn = ctx.createGain(); verbIn.connect(hp); hp.connect(conv); conv.connect(wet); wet.connect(sfxBus);
+  return verbIn;
+}
+function wet(o, amt = 0.35) { const g = ctx.createGain(); g.connect(o); const s = ctx.createGain(); s.gain.value = amt; g.connect(s); s.connect(verb()); return g; }
+function fm(o, { f = 1200, ratio = 2, idx = 2, dur = 0.12, gain = 0.12, at = 0, atk = 0.002, f1 }) {
+  const t = ctx.currentTime + at, c = ctx.createOscillator(), m = ctx.createOscillator(), mg = ctx.createGain(), g = ctx.createGain();
+  c.frequency.setValueAtTime(f, t); if (f1) c.frequency.exponentialRampToValueAtTime(f1, t + dur); m.frequency.value = f * ratio;
+  mg.gain.setValueAtTime(f * idx, t); mg.gain.exponentialRampToValueAtTime(Math.max(1, f * 0.05), t + dur); m.connect(mg); mg.connect(c.frequency);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain, t + atk); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  c.connect(g); g.connect(o); c.start(t); m.start(t); c.stop(t + dur + 0.05); m.stop(t + dur + 0.05);
+}
+function bell(o, { f = 880, dur = 0.7, gain = 0.1, at = 0, parts = [1, 2.76, 5.4], atk = 0.003 }) {
+  parts.forEach((r, i) => tone(o, { type: 'sine', f0: f * r, f1: f * r * 0.999, dur: dur / (1 + i * 0.7), gain: gain / (1 + i * 1.3), at, atk }));
+}
+function air(o, { dur = 0.3, f0 = 2000, f1 = 9000, gain = 0.1, at = 0, type = 'highpass', q = 0.8, atk = 0.02 }) { noise(o, { dur, f0, f1, gain, at, type, q, atk }); }
+function sub(o, { f0 = 90, f1 = 42, dur = 0.2, gain = 0.2, at = 0 }) { tone(o, { type: 'sine', f0, f1, dur, gain, at, atk: 0.004 }); }
+function pad(o, { notes = [220], dur = 1.4, gain = 0.05, at = 0, f0 = 300, f1 = 2400 }) {
+  const t = ctx.currentTime + at, lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 2; lp.frequency.setValueAtTime(f0, t); lp.frequency.exponentialRampToValueAtTime(f1, t + dur * 0.6); lp.frequency.exponentialRampToValueAtTime(f0, t + dur);
+  const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain, t + dur * 0.4); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); lp.connect(g); g.connect(o);
+  for (const n of notes) for (const d of [-7, 7]) { const os = ctx.createOscillator(); os.type = 'sawtooth'; os.frequency.value = n; os.detune.value = d; os.connect(lp); os.start(t); os.stop(t + dur + 0.05); }
+}
+
 const S = {
   br(o) { noise(o, { dur: 0.16, f0: 5200, f1: 500, gain: 0.7, q: 0.8 }); tone(o, { type: 'square', f0: 260, f1: 60, dur: 0.1, gain: 0.25 }); },
   smg(o) { noise(o, { dur: 0.09, f0: 6000, f1: 900, gain: 0.5 }); tone(o, { type: 'square', f0: 300, f1: 90, dur: 0.05, gain: 0.15 }); },
@@ -116,26 +145,27 @@ const S = {
   headshot(o) { tone(o, { type: 'square', f0: 2600, f1: 1800, dur: 0.07, gain: 0.16 }); tone(o, { type: 'sine', f0: 3400, f1: 2400, dur: 0.12, gain: 0.12, at: 0.03 }); },
   shieldHit(o) { noise(o, { dur: 0.12, f0: 3000, f1: 600, gain: 0.35, type: 'bandpass', q: 4 }); tone(o, { type: 'sine', f0: 900, f1: 500, dur: 0.1, gain: 0.15 }); },
   shieldBreak(o) { noise(o, { dur: 0.6, f0: 6000, f1: 300, gain: 0.7, type: 'bandpass', q: 1 }); tone(o, { type: 'sawtooth', f0: 900, f1: 90, dur: 0.5, gain: 0.35 }); },
-  charge(o) { tone(o, { type: 'sine', f0: 300, f1: 900, dur: 1.4, gain: 0.12, atk: 0.5 }); tone(o, { type: 'triangle', f0: 600, f1: 1800, dur: 1.4, gain: 0.05, atk: 0.5 }); },
+  charge(o) { const w = wet(o, 0.5); air(w, { dur: 1.4, f0: 400, f1: 9000, gain: 0.08, atk: 0.9, type: 'bandpass', q: 1.5 }); fm(w, { f: 300, f1: 900, ratio: 1.5, idx: 1, dur: 1.4, gain: 0.05, atk: 0.6 }); },
   alarm(o) { tone(o, { type: 'square', f0: 880, dur: 0.09, gain: 0.13 }); tone(o, { type: 'square', f0: 880, dur: 0.09, gain: 0.13, at: 0.16 }); },
   pickup(o) { tone(o, { type: 'sine', f0: 500, f1: 1000, dur: 0.18, gain: 0.2 }); tone(o, { type: 'sine', f0: 750, f1: 1500, dur: 0.22, gain: 0.15, at: 0.06 }); },
-  power(o) { [392, 523, 659, 784].forEach((f, i) => tone(o, { type: 'triangle', f0: f, dur: 0.5, gain: 0.2, at: i * 0.08 })); },
+  power(o) { const w = wet(o, 0.5); [392, 523, 659, 784].forEach((f, i) => bell(w, { f, dur: 0.8, gain: 0.08, at: i * 0.07, parts: [1, 2.01, 3.99] })); sub(w, { f0: 90, f1: 48, dur: 0.3, gain: 0.2 }); },
   reload(o) { noise(o, { dur: 0.06, f0: 2500, f1: 800, gain: 0.35, type: 'bandpass', q: 3 }); noise(o, { dur: 0.08, f0: 2000, f1: 600, gain: 0.4, type: 'bandpass', q: 3, at: 0.5 }); },
   swap(o) { noise(o, { dur: 0.1, f0: 2000, f1: 700, gain: 0.3, type: 'bandpass', q: 2 }); },
   jump(o) { noise(o, { dur: 0.1, f0: 800, f1: 300, gain: 0.15 }); },
   land(o) { noise(o, { dur: 0.14, f0: 500, f1: 90, gain: 0.35 }); },
   step(o) { noise(o, { dur: 0.05, f0: 900, f1: 250, gain: 0.1 }); },
-  empty(o) { tone(o, { type: 'square', f0: 220, dur: 0.04, gain: 0.1 }); },
-  menuMove(o) { tone(o, { type: 'sine', f0: 900, f1: 1100, dur: 0.06, gain: 0.12 }); },
-  menuOk(o) { tone(o, { type: 'triangle', f0: 600, f1: 1200, dur: 0.14, gain: 0.2 }); tone(o, { type: 'sine', f0: 1200, f1: 1800, dur: 0.2, gain: 0.1, at: 0.05 }); },
-  menuBack(o) { tone(o, { type: 'triangle', f0: 700, f1: 350, dur: 0.14, gain: 0.18 }); },
-  medal(o) { [659, 880, 1318].forEach((f, i) => tone(o, { type: 'triangle', f0: f, dur: 0.35, gain: 0.16, at: i * 0.07 })); },
-  count(o) { tone(o, { type: 'sine', f0: 660, dur: 0.25, gain: 0.25 }); },
-  go(o) { tone(o, { type: 'sine', f0: 990, dur: 0.6, gain: 0.3 }); tone(o, { type: 'triangle', f0: 495, dur: 0.6, gain: 0.2 }); },
+  empty(o) { air(o, { dur: 0.04, f0: 3000, f1: 1200, gain: 0.12, type: 'bandpass', q: 4 }); },
+  menuMove(o) { const w = wet(o, 0.22); fm(w, { f: 2600, ratio: 3.01, idx: 1.4, dur: 0.05, gain: 0.07 }); air(w, { dur: 0.03, f0: 7000, f1: 9000, gain: 0.05, type: 'bandpass', q: 3 }); },
+  menuOk(o) { const w = wet(o, 0.45); sub(w, { f0: 110, f1: 46, dur: 0.18, gain: 0.2 }); bell(w, { f: 1320, dur: 0.6, gain: 0.1, parts: [1, 1.5, 2.01, 4.02] }); fm(w, { f: 2640, ratio: 2, idx: 1.6, dur: 0.09, gain: 0.07, at: 0.03 }); air(w, { dur: 0.3, f0: 2200, f1: 10000, gain: 0.09, atk: 0.06 }); },
+  menuOpen(o) { const w = wet(o, 0.5); air(w, { dur: 0.5, f0: 300, f1: 6000, gain: 0.09, atk: 0.16, type: 'bandpass', q: 0.9 }); sub(w, { f0: 60, f1: 40, dur: 0.4, gain: 0.14, at: 0.08 }); bell(w, { f: 990, dur: 0.6, gain: 0.04, at: 0.16, parts: [1, 2.01] }); },
+  menuBack(o) { const w = wet(o, 0.35); air(w, { dur: 0.24, f0: 9000, f1: 1600, gain: 0.1, atk: 0.01 }); bell(w, { f: 660, dur: 0.35, gain: 0.08, parts: [1, 1.5, 3.01] }); sub(w, { f0: 80, f1: 38, dur: 0.16, gain: 0.16 }); },
+  medal(o) { const w = wet(o, 0.5); [880, 1175, 1568].forEach((f, i) => bell(w, { f, dur: 0.9, gain: 0.09, at: i * 0.07, parts: [1, 2.01, 3.99] })); sub(w, { f0: 100, f1: 50, dur: 0.22, gain: 0.16 }); air(w, { dur: 0.35, f0: 3000, f1: 11000, gain: 0.06 }); },
+  count(o) { const w = wet(o, 0.3); fm(w, { f: 880, ratio: 2, idx: 1.2, dur: 0.16, gain: 0.14 }); sub(w, { f0: 70, f1: 45, dur: 0.14, gain: 0.2 }); },
+  go(o) { const w = wet(o, 0.55); air(w, { dur: 0.55, f0: 600, f1: 9000, gain: 0.14, atk: 0.3, type: 'bandpass', q: 1.2 }); sub(w, { f0: 90, f1: 36, dur: 0.6, gain: 0.32, at: 0.28 }); bell(w, { f: 1760, dur: 1.1, gain: 0.1, at: 0.28, parts: [1, 1.5, 2.01] }); },
   death(o) { tone(o, { type: 'sawtooth', f0: 300, f1: 40, dur: 0.7, gain: 0.3 }); noise(o, { dur: 0.5, f0: 2000, f1: 100, gain: 0.3 }); },
-  spawn(o) { tone(o, { type: 'sine', f0: 200, f1: 1200, dur: 0.5, gain: 0.15 }); },
-  win(o) { [523, 659, 784, 1046, 1318].forEach((f, i) => tone(o, { type: 'triangle', f0: f, dur: 0.7, gain: 0.2, at: i * 0.12 })); },
-  lose(o) { [392, 330, 262, 196].forEach((f, i) => tone(o, { type: 'sawtooth', f0: f, dur: 0.6, gain: 0.14, at: i * 0.18 })); },
+  spawn(o) { const w = wet(o, 0.5); air(w, { dur: 0.6, f0: 500, f1: 8000, gain: 0.1, atk: 0.35, type: 'bandpass', q: 1 }); bell(w, { f: 1568, dur: 0.8, gain: 0.05, at: 0.3, parts: [1, 2.01] }); },
+  win(o) { const w = wet(o, 0.6); sub(w, { f0: 100, f1: 34, dur: 1.2, gain: 0.34 }); pad(w, { notes: [220, 277, 330, 440], dur: 2.2, gain: 0.045 }); [660, 880, 1320, 1760].forEach((f, i) => bell(w, { f, dur: 1.4, gain: 0.08, at: 0.35 + i * 0.13, parts: [1, 2.01, 3.99] })); air(w, { dur: 0.9, f0: 800, f1: 12000, gain: 0.08, atk: 0.4 }); },
+  lose(o) { const w = wet(o, 0.6); sub(w, { f0: 70, f1: 28, dur: 1.4, gain: 0.3 }); pad(w, { notes: [196, 233, 294], dur: 2.4, gain: 0.04, f0: 500, f1: 1000 }); bell(w, { f: 440, dur: 1.6, gain: 0.07, at: 0.2, parts: [1, 1.19, 2.4] }); air(w, { dur: 1.1, f0: 5000, f1: 300, gain: 0.07 }); },
 };
 
 // ambient pad + pulse. Minor 9 drifts, restrained.
@@ -172,6 +202,13 @@ function buildAmbience(kind) {
   const bus = ctx.createGain(); bus.gain.value = 0; bus.connect(comp);
   const nodes = [];
   const src = ctx.createBufferSource(); src.buffer = noiseBuf; src.loop = true;
+  if (kind === 'space') {   // drifting sub drone, breathing air, slow shimmering fifths
+    const src2 = ctx.createBufferSource(); src2.buffer = noiseBuf; src2.loop = true; const bp2 = ctx.createBiquadFilter(); bp2.type = 'bandpass'; bp2.frequency.value = 900; bp2.Q.value = 0.6; const ga = ctx.createGain(); ga.gain.value = 0.02;
+    src2.connect(bp2); bp2.connect(ga); ga.connect(bus); const la = ctx.createOscillator(); la.frequency.value = 0.05; const lga = ctx.createGain(); lga.gain.value = 0.014; la.connect(lga); lga.connect(ga.gain); const lf = ctx.createOscillator(); lf.frequency.value = 0.04; const lfg = ctx.createGain(); lfg.gain.value = 500; lf.connect(lfg); lfg.connect(bp2.frequency);
+    la.start(); lf.start(); src2.start(); nodes.push(src2, la, lf);
+    for (const [f, gn] of [[41.2, 0.06], [55, 0.04], [82.4, 0.018], [123.5, 0.012]]) { const o = ctx.createOscillator(); o.type = f > 80 ? 'triangle' : 'sine'; o.frequency.value = f; const g = ctx.createGain(); g.gain.value = gn; o.connect(g); g.connect(bus); o.start(); nodes.push(o); }
+    bus.gain.setTargetAtTime(vol.sfx * 0.9, ctx.currentTime, 2); return { bus, nodes };
+  }
   const windy = kind === 'wind' || kind === 'garden', amt = kind === 'garden' ? 0.4 : 1;
   const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = windy ? (kind === 'garden' ? 420 : 520) : 160; src.connect(lp);
   const g1 = ctx.createGain(); g1.gain.value = windy ? 0.16 * amt : 0.09; lp.connect(g1); g1.connect(bus);
@@ -225,6 +262,11 @@ export const Sound = {
     ambKind = kind; if (!kind) return;
     amb = buildAmbience(kind);
     ambTimer = setInterval(() => {
+      if (kind === 'space') {
+        if (ctx.state !== 'running' || Math.random() > 0.45) return;
+        const w = wet(sfxBus, 0.7), f = [523, 659, 784, 988, 1175, 1568][(Math.random() * 6) | 0] * (Math.random() < 0.3 ? 2 : 1); bell(w, { f, dur: 2.4, gain: 0.018, parts: [1, 2.01, 3.99] }); if (Math.random() < 0.3) air(w, { dur: 1.6, f0: 2000, f1: 9000, gain: 0.02, atk: 0.9, type: 'bandpass', q: 2 });
+        return;
+      }
       if (kind === 'garden') {
         if (ctx.state !== 'running') return;
         const r = Math.random();

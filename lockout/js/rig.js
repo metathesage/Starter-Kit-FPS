@@ -6,23 +6,23 @@ import { toonGradient } from './toon.js';
 import { angelReady, attachAngel, syncAngel, angelCamo } from './angel.js';
 
 export const WAIFUS = [
-  { id: 'aoi', model: 'mualani', name: 'AOI', role: 'VANGUARD', hair: 0xff86c2, eye: 0x5ce1ff, blurb: 'Fearless pusher. Lives on the ramps.' },
-  { id: 'kira', model: 'kagome', name: 'KIRA', role: 'MARKSMAN', hair: 0xdfe9ff, eye: 0xff5b8a, blurb: 'Patient. Owns the tower.' },
-  { id: 'nova', model: 'angel', name: 'NOVA', role: 'BREACHER', hair: 0x5df2be, eye: 0xffd15b, blurb: 'Close range, no manners.' },
-  { id: 'yuna', model: 'mualani', name: 'YUNA', role: 'PHANTOM', hair: 0xb28cff, eye: 0xff9ab8, blurb: 'Flanks. Always flanks.' },
-  { id: 'mira', model: 'kagome', name: 'MIRA', role: 'ENFORCER', hair: 0xff5b6e, eye: 0xffd15b, blurb: 'Holds the line. Never blinks first.' },
-  { id: 'ivy', model: 'angel', name: 'IVY', role: 'SENTINEL', hair: 0x2fd6c0, eye: 0xb28cff, blurb: 'Quiet. Counts your reloads.' },
-  { id: 'hana', model: 'mualani', name: 'HANA', role: 'SKIRMISHER', hair: 0xffb347, eye: 0x7cc7ff, blurb: 'Fast hands, faster mouth.' },
-  { id: 'zero', model: 'kagome', name: 'ZERO', role: 'WRAITH', hair: 0xe6e0ff, eye: 0xff4a58, blurb: 'You will not see the second shot.' },
-  { id: 'eos', model: 'angel', name: 'EOS', role: 'ARCHANGEL', hair: 0xffd166, eye: 0xfff0c4, blurb: 'First light. Last word.' },
+  { id: 'aoi', model: 'mualani', look: { hue: 0 }, name: 'AOI', role: 'VANGUARD', hair: 0xff86c2, eye: 0x5ce1ff, blurb: 'Fearless pusher. Lives on the ramps.' },
+  { id: 'kira', model: 'kagome', look: { hue: 0 }, name: 'KIRA', role: 'MARKSMAN', hair: 0xdfe9ff, eye: 0xff5b8a, blurb: 'Patient. Owns the tower.' },
+  { id: 'nova', model: 'lucy', look: { hue: 0 }, name: 'NOVA', role: 'BREACHER', hair: 0x5df2be, eye: 0xffd15b, blurb: 'Close range, no manners.' },
+  { id: 'yuna', model: 'mualani', look: { hue: 150 }, name: 'YUNA', role: 'PHANTOM', hair: 0xb28cff, eye: 0xff9ab8, blurb: 'Flanks. Always flanks.' },
+  { id: 'mira', model: 'kagome', look: { hue: 130 }, name: 'MIRA', role: 'ENFORCER', hair: 0xff5b6e, eye: 0xffd15b, blurb: 'Holds the line. Never blinks first.' },
+  { id: 'ivy', model: 'lucy', look: { hue: 200 }, name: 'IVY', role: 'SENTINEL', hair: 0x2fd6c0, eye: 0xb28cff, blurb: 'Quiet. Counts your reloads.' },
+  { id: 'hana', model: 'mualani', look: { hue: 275 }, name: 'HANA', role: 'SKIRMISHER', hair: 0xffb347, eye: 0x7cc7ff, blurb: 'Fast hands, faster mouth.' },
+  { id: 'zero', model: 'kagome', look: { hue: 215, val: 0.72 }, name: 'ZERO', role: 'WRAITH', hair: 0xe6e0ff, eye: 0xff4a58, blurb: 'You will not see the second shot.' },
+  { id: 'eos', model: 'angel', look: { hue: 0 }, name: 'EOS', role: 'ARCHANGEL', hair: 0xffd166, eye: 0xfff0c4, blurb: 'First light. Last word.' },
 ];
 export const BOT_STYLES = [
-  { model: 'angel', name: 'HIKARI', hair: 0xffd166, eye: 0x6ab8ff }, { model: 'mualani', name: 'RIN', hair: 0xff5b5b, eye: 0xffe36a },
-  { model: 'kagome', name: 'YUZU', hair: 0xff9f43, eye: 0x7cf0c9 }, { model: 'angel', name: 'MIO', hair: 0x4fd1ff, eye: 0xff8fb8 },
-  { model: 'mualani', name: 'KAEDE', hair: 0xe8567f, eye: 0xfff09a }, { model: 'kagome', name: 'SUZU', hair: 0xc8f26a, eye: 0xb28cff },
-  { model: 'angel', name: 'AKANE', hair: 0xff6f91, eye: 0x9df2ff }, { model: 'mualani', name: 'TSUKI', hair: 0x9aa7ff, eye: 0xffb86b },
-  { model: 'kagome', name: 'MOMO', hair: 0xffb3d9, eye: 0x7cc7ff }, { model: 'angel', name: 'SORA', hair: 0x7de0ff, eye: 0xff7a9c },
-  { model: 'mualani', name: 'NANA', hair: 0xf2f2f8, eye: 0x82ffb0 }, { model: 'kagome', name: 'EMI', hair: 0xff7f50, eye: 0x8fd4ff },
+  { model: 'mualani', look: { hue: 0 }, name: 'HIKARI', hair: 0xffd166, eye: 0x6ab8ff }, { model: 'kagome', look: { hue: 40 }, name: 'RIN', hair: 0xff5b5b, eye: 0xffe36a },
+  { model: 'lucy', look: { hue: 150 }, name: 'YUZU', hair: 0xff9f43, eye: 0x7cf0c9 }, { model: 'mualani', look: { hue: 275 }, name: 'MIO', hair: 0x4fd1ff, eye: 0xff8fb8 },
+  { model: 'kagome', look: { hue: 320 }, name: 'KAEDE', hair: 0xe8567f, eye: 0xfff09a }, { model: 'lucy', look: { hue: 0 }, name: 'SUZU', hair: 0xc8f26a, eye: 0xb28cff },
+  { model: 'mualani', look: { hue: 150 }, name: 'AKANE', hair: 0xff6f91, eye: 0x9df2ff }, { model: 'kagome', look: { hue: 200 }, name: 'TSUKI', hair: 0x9aa7ff, eye: 0xffb86b },
+  { model: 'lucy', look: { hue: 275 }, name: 'MOMO', hair: 0xffb3d9, eye: 0x7cc7ff }, { model: 'mualani', look: { hue: 0 }, name: 'SORA', hair: 0x7de0ff, eye: 0xff7a9c },
+  { model: 'kagome', look: { hue: 40 }, name: 'NANA', hair: 0xf2f2f8, eye: 0x82ffb0 }, { model: 'lucy', look: { hue: 150 }, name: 'EMI', hair: 0xff7f50, eye: 0x8fd4ff },
 ];
 export const TEAM = {
   red: { name: 'RED', armor: 0xd93a48, armor2: 0x2a2f3a, glow: 0xff4a58, css: '#ff4a58' },
@@ -187,7 +187,7 @@ function glowSoft() {
   _glowSoft = new THREE.CanvasTexture(c); _glowSoft.colorSpace = THREE.SRGBColorSpace; return _glowSoft;
 }
 
-export function buildWaifu({ skin = null, team = 'blue', hair = 0xff86c2, eye = 0x5ce1ff, scale = 1.04, helmet = false, angel = true, haloColor = null, warlock = false, model: opModel = 'angel' } = {}) {
+export function buildWaifu({ skin = null, team = 'blue', hair = 0xff86c2, eye = 0x5ce1ff, scale = 1.04, helmet = false, angel = true, haloColor = null, warlock = false, model: opModel = 'angel', look = null } = {}) {
   const mats = makeMats(team, hair, eye);
   if (haloColor != null) mats.halo.color.setHex(haloColor);
   const root = new THREE.Group(); root.rotation.order = 'YXZ';
@@ -328,7 +328,7 @@ export function buildWaifu({ skin = null, team = 'blue', hair = 0xff86c2, eye = 
     for (const key of ['body', 'skirt', 'visor', 'face', 'wing', 'halo']) { const m = mats[key]; if (!m) continue; m.transparent = k > 0 || key === 'face' || key === 'wing' || key === 'halo'; m.opacity = key === 'wing' ? (k > 0 ? 0.03 : 0.6) : key === 'halo' ? (k > 0 ? 0.04 : 0.95) : k > 0 ? (k >= 1 ? 0.07 : 0.4) : 1; m.depthWrite = k === 0 && key !== 'wing' && key !== 'halo'; m.needsUpdate = true; }
   };
   rig.setVisible = (v) => { root.visible = v; };
-  if (angel && !helmet && angelReady(opModel)) attachAngel(rig, { hair, tint: (TEAM[team] || TEAM.blue).glow, model: opModel });
+  if (angel && !helmet && angelReady(opModel)) attachAngel(rig, { hair, tint: (TEAM[team] || TEAM.blue).glow, model: opModel, look });
   else if (angel && !helmet && angelReady()) attachAngel(rig, { hair, tint: (TEAM[team] || TEAM.blue).glow });
   if (warlock) addWarlockGear(rig);
   return rig;

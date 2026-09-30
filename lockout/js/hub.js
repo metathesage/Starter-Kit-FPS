@@ -117,13 +117,13 @@ export class Hub {
   buildAvatar() {
     if (this.avatar) this.scene.remove(this.avatar.root);
     const w = WAIFUS[this.loadout.waifu] || WAIFUS[0], ctx = this.ctx;
-    this.avatar = buildWaifu({ model: w.model, team: 'blue', hair: w.hair, eye: w.eye, helmet: this.loadout.helmet, haloColor: ctx.haloHex(), skin: ctx.skinHex() });
+    this.avatar = buildWaifu({ model: w.model, look: w.look, team: 'blue', hair: w.hair, eye: w.eye, helmet: this.loadout.helmet, haloColor: ctx.haloHex(), skin: ctx.skinHex() });
     this.avatar.setWeapon(null); this.scene.add(this.avatar.root);
   }
   refreshAvatar(pv = {}) {
     const w = WAIFUS[this.loadout.waifu] || WAIFUS[0], ctx = this.ctx;
     if (this.avatar) this.scene.remove(this.avatar.root);
-    this.avatar = buildWaifu({ model: w.model, team: 'blue', hair: w.hair, eye: w.eye, helmet: this.loadout.helmet, haloColor: ctx.haloHex(pv.halo), skin: ctx.skinHex(pv.skin) });
+    this.avatar = buildWaifu({ model: w.model, look: w.look, team: 'blue', hair: w.hair, eye: w.eye, helmet: this.loadout.helmet, haloColor: ctx.haloHex(pv.halo), skin: ctx.skinHex(pv.skin) });
     this.avatar.setWeapon(null); this.scene.add(this.avatar.root);
   }
 
@@ -169,7 +169,7 @@ export class Hub {
     // operator statues
     for (const p of POI.operators) {
       const idx = WAIFUS.findIndex((w) => w.id === p.id), w = WAIFUS[idx], need = C.OPERATOR_UNLOCK[w.id] || 1, locked = lvl < need;
-      const r = buildWaifu({ model: w.model, team: 'blue', hair: w.hair, eye: w.eye, helmet: false }); r.setWeapon(null);
+      const r = buildWaifu({ model: w.model, look: w.look, team: 'blue', hair: w.hair, eye: w.eye, helmet: false }); r.setWeapon(null);
       r.root.position.set(p.x, p.y, p.z); r.root.rotation.y = -0.8 + Math.random() * 0.3; g.add(r.root); r.root.traverse((o) => { o.frustumCulled = false; o.castShadow = false; });
       if (locked) r.root.traverse((o) => { if (o.isMesh && !o.userData.outline) { o.material = new THREE.MeshBasicMaterial({ color: 0x141820, fog: false, transparent: !!o.material.transparent, opacity: o.material.opacity ?? 1 }); } });
       this.rigs.push({ r, base: r.root.rotation.y, locked, id: w.id });
@@ -193,7 +193,7 @@ export class Hub {
     for (const [rx, rz] of [[1.2, 0], [0.4, 1.1]]) { const rg = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.012, 6, 48), new THREE.MeshBasicMaterial({ color: 0x7fe6ff, fog: false })); rg.rotation.set(rx, 0, rz); orb.add(rg); }
     g.add(orb); this.orb = orb; label('CODEX', 'Lore and rules', 0, 4.7, -30, 0.6, 9);
     // the keeper
-    const kw = WAIFUS.find((w) => w.id === 'eos'), keeper = buildWaifu({ model: kw.model, team: 'blue', hair: kw.hair, eye: kw.eye, helmet: false }); keeper.setWeapon(null);
+    const kw = WAIFUS.find((w) => w.id === 'eos'), keeper = buildWaifu({ model: kw.model, look: kw.look, team: 'blue', hair: kw.hair, eye: kw.eye, helmet: false }); keeper.setWeapon(null);
     keeper.root.position.set(3.4, 0, 29.4); g.add(keeper.root); keeper.root.traverse((o) => { o.frustumCulled = false; }); this.keeper = keeper; this.keeperLine = 0;
     label('THE KEEPER', 'Ask anything', 3.4, 2.9, 29.4, 0.7, 9);
     item({ id: 'keeper', x: 3.4, y: 0, z: 29.4, r: 2.8, verb: 'TALK TO THE KEEPER', disc: 'keeper', name: 'THE KEEPER', act: () => this.talk() });

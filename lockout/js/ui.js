@@ -13,6 +13,7 @@ export const UI = {
   show(name, { rows = [], onBack = null, focus = 0 } = {}) {
     const prev = this.cur;
     if (prev && prev !== name) { const e = $(`#${prev}`); if (e) { e.classList.remove('active'); e.classList.remove('leaving'); } }
+    if (prev !== name && name !== 'loading' && name !== 'splash') Sound.play('menuOpen', { vol: 0.45 });
     this.cur = name;
     const el = $(`#${name}`); el.classList.remove('leaving'); el.classList.add('active');
     this.setRows(rows, focus); this.onBack = onBack;

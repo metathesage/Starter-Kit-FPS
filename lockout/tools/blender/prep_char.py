@@ -18,6 +18,8 @@ for o in [o for o in sc.objects if o.type != 'MESH']: bpy.data.objects.remove(o,
 bpy.ops.object.select_all(action='SELECT'); bpy.context.view_layer.objects.active = [o for o in sc.objects][0]
 if len(ms) > 1: bpy.ops.object.join()
 o = bpy.context.object
+import bmesh
+bm = bmesh.new(); bm.from_mesh(o.data); bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:]); bm.to_mesh(o.data); bm.free()   # mirrored FBX transforms flip winding: make faces point outward
 n = sum(len(p.vertices) - 2 for p in o.data.polygons)
 if n > tris:
     md = o.modifiers.new('dec', 'DECIMATE'); md.ratio = tris / n; md.use_collapse_triangulate = True

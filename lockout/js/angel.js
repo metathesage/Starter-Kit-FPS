@@ -16,9 +16,11 @@ const J_ANGEL = {
 };
 export const OPERATOR_MODELS = {
   angel: { url: 'models/operator/angel.glb', J: J_ANGEL, S: 1.78, tails: true, wings: true, recolor: true, shScale: 1.14, glow: 0.42 },
-  mualani: { url: 'models/operator/mualani.glb', S: 1.74, shScale: 1.0, glow: 0.5,
+  mualani: { url: 'models/operator/mualani.glb', S: 1.74, shScale: 1.0, glow: 0.36,
     J: { hips: [0, 0.0], spine: [0, 0.09], chest: [0, 0.2], head: [0, 0.31], sh: [0.075, 0.27], el: [0.17, 0.15], wr: [0.245, 0.06], hand: [0.28, 0.03], hip: [0.055, -0.02], kn: [0.065, -0.22], an: [0.05, -0.44], toe: [0.05, -0.5] } },
-  kagome: { url: 'models/operator/kagome.glb', S: 1.76, shScale: 1.0, glow: 0.5,
+  lucy: { url: 'models/operator/lucy.glb', S: 1.74, shScale: 1.0, glow: 0.22,
+    J: { hips: [0, 0.03], spine: [0, 0.12], chest: [0, 0.22], head: [0, 0.335], sh: [0.09, 0.285], el: [0.1, 0.15], wr: [0.09, 0.02], hand: [0.085, -0.02], hip: [0.045, 0.0], kn: [0.05, -0.24], an: [0.05, -0.45], toe: [0.05, -0.5] } },
+  kagome: { url: 'models/operator/kagome.glb', S: 1.76, shScale: 1.0, glow: 0.34,
     J: { hips: [0, -0.02], spine: [0, 0.07], chest: [0, 0.2], head: [0, 0.33], sh: [0.08, 0.29], el: [0.24, 0.29], wr: [0.34, 0.29], hand: [0.4, 0.29], hip: [0.045, -0.03], kn: [0.05, -0.24], an: [0.05, -0.46], toe: [0.05, -0.5] } },
 };
 
@@ -127,19 +129,41 @@ function hairTexture(cache, hex) {
   cache.tex.set(key, t); return t;
 }
 
+// palette variants: rotate the hue of the saturated, non-skin parts of a texture (hair, cloth, trim) so one model can be several operators
+function variantTexture(cache, i, look) {
+  const key = i + ':' + (look.hue || 0) + ':' + (look.sat ?? 1) + ':' + (look.val ?? 1);
+  if (cache.tex.has(key)) return cache.tex.get(key);
+  const src = cache.srcMats[i].map; if (!src || !src.image) return src;
+  const img = src.image, W = img.width, H = img.height, c = document.createElement('canvas'); c.width = W; c.height = H;
+  const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(img, 0, 0);
+  const id = x.getImageData(0, 0, W, H), d = id.data, sh = look.hue || 0, ss = look.sat ?? 1, sv = look.val ?? 1;
+  for (let p = 0; p < d.length; p += 4) {
+    const r = d[p] / 255, g = d[p + 1] / 255, b = d[p + 2] / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), df = mx - mn, s = mx ? df / mx : 0;
+    if (s < 0.16 || mx < 0.14) { if (sv !== 1) { d[p] *= sv; d[p + 1] *= sv; d[p + 2] *= sv; } continue; }
+    let h = 0; if (df) { if (mx === r) h = ((g - b) / df + 6) % 6; else if (mx === g) h = (b - r) / df + 2; else h = (r - g) / df + 4; h *= 60; }
+    if (h >= 8 && h <= 48 && s < 0.62 && mx > 0.4) continue;   // skin stays skin
+    h = (h + sh + 360) % 360; const s2 = Math.min(1, s * ss), v2 = Math.min(1, mx * sv), k = h / 60, ii = Math.floor(k) % 6, f = k - Math.floor(k), pp = v2 * (1 - s2), q = v2 * (1 - f * s2), t = v2 * (1 - (1 - f) * s2);
+    const rgb = [[v2, t, pp], [q, v2, pp], [pp, v2, t], [pp, q, v2], [t, pp, v2], [v2, pp, q]][ii];
+    d[p] = rgb[0] * 255; d[p + 1] = rgb[1] * 255; d[p + 2] = rgb[2] * 255;
+  }
+  x.putImageData(id, 0, 0);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.flipY = false; t.anisotropy = 4; t.needsUpdate = true;
+  cache.tex.set(key, t); return t;
+}
+
 const D = new THREE.Vector3(0, -1, 0);
 
 // toon copies of the source materials, one set per attached character (hit flash / camo mutate them)
-function toonMats(cache, hair, tint) {
+function toonMats(cache, hair, tint, look) {
   const cfg = cache.cfg, out = [];
   cache.srcMats.forEach((src, i) => {
-    const map = cfg.recolor && i === 0 ? hairTexture(cache, hair) : src.map;
+    let map = cfg.recolor && i === 0 ? hairTexture(cache, hair) : src.map;
+    if (!cfg.recolor && look && (look.hue || (look.sat ?? 1) !== 1 || (look.val ?? 1) !== 1)) map = variantTexture(cache, i, look) || map;
     const m = new THREE.MeshToonMaterial({ map: map || null, gradientMap: toonGradient(), side: THREE.DoubleSide, emissive: new THREE.Color(0x000000) });
     if (src.color && !cfg.recolor) m.color.copy(src.color);
     if (src.transparent || src.alphaTest > 0) { m.alphaTest = src.alphaTest > 0 ? src.alphaTest : 0.45; }
     if (map) m.emissiveMap = map; m.emissive.setScalar(cfg.glow);
     if (cfg.recolor) m.color.set(0xffffff).lerp(new THREE.Color(tint), 0.3);
-    else m.color.lerp(new THREE.Color(hair), 0.16);   // same model, different operator: a hint of their colour
     // anime rim light in the team colour: reads as style and as team identification
     const rimC = new THREE.Color(tint);
     m.onBeforeCompile = (sh) => {
@@ -153,7 +177,7 @@ function toonMats(cache, hair, tint) {
 }
 
 // Attach a skinned operator to a procedural rig. Hides the classic body, keeps halo + weapon + joints.
-export function attachAngel(rig, { hair = 0xff86c2, tint = 0x4aa0ff, model = 'angel' } = {}) {
+export function attachAngel(rig, { hair = 0xff86c2, tint = 0x4aa0ff, model = 'angel', look = null } = {}) {
   const cache = caches[model] || caches.angel; if (!cache) return false;
   const cfg = cache.cfg, S = cfg.S, J = cfg.J, W = (p) => new THREE.Vector3(-p[0] * S, (p[1] + 0.5) * S, 0);
   const bones = {}, list = [];
@@ -164,7 +188,7 @@ export function attachAngel(rig, { hair = 0xff86c2, tint = 0x4aa0ff, model = 'an
     if (b.parent) bones[b.parent].add(bone);
     bones[b.name] = bone; list.push(bone);
   }
-  const mats = toonMats(cache, hair, tint);
+  const mats = toonMats(cache, hair, tint, look);
   const mesh = new THREE.SkinnedMesh(cache.geo, mats.length === 1 ? mats[0] : mats);
   mesh.castShadow = true; mesh.receiveShadow = false; mesh.frustumCulled = false;
   mesh.add(bones.hips); mesh.updateMatrixWorld(true);

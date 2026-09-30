@@ -151,7 +151,7 @@ async function boot() {
   await setProg(0.55, 'Charting nav mesh');
   await setProg(0.62, 'Checking weapon models');
   try { setProg(0.6, 'Operators'); await loadOperator('angel'); } catch (e) { console.warn('angel model unavailable, using classic body', e); }
-  for (const id of ['mualani', 'kagome']) { try { await loadOperator(id); } catch (e) { console.warn('operator model unavailable', id, e); } }
+  for (const id of ['mualani', 'kagome', 'lucy']) { try { await loadOperator(id); } catch (e) { console.warn('operator model unavailable', id, e); } }
   try { const got = await loadWeaponModels((l) => setProg(0.64, l)); if (got.length) console.info('custom weapon models:', got.join(', ')); } catch (e) { console.warn(e); }
   await setProg(0.7, 'Rigging operators');
   fx = new FX(scene);
@@ -193,7 +193,7 @@ function refreshPrompts() {
 function rebuildShowcase(pv = {}) {
   if (showcase) { scene.remove(showcase.root); disposeRig(showcase); }
   const w = WAIFUS.find((x) => x.id === pv.operator) || WAIFUS[loadout.waifu];
-  showcase = buildWaifu({ model: w.model, team: loadout.team, hair: w.hair, eye: w.eye, helmet: loadout.helmet, haloColor: haloHex(pv.halo), skin: skinHex(pv.skin) });
+  showcase = buildWaifu({ model: w.model, look: w.look, team: loadout.team, hair: w.hair, eye: w.eye, helmet: loadout.helmet, haloColor: haloHex(pv.halo), skin: skinHex(pv.skin) });
   showcase.root.position.set(...MENU[loadout.map].show); showcase.root.rotation.y = 1.75; scene.add(showcase.root);
 }
 
@@ -225,7 +225,7 @@ function showTitle() {
   $('#btnFull').onclick = () => { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen && document.documentElement.requestFullscreen().catch(() => {}); };
   $('#btnMute').onclick = () => { muted = !muted; applySettings(); UI.toast(muted ? 'AUDIO MUTED' : 'AUDIO ON'); };
   setHero(); refreshPrompts();
-  Sound.music('menu'); Sound.ambience(loadout.map === 'lockout' ? 'hum' : 'wind');
+  Sound.music('menu'); Sound.ambience('space');
   $('#hero-fallback')?.remove();
 }
 
@@ -453,7 +453,7 @@ async function startOnlineHost() {
   const m = new Match(scene, fx, { waifu: w, name: Profile.callsign, team: loadout.team, helmet: loadout.helmet, difficulty: loadout.diff, ...matchCfg(), humans });
   beginMatch(m, w);
   m.enableHost();
-  const roster = m.actors.map((a) => ({ id: a.id, name: a.name, team: a.team, hair: a.style.hair, eye: a.style.eye, model: a.style.model, helmet: a.rig.helmet }));
+  const roster = m.actors.map((a) => ({ id: a.id, name: a.name, team: a.team, hair: a.style.hair, eye: a.style.eye, model: a.style.model, look: a.style.look, helmet: a.rig.helmet }));
   for (const h of humans) { const a = m.actors.find((x) => x.remote === h.peer); if (a) Net.sendTo(h.peer, { t: 'start', roster, you: a.id, limit: m.limit, mode: m.mode, variant: m.variant, minutes: 12, map: loadout.map }); }
   m.bus.emit('count', 3);
 }
