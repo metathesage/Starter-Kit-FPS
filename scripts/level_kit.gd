@@ -26,6 +26,7 @@ var snow := false
 var map_name := "MAP"
 var map_tag := ""
 
+var recorded: Array = []   # AABB/ramp approximation of every solid, for the web port (see tools/export_map.gd)
 var _surfaces := {}          # key -> SurfaceTool
 var _mats := {}              # key -> Material
 var _body: StaticBody3D
@@ -157,6 +158,8 @@ func _hex(pts: PackedVector3Array, color: Color, kind: int, mx: bool, mz: bool, 
 		for p in pts:
 			out.append(_xf(p, v[0], v[1]))
 		_add_hull(out, BOX_FACES, color, kind, collide)
+		if collide:
+			_record_hex(out, color, kind)
 
 
 # ---------- public primitives ----------
@@ -237,6 +240,17 @@ func prism(center: Vector2, y0: float, y1: float, radius: float, sides: int, col
 		faces.append(bot)
 		faces.append(top)
 		_add_hull(pts, faces, color, kind, solid)
+		if solid:
+			var mn := Vector3(1e9, 1e9, 1e9)
+			var mx_ := Vector3(-1e9, -1e9, -1e9)
+			for q in pts:
+				mn = mn.min(q)
+				mx_ = mx_.max(q)
+			var cx := (mn.x + mx_.x) * 0.5
+			var cz := (mn.z + mx_.z) * 0.5
+			var hx := (mx_.x - mn.x) * 0.5 * 0.9
+			var hz := (mx_.z - mn.z) * 0.5 * 0.9
+			recorded.append(_rec_box(cx - hx, cx + hx, cz - hz, cz + hz, mn.y, mx_.y, color, kind))
 
 
 ## Energy barrier (visible glass + tall invisible-to-the-eye collision). Nothing gets past it.
@@ -426,3 +440,78 @@ func add_snow() -> void:
 	p.mesh = m
 	p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(p)
+
+
+func _mat_name(color: Color, kind: int) -> String:
+	return "g" if kind == Kind.GLASS else color.to_html(false)
+
+
+func _rec_box(x0: float, x1: float, z0: float, z1: float, y0: float, y1: float, color: Color, kind: int) -> Array:
+	return [snappedf(x0, 0.01), snappedf(x1, 0.01), snappedf(z0, 0.01), snappedf(z1, 0.01), snappedf(y0, 0.01), snappedf(y1, 0.01), _mat_name(color, kind)]
+
+
+func _record_hex(p: PackedVector3Array, color: Color, kind: int) -> void:
+	var xs := {}
+	var zs := {}
+	for i in 4:
+		xs[snappedf(p[i].x, 0.01)] = true
+		zs[snappedf(p[i].z, 0.01)] = true
+	var mn := Vector3(1e9, 1e9, 1e9)
+	var mx := Vector3(-1e9, -1e9, -1e9)
+	for q in p:
+		mn = mn.min(q)
+		mx = mx.max(q)
+	var y0 := minf(p[0].y, minf(p[1].y, minf(p[2].y, p[3].y)))
+	if xs.size() == 2 and zs.size() == 2:
+		var th := [p[4].y, p[5].y, p[6].y, p[7].y]
+		var flat := absf(th[0] - th[1]) < 0.001 and absf(th[1] - th[2]) < 0.001 and absf(th[2] - th[3]) < 0.001
+		if flat:
+			recorded.append(_rec_box(mn.x, mx.x, mn.z, mx.z, y0, th[0], color, kind))
+			return
+		# ramp: compare mean height on the low/high x sides and z sides
+		var cx := (mn.x + mx.x) * 0.5
+		var cz := (mn.z + mx.z) * 0.5
+		var lx := 0.0
+		var hx := 0.0
+		var lz := 0.0
+		var hz := 0.0
+		for i in 4:
+			var q := p[4 + i]
+			if q.x < cx:
+				lx += q.y * 0.5
+			else:
+				hx += q.y * 0.5
+			if q.z < cz:
+				lz += q.y * 0.5
+			else:
+				hz += q.y * 0.5
+		if absf(hx - lx) > absf(hz - lz):
+			var ramp_x := ["r", snappedf(mn.x, 0.01), snappedf(mx.x, 0.01), snappedf(mn.z, 0.01), snappedf(mx.z, 0.01), snappedf(y0, 0.01), "x"]
+			if hx > lx:
+				ramp_x.append_array([snappedf(mn.x, 0.01), snappedf(mx.x, 0.01), snappedf(lx, 0.01), snappedf(hx, 0.01)])
+			else:
+				ramp_x.append_array([snappedf(mx.x, 0.01), snappedf(mn.x, 0.01), snappedf(hx, 0.01), snappedf(lx, 0.01)])
+			ramp_x.append(_mat_name(color, kind))
+			recorded.append(ramp_x)
+		else:
+			var ramp_z := ["r", snappedf(mn.x, 0.01), snappedf(mx.x, 0.01), snappedf(mn.z, 0.01), snappedf(mx.z, 0.01), snappedf(y0, 0.01), "z"]
+			if hz > lz:
+				ramp_z.append_array([snappedf(mn.z, 0.01), snappedf(mx.z, 0.01), snappedf(lz, 0.01), snappedf(hz, 0.01)])
+			else:
+				ramp_z.append_array([snappedf(mx.z, 0.01), snappedf(mn.z, 0.01), snappedf(hz, 0.01), snappedf(lz, 0.01)])
+			ramp_z.append(_mat_name(color, kind))
+			recorded.append(ramp_z)
+		return
+	# rotated box (angled cars, diagonal tower rails): a chain of small AABBs along the centreline
+	var a := (p[0] + p[3]) * 0.5
+	var b := (p[1] + p[2]) * 0.5
+	var th2 := (p[0] - p[3]).length()
+	var len := Vector2(b.x - a.x, b.z - a.z).length()
+	var step := maxf(th2 * 0.8, 0.3)
+	var n := maxi(1, int(ceil(len / step)))
+	var yt := p[4].y
+	for i in n:
+		var t := (i + 0.5) / n
+		var c := a.lerp(b, t)
+		var h := maxf(th2, step) * 0.5
+		recorded.append(_rec_box(c.x - h, c.x + h, c.z - h, c.z + h, p[0].y, yt, color, kind))
