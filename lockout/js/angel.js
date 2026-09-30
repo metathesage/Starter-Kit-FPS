@@ -2,23 +2,30 @@
 // The classic procedural body stays as the animation driver (and IK solver); this mesh replaces its visible parts.
 import * as THREE from 'three';
 import { GLTFLoader } from '../vendor/jsm/loaders/GLTFLoader.js';
+import { mergeGeometries } from '../vendor/jsm/utils/BufferGeometryUtils.js';
 import { toonGradient, outlineSkinned } from './toon.js';
 
-const S = 1.78;                       // mesh height in rig units (same as the procedural body)
-const V = (x, y) => [x, y];
-// Joint landmarks in native mesh space (y -0.5..0.5, character-left = +x, front = +z)
-const J = {
+// Skinned operators. Every model is a static mesh normalised to height 1 (y -0.5..0.5, character-left = +x, front = +z).
+// Landmarks below place the joints; weights come from distance to bone segments at load time. The procedural rig drives the motion.
+const J_ANGEL = {
   hips: [0, 0.02], spine: [0, 0.09], chest: [0, 0.19], head: [0, 0.31],
   sh: [0.093, 0.265], el: [0.163, 0.15], wr: [0.2, 0.04], hand: [0.212, 0.0],
   hip: [0.066, 0.0], kn: [0.07, -0.21], an: [0.075, -0.44], toe: [0.075, -0.5],
   tail0: [0.128, 0.44], tail1: [0.22, 0.22], tail2: [0.268, 0.0],
   wing: [0.1, 0.285], wingTip: [0.29, 0.33],
 };
+export const OPERATOR_MODELS = {
+  angel: { url: 'models/operator/angel.glb', J: J_ANGEL, S: 1.78, tails: true, wings: true, recolor: true, shScale: 1.14, glow: 0.42 },
+  mualani: { url: 'models/operator/mualani.glb', S: 1.74, shScale: 1.0, glow: 0.5,
+    J: { hips: [0, 0.0], spine: [0, 0.09], chest: [0, 0.2], head: [0, 0.31], sh: [0.075, 0.27], el: [0.17, 0.15], wr: [0.245, 0.06], hand: [0.28, 0.03], hip: [0.055, -0.02], kn: [0.065, -0.22], an: [0.05, -0.44], toe: [0.05, -0.5] } },
+  kagome: { url: 'models/operator/kagome.glb', S: 1.76, shScale: 1.0, glow: 0.5,
+    J: { hips: [0, -0.02], spine: [0, 0.07], chest: [0, 0.2], head: [0, 0.33], sh: [0.08, 0.29], el: [0.24, 0.29], wr: [0.34, 0.29], hand: [0.4, 0.29], hip: [0.045, -0.03], kn: [0.05, -0.24], an: [0.05, -0.46], toe: [0.05, -0.5] } },
+};
 
 // Bone table: name, parent, joint, and the skin segments that belong to it (a->b, radius scale)
 const seg = (a, b, r = 1) => ({ a, b, r });
 const mir = (p) => [-p[0], p[1]];
-function table() {
+function table(J, cfg) {
   const B = [];
   const add = (name, parent, joint, segs) => B.push({ name, parent, joint, segs });
   add('hips', null, J.hips, [seg([0, -0.005], [0, 0.06], 1.6)]);
@@ -31,13 +38,11 @@ function table() {
     add('el' + n, 'sh' + n, m(J.el), [seg(m(J.el), m(J.wr), 0.9), seg(m(J.wr), m(J.hand), 0.9)]);
     add('th' + n, 'hips', m(J.hip), [seg(m(J.hip), m(J.kn), 1.1)]);
     add('sk' + n, 'th' + n, m(J.kn), [seg(m(J.kn), m(J.an), 1), seg(m(J.an), m(J.toe), 1)]);
-    add('ta' + n, 'head', m(J.tail0), [seg(m(J.tail0), m(J.tail1), 1.3)]);
-    add('tb' + n, 'ta' + n, m(J.tail1), [seg(m(J.tail1), m(J.tail2), 1.3)]);
-    add('wg' + n, 'chest', m(J.wing), [seg(m(J.wing), m(J.wingTip), 1.6)]);
+    if (cfg.tails) { add('ta' + n, 'head', m(J.tail0), [seg(m(J.tail0), m(J.tail1), 1.3)]); add('tb' + n, 'ta' + n, m(J.tail1), [seg(m(J.tail1), m(J.tail2), 1.3)]); }
+    if (cfg.wings) add('wg' + n, 'chest', m(J.wing), [seg(m(J.wing), m(J.wingTip), 1.6)]);
   }
   return B;
 }
-export const BONES = table();
 
 const ptSeg = (px, py, pz, a, b) => {
   const abx = b[0] - a[0], aby = b[1] - a[1], apx = px - a[0], apy = py - a[1];
@@ -46,57 +51,61 @@ const ptSeg = (px, py, pz, a, b) => {
   return Math.sqrt(dx * dx + dy * dy + pz * pz * 0.25);   // depth counts half: front/back of a limb belong to it
 };
 
-let cache = null;   // { geo, img, tex }
-export const angelReady = () => !!cache;
+const caches = {};   // model id -> { geo, mats (source), bones (table), cfg, img, tex }
+export const angelReady = (id = 'angel') => !!caches[id];
+export const operatorReady = angelReady;
 
-export async function loadAngel(url = 'models/operator/angel.glb') {
-  if (cache) return cache;
-  const loader = new GLTFLoader();
-  let g;
-  try { g = await loader.loadAsync(url); }
+async function fetchGltf(loader, url) {
+  try { return await loader.loadAsync(url); }
   catch (e) {
     // hosts that only serve text/media types (e.g. the artifact preview): fall back to a base64 copy
     const r = await fetch(url.replace(/\.glb$/, '.b64.txt')); if (!r.ok) throw e;
     const bin = atob((await r.text()).trim()), buf = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
-    g = await new Promise((res, rej) => loader.parse(buf.buffer, '', res, rej));
+    return new Promise((res, rej) => loader.parse(buf.buffer, '', res, rej));
   }
-  let mesh = null; g.scene.traverse((o) => { if (o.isMesh && !mesh) mesh = o; });
-  const src = mesh.geometry, P = src.attributes.position, n = P.count;
-  const geo = new THREE.BufferGeometry();
-  // bake: flip to rig frame (front = -z, character-left = -x), scale, feet on the ground
-  const pos = new Float32Array(n * 3), idx = new Uint16Array(n * 4), wt = new Float32Array(n * 4), tmp = new Float32Array(BONES.length);
-  for (let i = 0; i < n; i++) {
-    const x = P.getX(i), y = P.getY(i), z = P.getZ(i);
-    pos[i * 3] = -x * S; pos[i * 3 + 1] = (y + 0.5) * S; pos[i * 3 + 2] = -z * S;
-    // weights, in mesh space, symmetric on |x| via the mirrored bone segments
-    for (let b = 0; b < BONES.length; b++) {
-      let best = 9;
-      for (const sg of BONES[b].segs) { const d = ptSeg(x, y, z, sg.a, sg.b) / sg.r; if (d < best) best = d; }
-      tmp[b] = 1 / Math.pow(best * best + 0.0006, 2);
-    }
-    // top 4
-    let top = [];
-    for (let b = 0; b < BONES.length; b++) top.push(b);
-    top.sort((a, b) => tmp[b] - tmp[a]); top = top.slice(0, 4);
-    let sum = 0; for (const b of top) sum += tmp[b];
-    for (let k = 0; k < 4; k++) { idx[i * 4 + k] = top[k]; wt[i * 4 + k] = tmp[top[k]] / sum; }
-  }
-  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  geo.setAttribute('uv', src.attributes.uv);
-  if (src.attributes.normal) geo.setAttribute('normal', src.attributes.normal.clone());
-  geo.setIndex(src.index);
-  // rewrite normals into the rig frame
-  const nm = geo.attributes.normal; if (nm) for (let i = 0; i < nm.count; i++) nm.setXYZ(i, -nm.getX(i), nm.getY(i), -nm.getZ(i));
-  else geo.computeVertexNormals();
-  geo.setAttribute('skinIndex', new THREE.BufferAttribute(idx, 4));
-  geo.setAttribute('skinWeight', new THREE.BufferAttribute(wt, 4));
-  geo.computeBoundingSphere(); geo.boundingSphere.radius *= 1.6; geo.userData.shared = true;
-  cache = { geo, img: mesh.material.map.image, tex: new Map() };
-  return cache;
 }
 
-// ---- per-hair-colour texture (recolours the pink hair, keeps armour/skin) ----
-function hairTexture(hex) {
+export async function loadOperator(id = 'angel') {
+  if (caches[id]) return caches[id];
+  const cfg = OPERATOR_MODELS[id], BONES = table(cfg.J, cfg), S = cfg.S, loader = new GLTFLoader();
+  const g = await fetchGltf(loader, cfg.url);
+  const meshes = []; g.scene.traverse((o) => { if (o.isMesh) meshes.push(o); });
+  const geos = [], mats = [], tmp = new Float32Array(BONES.length);
+  for (const mesh of meshes) {
+    const src = mesh.geometry, P = src.attributes.position, n = P.count, geo = new THREE.BufferGeometry();
+    // bake: flip to rig frame (front = -z, character-left = -x), scale, feet on the ground
+    const pos = new Float32Array(n * 3), idx = new Uint16Array(n * 4), wt = new Float32Array(n * 4);
+    for (let i = 0; i < n; i++) {
+      const x = P.getX(i), y = P.getY(i), z = P.getZ(i);
+      pos[i * 3] = -x * S; pos[i * 3 + 1] = (y + 0.5) * S; pos[i * 3 + 2] = -z * S;
+      for (let b = 0; b < BONES.length; b++) {
+        let best = 9;
+        for (const sg of BONES[b].segs) { const d = ptSeg(x, y, z, sg.a, sg.b) / sg.r; if (d < best) best = d; }
+        tmp[b] = 1 / Math.pow(best * best + 0.0006, 2);
+      }
+      let top = []; for (let b = 0; b < BONES.length; b++) top.push(b);
+      top.sort((a, b) => tmp[b] - tmp[a]); top = top.slice(0, 4);
+      let sum = 0; for (const b of top) sum += tmp[b];
+      for (let k = 0; k < 4; k++) { idx[i * 4 + k] = top[k]; wt[i * 4 + k] = tmp[top[k]] / sum; }
+    }
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('uv', src.attributes.uv || new THREE.BufferAttribute(new Float32Array(n * 2), 2));
+    if (src.attributes.normal) { const nm = src.attributes.normal.clone(); for (let i = 0; i < nm.count; i++) nm.setXYZ(i, -nm.getX(i), nm.getY(i), -nm.getZ(i)); geo.setAttribute('normal', nm); }
+    else geo.computeVertexNormals();
+    geo.setIndex(src.index ? new THREE.BufferAttribute(new Uint32Array(src.index.array), 1) : null);
+    geo.setAttribute('skinIndex', new THREE.BufferAttribute(idx, 4));
+    geo.setAttribute('skinWeight', new THREE.BufferAttribute(wt, 4));
+    geos.push(geo); mats.push(mesh.material);
+  }
+  const geo = geos.length === 1 ? geos[0] : mergeGeometries(geos.map((q) => q.index ? q : q), true);
+  geo.computeBoundingSphere(); geo.boundingSphere.radius *= 1.6; geo.userData.shared = true;
+  caches[id] = { id, cfg, geo, srcMats: mats, bones: BONES, img: mats[0] && mats[0].map ? mats[0].map.image : null, tex: new Map() };
+  return caches[id];
+}
+export const loadAngel = () => loadOperator('angel');
+
+// ---- per-hair-colour texture (angel only: recolours the pink hair, keeps armour/skin) ----
+function hairTexture(cache, hex) {
   const key = hex >>> 0;
   if (cache.tex.has(key)) return cache.tex.get(key);
   const img = cache.img, W = img.width, H = img.height;
@@ -119,23 +128,36 @@ function hairTexture(hex) {
 }
 
 const D = new THREE.Vector3(0, -1, 0);
-const W = (p) => new THREE.Vector3(-p[0] * S, (p[1] + 0.5) * S, 0);   // joint in rig frame
 
-// Attach the skinned angel to a procedural rig. Hides the classic body, keeps halo + weapon + joints.
-export function attachAngel(rig, { hair = 0xff86c2, tint = 0x4aa0ff } = {}) {
-  if (!cache) return false;
+// toon copies of the source materials, one set per attached character (hit flash / camo mutate them)
+function toonMats(cache, hair, tint) {
+  const cfg = cache.cfg, out = [];
+  cache.srcMats.forEach((src, i) => {
+    const map = cfg.recolor && i === 0 ? hairTexture(cache, hair) : src.map;
+    const m = new THREE.MeshToonMaterial({ map: map || null, gradientMap: toonGradient(), side: THREE.DoubleSide, emissive: new THREE.Color(0x000000) });
+    if (src.color && !cfg.recolor) m.color.copy(src.color);
+    if (src.transparent || src.alphaTest > 0) { m.alphaTest = src.alphaTest > 0 ? src.alphaTest : 0.45; }
+    if (map) m.emissiveMap = map; m.emissive.setScalar(cfg.glow);
+    if (cfg.recolor) m.color.set(0xffffff).lerp(new THREE.Color(tint), 0.3);
+    out.push(m);
+  });
+  return out;
+}
+
+// Attach a skinned operator to a procedural rig. Hides the classic body, keeps halo + weapon + joints.
+export function attachAngel(rig, { hair = 0xff86c2, tint = 0x4aa0ff, model = 'angel' } = {}) {
+  const cache = caches[model] || caches.angel; if (!cache) return false;
+  const cfg = cache.cfg, S = cfg.S, J = cfg.J, W = (p) => new THREE.Vector3(-p[0] * S, (p[1] + 0.5) * S, 0);
   const bones = {}, list = [];
-  for (const b of BONES) {
+  for (const b of cache.bones) {
     const bone = new THREE.Bone(); bone.name = b.name; bone.userData.j = W(b.joint);
     const pj = b.parent ? bones[b.parent].userData.j : new THREE.Vector3();
     bone.position.copy(bone.userData.j).sub(pj);
     if (b.parent) bones[b.parent].add(bone);
     bones[b.name] = bone; list.push(bone);
   }
-  const mat = new THREE.MeshToonMaterial({ map: hairTexture(hair), gradientMap: toonGradient(), side: THREE.DoubleSide, emissive: new THREE.Color(0x000000) });
-  mat.emissiveMap = mat.map; mat.emissive.setScalar(0.42);
-  mat.color.set(0xffffff).lerp(new THREE.Color(tint), 0.3);
-  const mesh = new THREE.SkinnedMesh(cache.geo, mat);
+  const mats = toonMats(cache, hair, tint);
+  const mesh = new THREE.SkinnedMesh(cache.geo, mats.length === 1 ? mats[0] : mats);
   mesh.castShadow = true; mesh.receiveShadow = false; mesh.frustumCulled = false;
   mesh.add(bones.hips); mesh.updateMatrixWorld(true);
   mesh.bind(new THREE.Skeleton(list), new THREE.Matrix4());
@@ -143,15 +165,15 @@ export function attachAngel(rig, { hair = 0xff86c2, tint = 0x4aa0ff } = {}) {
   const ink = outlineSkinned(mesh);
   // hide classic body meshes (weapon isn't attached yet); keep the halo
   rig.model.traverse((o) => { if (o.isMesh && o !== mesh && !o.userData.outline) { let p = o, keep = false; while (p) { if (p === rig.halo) keep = true; p = p.parent; } if (!keep) o.visible = false; } });
-  // arm rest offsets: rotate the classic straight-down arm onto the scanned A-pose arm
+  // arm rest offsets: rotate the classic straight-down arm onto the scanned pose's arm
   const rest = {};
   for (const s of ['L', 'R']) {
     const sg = s === 'L' ? 1 : -1, a = W([J.sh[0] * sg, J.sh[1]]), b = W([J.wr[0] * sg, J.wr[1]]);
     rest[s] = new THREE.Quaternion().setFromUnitVectors(b.sub(a).normalize(), D);
-    bones['sh' + s].scale.setScalar(1.14);
+    bones['sh' + s].scale.setScalar(cfg.shScale);
   }
   rig.haloY = 0.335; rig.halo.scale.setScalar(0.78); rig.crown.position.y = 0.27;
-  rig.sam = { mesh, ink, bones, mat, rest, hipsY: bones.hips.position.y, base: 0.42 };
+  rig.sam = { mesh, ink, bones, mats, mat: mats[0], rest, hipsY: bones.hips.position.y, base: cfg.glow, cfg, model };
   return true;
 }
 
@@ -170,19 +192,20 @@ export function syncAngel(rig, s) {
     B['sh' + n].quaternion.copy(arm.quaternion).multiply(qr);
     B['el' + n].quaternion.copy(qi).multiply(elb.quaternion).multiply(qr);
   }
-  rig.tails.forEach((t, i) => {
+  if (B.taL) rig.tails.forEach((t, i) => {
     const n = i === 0 ? 'L' : 'R';   // tails[0] is sd=-1
     const sd = t.s;
     B['ta' + n].rotation.set((t.t1.rotation.x - 0.15) * 0.55, 0, (t.t1.rotation.z + 0.5 * sd) * 0.6);
     B['tb' + n].rotation.set((t.t2.rotation.x + t.t3.rotation.x * 0.7) * 0.6, 0, 0);
   });
-  const w = rig.wings; if (w) { const k = (w.L.rotation.z - 0.24); B.wgL.rotation.set(w.L.rotation.x, 0, k * 0.8); B.wgR.rotation.set(w.R.rotation.x, 0, -k * 0.8); }
+  const w = rig.wings; if (w && B.wgL) { const k = (w.L.rotation.z - 0.24); B.wgL.rotation.set(w.L.rotation.x, 0, k * 0.8); B.wgR.rotation.set(w.R.rotation.x, 0, -k * 0.8); }
   // hit flash / boost glow ride on the classic body material; mirror them here
-  const e = rig.mats.body.emissive; S_.mat.emissive.setRGB(S_.base + e.r, S_.base + e.g, S_.base + e.b);
+  const e = rig.mats.body.emissive; for (const m of S_.mats) m.emissive.setRGB(S_.base + e.r, S_.base + e.g, S_.base + e.b);
   void s; void q1; void q2; void RESTX;
 }
 
 export function angelCamo(rig, k) {
-  const m = rig.sam.mat; const on = k > 0;
-  rig.sam.ink.visible = !on; m.transparent = on; m.opacity = on ? (k >= 1 ? 0.07 : 0.4) : 1; m.depthWrite = !on; m.needsUpdate = true;
+  const on = k > 0;
+  rig.sam.ink.visible = !on;
+  for (const m of rig.sam.mats) { m.transparent = on; m.opacity = on ? (k >= 1 ? 0.07 : 0.4) : 1; m.depthWrite = !on; m.needsUpdate = true; }
 }

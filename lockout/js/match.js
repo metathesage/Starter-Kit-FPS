@@ -38,7 +38,7 @@ export class Actor {
     this.m = match; this.id = id ?? _uid++; if (id !== null && id >= _uid) _uid = id + 1; this.remote = remote; this.netT = null; this.spawnSeq = 0; this.name = name; this.team = team; this.isPlayer = isPlayer; this.style = style;
     this.cls = match.hunt && team === 'red' ? 'warlock' : 'spartan';
     this.blinkCh = BLINK_MAX; this.blinkT = 0; this.sup = 0.3; this.novaT = 0; this.castDmg = 0; this.glide = false;
-    this.rig = buildWaifu({ warlock: this.cls === 'warlock', team, hair: style.hair, eye: style.eye, helmet: helmet ?? (isPlayer ? match.cfg.helmet === true : false), haloColor: isPlayer ? match.cfg.haloColor : undefined, skin: isPlayer ? match.cfg.skinTint : null });
+    this.rig = buildWaifu({ model: style.model, warlock: this.cls === 'warlock', team, hair: style.hair, eye: style.eye, helmet: helmet ?? (isPlayer ? match.cfg.helmet === true : false), haloColor: isPlayer ? match.cfg.haloColor : undefined, skin: isPlayer ? match.cfg.skinTint : null });
     this.rig.root.visible = false;
     match.scene.add(this.rig.root);
     this.cmd = { mx: 0, mz: 0, fire: false, fireEdge: false, zoom: false, jump: false, crouch: false, melee: false, grenade: false, reload: false, swap: false, use: false, gswitch: false, blink: false, nova: false };
@@ -504,7 +504,7 @@ export class Match {
     if (this.replica) {
       this.timeLimit = (cfg.minutes || 12) * 60;
       for (const r of cfg.roster) {
-        const a = new Actor(this, { name: r.name, team: r.team, style: { hair: r.hair, eye: r.eye }, isPlayer: r.id === cfg.you, id: r.id, helmet: r.helmet });
+        const a = new Actor(this, { name: r.name, team: r.team, style: { hair: r.hair, eye: r.eye, model: r.model }, isPlayer: r.id === cfg.you, id: r.id, helmet: r.helmet });
         a.alive = true; a.rig.root.visible = false; a.first = true; a.weapons = [{ id: 'br', mag: 36, res: 108 }];
         this.actors.push(a); this.byId.set(a.id, a);
         if (r.id === cfg.you) this.player = a;
