@@ -343,3 +343,57 @@ body.wow-shake #hud { animation: hudShake .28s; } @keyframes hudShake { 20% { tr
 .menu-item.focus .ico, .menu-item:hover .ico { opacity: 1; }
 .btn .ico + span { order: 1; } .btn i { order: 2; }
 @media (max-height: 620px) { .eyebrow { display: none; } .menu-item { padding: 6px 16px !important; font-size: 12px; } .logo { font-size: clamp(34px, 8vh, 70px); margin-bottom: 14px; } .menu-item .ico { width: 18px; height: 18px; } }
+
+/* ==================== ARCADE MOTION: everything dashes, slams or sweeps ==================== */
+@keyframes dashIn { from { opacity: 0; transform: translateX(-46px) skewX(-14deg); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes dashInR { from { opacity: 0; transform: translateX(46px) skewX(12deg); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes wipe { from { clip-path: polygon(0 0, 0 0, -14% 100%, -14% 100%); } to { clip-path: polygon(0 0, 118% 0, 104% 100%, 0 100%); } }
+@keyframes shineX { from { background-position: 160% 0; } to { background-position: -60% 0; } }
+@keyframes icoPop { 0% { transform: scale(.6) rotate(-18deg); } 60% { transform: scale(1.28) rotate(6deg); } 100% { transform: none; } }
+@keyframes streaks { from { background-position: 0 0; } to { background-position: -600px 0; } }
+@keyframes ticker { to { transform: translateX(-50%); } }
+@keyframes stripes { to { background-position: 32px 0; } }
+@keyframes underRun { 0% { transform: scaleX(0); transform-origin: left; } 50% { transform: scaleX(1); transform-origin: left; } 51% { transform-origin: right; } 100% { transform: scaleX(0); transform-origin: right; } }
+@keyframes medalSlam { 0% { opacity: 0; transform: translateX(-120px) skewX(-20deg) scale(1.6); } 55% { opacity: 1; transform: translateX(10px) skewX(4deg) scale(1); } 100% { transform: none; } }
+@keyframes annSlash { 0% { opacity: 0; transform: translateX(-160px) skewX(-24deg); filter: blur(10px); letter-spacing: .8em; } 14% { opacity: 1; transform: translateX(8px) skewX(3deg); filter: none; letter-spacing: .34em; } 22% { transform: none; } 80% { opacity: 1; } 100% { opacity: 0; transform: translateX(120px) skewX(20deg); filter: blur(6px); } }
+@keyframes feedSlam { from { opacity: 0; transform: translateX(-70px) skewX(-18deg); } to { opacity: 1; transform: none; } }
+@keyframes pulseRing { from { box-shadow: 0 0 0 0 rgba(255, 255, 255, .5); } to { box-shadow: 0 0 0 22px rgba(255, 255, 255, 0); } }
+
+.screen.active .panel { animation: wipe .5s var(--ease) backwards; }
+.screen.active .panel-head { animation: dashIn .6s .12s var(--spring) backwards; }
+.screen.active .panel-head h2 { position: relative; } .screen.active .panel-head h2::after { content: ''; position: absolute; left: 0; right: 0; bottom: -8px; height: 2px; background: var(--aur-l); animation: underRun 2.8s .5s var(--ease) infinite; }
+.screen.active .opt, .screen.active .cards .card, .screen.active .at-tile, .screen.active .mcard, .screen.active .ch, .screen.active .rs { animation: dashInR .5s var(--spring) backwards; }
+.screen.active .opt:nth-child(2), .screen.active .card:nth-child(2), .screen.active .at-tile:nth-child(2), .screen.active .mcard:nth-child(2) { animation-delay: .05s; }
+.screen.active .opt:nth-child(3), .screen.active .card:nth-child(3), .screen.active .at-tile:nth-child(3), .screen.active .mcard:nth-child(3) { animation-delay: .1s; }
+.screen.active .opt:nth-child(4), .screen.active .card:nth-child(4), .screen.active .at-tile:nth-child(4), .screen.active .mcard:nth-child(4) { animation-delay: .15s; }
+.screen.active .opt:nth-child(5), .screen.active .at-tile:nth-child(5), .screen.active .mcard:nth-child(5) { animation-delay: .2s; }
+.screen.active .opt:nth-child(n+6), .screen.active .at-tile:nth-child(n+6), .screen.active .mcard:nth-child(n+6) { animation-delay: .26s; }
+#title.active .menu-item { animation: dashIn .7s var(--spring) backwards; }
+#title.active .menu-item:nth-child(1) { animation-delay: .1s; } #title.active .menu-item:nth-child(2) { animation-delay: .16s; } #title.active .menu-item:nth-child(3) { animation-delay: .22s; } #title.active .menu-item:nth-child(4) { animation-delay: .28s; }
+#title.active .menu-item:nth-child(5) { animation-delay: .34s; } #title.active .menu-item:nth-child(6) { animation-delay: .4s; } #title.active .menu-item:nth-child(7) { animation-delay: .46s; } #title.active .menu-item:nth-child(8) { animation-delay: .52s; }
+#title.active .logo .l1 { animation: dashIn .8s var(--spring) backwards; } #title.active .logo .l2 { animation: dashInR .8s .1s var(--spring) backwards, aurDrift 7s linear infinite; }
+.menu-item.focus::before, .menu-item:hover::before { opacity: 1; inset: 0; background: linear-gradient(100deg, transparent 38%, rgba(0, 0, 0, .16) 50%, transparent 62%); background-size: 260% 100%; animation: shineX .8s var(--ease); transform: none; }
+.menu-item.focus .ico, .menu-item:hover .ico { animation: icoPop .5s var(--spring); }
+.menu-item.focus .arrow { animation: none; }
+.btn.primary { position: relative; overflow: hidden; } .btn.primary::after { content: ''; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 40%, rgba(255, 255, 255, .9) 50%, transparent 60%); background-size: 260% 100%; mix-blend-mode: overlay; animation: shineX 2.6s 1s var(--ease) infinite; }
+.ld-bar i { background-image: repeating-linear-gradient(115deg, rgba(0, 0, 0, .22) 0 8px, transparent 8px 16px), var(--aur-l); background-size: 32px 100%, 100% 100%; animation: stripes .6s linear infinite; }
+#title::after { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0; opacity: .5; background: repeating-linear-gradient(105deg, transparent 0 140px, rgba(255, 255, 255, .05) 140px 142px, transparent 142px 300px, rgba(255, 226, 168, .07) 300px 303px); background-size: 600px 100%; animation: streaks 5s linear infinite; mask: linear-gradient(90deg, #000, transparent 70%); -webkit-mask: linear-gradient(90deg, #000, transparent 70%); }
+.ticker { position: absolute; left: 0; right: 0; bottom: calc(60px + var(--safe-b)); overflow: hidden; pointer-events: none; opacity: .5; transform: skewY(-1.2deg); border-block: 1px solid rgba(255, 255, 255, .14); background: rgba(0, 0, 0, .35); backdrop-filter: blur(4px); z-index: 0; }
+.tk-track { display: flex; width: max-content; animation: ticker 24s linear infinite; }
+.tk-track span { display: flex; align-items: center; gap: 22px; padding: 7px 11px; font: 600 11px var(--f-disp); letter-spacing: .5em; white-space: nowrap; color: #fff; text-transform: uppercase; }
+.tk-track i { width: 7px; height: 7px; background: var(--champ); transform: rotate(45deg); }
+.card.sel, .at-tile.sel { animation: none; }
+.bd.got .emb, .emb.big { position: relative; }
+.bd.got .emb::after { content: ''; position: absolute; inset: -4px; border-radius: 50%; background: conic-gradient(from var(--ang), transparent 0 70%, rgba(255, 226, 168, .95) 90%, transparent); -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 1px)); mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 1px)); animation: spin 3.4s linear infinite; }
+.bd.got { animation: none; }
+/* HUD slams */
+.medal { animation: medalSlam .5s var(--spring), medalOut .5s 2.4s forwards; } .medal svg { animation: icoPop .6s .1s var(--spring) backwards; }
+.h-announce.on { animation: annSlash 2.6s var(--ease) forwards; } .h-announce.on.xo { animation: xoIn 3.4s var(--ease) forwards; }
+.feed-item { animation: feedSlam .32s var(--spring), feedOut .5s 5s forwards; }
+.h-score .sc-row.mine { animation: none; } .h-hit.kill { filter: drop-shadow(0 0 12px rgba(255, 226, 168, 1)); }
+.h-reticle.enemy { animation: pulseRing .5s linear infinite; border-radius: 50%; }
+.eb-n { animation: dashIn .5s var(--spring) backwards; } .h-elim.on .eb-line { box-shadow: 0 0 20px rgba(255, 226, 168, .8); }
+@media (prefers-reduced-motion: reduce) { .tk-track, #title::after, .bd.got .emb::after, .ld-bar i { animation: none; } .screen.active .panel { animation: none; } }
+@media (max-height: 620px) { .ticker { display: none; } }
+.opt.focus .join-input, .opt:hover .join-input { background: #0a0a0d; color: #fff; border-color: #0a0a0d; }
+.opt.focus .roll, .opt:hover .roll { color: #05060a; border-color: rgba(0, 0, 0, .35); }

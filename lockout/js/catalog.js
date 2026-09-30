@@ -22,6 +22,16 @@ export const GLYPH = {
   target: 'M12 3v4M12 17v4M3 12h4M17 12h4M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z',
   fangs: 'M4 7c4 2 12 2 16 0M7 9l2 8 2-7M13 10l2 7 2-8',
   halo: 'M12 12a5 5 0 1 0 0 .01zM5 6c4-3 10-3 14 0M8 3c3-1.500 5-1.500 8 0',
+  spade: 'M12 3c-3 4-7 6-7 10a4 4 0 0 0 6.200 3.300L10 21h4l-1.200-4.700A4 4 0 0 0 19 13c0-4-4-6-7-10z',
+  lotus: 'M12 20c-4-2-7-5-7-9 3 0 5 1 7 3 2-2 4-3 7-3 0 4-3 7-7 9zM12 14c-2-3-2-6 0-10 2 4 2 7 0 10z',
+  comet: 'M16 8a3.500 3.500 0 1 0 .01 0zM14 10L3 21M11 7L3 9M17 13l-2 8',
+  katana: 'M4 20L19 5M17 3l4 4M6 18l-3 3M8 16l3 3',
+  anchor: 'M12 3a2 2 0 1 0 0 .01zM12 6v15M6 12H3c0 5 4 9 9 9s9-4 9-9h-3M8 10h8',
+  hourglass: 'M6 3h12M6 21h12M7 3c0 6 5 6 5 9s-5 3-5 9M17 3c0 6-5 6-5 9s5 3 5 9',
+  key: 'M8 8a4 4 0 1 0 .01 0zM11 11l10 10M17 17l3-3M14 14l2-2',
+  rose: 'M12 21v-8M12 13c-4 0-6-3-5-7 3 0 5 2 5 5 0-3 2-5 5-5 1 4-1 7-5 7zM9 18c1 0 2-1 3-2M15 19c-1 0-2-1-3-2',
+  trinity: 'M12 3l9 16H3zM12 9l4.500 8h-9z',
+  arc: 'M3 14l4-8 3 6 3-10 3 8 4-3',
   flag: MEDAL_ICONS.flag, perfect: MEDAL_ICONS.perfect, fist: MEDAL_ICONS.fist, crosshair: MEDAL_ICONS.crosshair, grenade: MEDAL_ICONS.grenade, rocket: MEDAL_ICONS.rocket,
 };
 export const glyphSvg = (id, cls = '') => `<svg viewBox="0 0 24 24" class="${cls}"><path d="${GLYPH[id] || GLYPH.star}"/></svg>`;
@@ -63,6 +73,9 @@ export const EMBLEMS = [
   E('fangs', 'FANGS', 'fangs', 2, 27, 450), E('orbit', 'ORBITAL', 'orbit', 2, 30, 500), E('spear', 'LANCE', 'spear', 2, 33, 550),
   E('sun', 'SOLARIS', 'sun', 3, 36, 800), E('diamond', 'FACET', 'diamond', 3, 40, 900), E('skull', 'REAPER', 'skull', 3, 44, 1000),
   E('star', 'CONSTELLATION', 'star', 3, 47, 1200), E('crown', 'CROWNED', 'crown', 3, 50, 2000),
+  E('lotus', 'SANCTUM', 'lotus', 1, 9, 180), E('comet', 'COMET', 'comet', 1, 14, 220), E('anchor', 'ANCHOR', 'anchor', 1, 16, 200),
+  E('spade', 'HIGH ROLLER', 'spade', 2, 22, 400), E('rose', 'THORNLESS', 'rose', 2, 26, 420), E('katana', 'IAIDO', 'katana', 2, 29, 500),
+  E('hourglass', 'LAST SECOND', 'hourglass', 2, 32, 520), E('arc', 'STORMCALLER', 'arc', 2, 35, 560), E('key', 'VAULT KEY', 'key', 3, 38, 850), E('trinity', 'TRINITY', 'trinity', 3, 42, 950),
 ];
 
 export const TITLES = [
@@ -91,6 +104,16 @@ export const BADGES = [
   { id: 'edge', name: 'EDGE OF THE BLADE', desc: '25 sword kills.', stat: 'sword', n: 25, glyph: 'blade' },
   { id: 'demo', name: 'DEMOLITION', desc: '25 grenade kills.', stat: 'grenade', n: 25, glyph: 'grenade' },
   { id: 'rampage', name: 'RUNNING RIOT', desc: 'Reach a 15 kill streak.', stat: 'streakBest', n: 15, glyph: 'flame' },
+  { id: 'centurion', name: 'CENTURION', desc: '250 kills.', stat: 'kills', n: 250, glyph: 'katana' },
+  { id: 'ghost', name: 'GHOST', desc: '25 headshots.', stat: 'headshots', n: 25, glyph: 'moon' },
+  { id: 'closer', name: 'CLOSER', desc: 'Win 10 matches.', stat: 'wins', n: 10, glyph: 'wings' },
+  { id: 'ironwill', name: 'IRON WILL', desc: 'Finish 50 matches.', stat: 'matches', n: 50, glyph: 'anchor' },
+  { id: 'highroller', name: 'HIGH ROLLER', desc: '500 kills.', stat: 'kills', n: 500, glyph: 'spade' },
+  { id: 'blitz', name: 'BLITZ', desc: 'Reach an 8 kill streak.', stat: 'streakBest', n: 8, glyph: 'bolt' },
+  { id: 'stormcaller', name: 'STORMCALLER', desc: '10 grenade kills.', stat: 'grenade', n: 10, glyph: 'arc' },
+  { id: 'clockwork', name: 'CLOCKWORK', desc: 'Hold the ball for 120 seconds.', stat: 'ballTime', n: 120, glyph: 'hourglass' },
+  { id: 'thornless', name: 'THORNLESS', desc: '10 perfects.', stat: 'perfects', n: 10, glyph: 'rose' },
+  { id: 'trinity', name: 'TRINITY', desc: '10 sword kills.', stat: 'sword', n: 10, glyph: 'trinity' },
 ];
 
 // ---- operators: base four are defined in rig.js; the rest unlock with level ----
