@@ -13,6 +13,8 @@ const RUN = 5.4, CROUCH_SPEED = 2.6, GRAV = 21, JUMP = 7.4;
 const SHIELD_MAX = 100, HEALTH_MAX = 45, RECHARGE_DELAY = 4.6, RECHARGE_RATE = 30;
 // warlock kit
 const BLINK_DIST = 9.5, BLINK_CD = 3.6, BLINK_MAX = 2, NOVA_WIND = 1.05, NOVA_SPEED = 15, NOVA_R = 8.5, NOVA_DMG = 230, SUPER_RATE = 1 / 55, GLIDE_FALL = -2.3;
+// spartan kit (Reach): power dash charges + one armor ability
+const DASH_MAX = 2, DASH_CD = 4.4, DASH_T = 0.27, DASH_SPD = 21, LOCK_T = 2.6, LOCK_CD = 11, JET_FUEL = 1, DROP_T = 9, DROP_CD = 22, DROP_R = 3.4;
 const _f = { x: 0, y: 0, z: 0 };
 const dead0 = (v) => v.health <= 0;
 export const POWER = new Set(['overshield', 'camo', 'boost']);
@@ -34,14 +36,16 @@ const SHELLS = new Set(['br', 'magnum', 'smg', 'shotgun', 'sniper', 'hawkmoon', 
 const PERFECT_W = new Map([['br', 4], ['carbine', 5], ['magnum', 3], ['sniper', 1], ['hawkmoon', 3], ['thorn', 3]]);
 
 export class Actor {
-  constructor(match, { name, team, style, isPlayer = false, id = null, remote = null, helmet }) {
+  constructor(match, { name, team, style, isPlayer = false, id = null, remote = null, helmet, fac, aa }) {
     this.m = match; this.id = id ?? _uid++; if (id !== null && id >= _uid) _uid = id + 1; this.remote = remote; this.netT = null; this.spawnSeq = 0; this.name = name; this.team = team; this.isPlayer = isPlayer; this.style = style;
-    this.cls = match.hunt && team === 'red' ? 'warlock' : 'spartan';
+    this.fac = fac ?? match.factionFor(team, isPlayer); this.cls = this.fac === 'destiny' ? 'warlock' : 'spartan';
+    this.aa = aa ?? (isPlayer ? match.cfg.aa || 'lock' : ['lock', 'jet', 'drop'][(Math.random() * 3) | 0]);
+    this.dashCh = DASH_MAX; this.dashT = 0; this.dashing = 0; this.dashV = { x: 0, z: 0 }; this.rammed = null; this.lockT = 0; this.lockAbs = 0; this.aaCd = 0; this.fuel = JET_FUEL; this.jumpsLeft = 1; this._jp = false; this.jetting = false;
     this.blinkCh = BLINK_MAX; this.blinkT = 0; this.sup = 0.3; this.novaT = 0; this.castDmg = 0; this.glide = false;
     this.rig = buildWaifu({ model: style.model, look: style.look, warlock: this.cls === 'warlock', team, hair: style.hair, eye: style.eye, helmet: helmet ?? (isPlayer ? match.cfg.helmet === true : false), haloColor: isPlayer ? match.cfg.haloColor : undefined, skin: isPlayer ? match.cfg.skinTint : null });
     this.rig.root.visible = false;
     match.scene.add(this.rig.root);
-    this.cmd = { mx: 0, mz: 0, fire: false, fireEdge: false, zoom: false, jump: false, crouch: false, melee: false, grenade: false, reload: false, swap: false, use: false, gswitch: false, blink: false, nova: false };
+    this.cmd = { mx: 0, mz: 0, fire: false, fireEdge: false, zoom: false, jump: false, crouch: false, melee: false, grenade: false, reload: false, swap: false, use: false, gswitch: false, blink: false, nova: false, novaHeld: false };
     this.kills = 0; this.deaths = 0; this.assists = 0; this.streak = 0; this.medals = {}; this.lastKiller = -1; this.multiT = -99; this.multi = 0;
     this.alive = false; this.deadT = 0; this.respawnAt = 0;
     this.x = 0; this.y = 0; this.z = 0; this.vx = 0; this.vy = 0; this.vz = 0; this.yaw = 0; this.pitch = 0;
@@ -70,6 +74,8 @@ export class Actor {
     const wl = this.cls === 'warlock';
     this.gren = wl ? { frag: 0, plasma: 0 } : { frag: 2, plasma: 2 }; this.gtype = 'frag';
     this.blinkCh = BLINK_MAX; this.blinkT = 0; this.novaT = 0; this.castDmg = 0; this.glide = false; if (wl) this.sup = Math.min(this.sup, 0.35);
+    this.dashCh = DASH_MAX; this.dashT = 0; this.dashing = 0; this.lockT = 0; this.lockAbs = 0; this.aaCd = 0; this.fuel = JET_FUEL; this.jumpsLeft = 1; this.jetting = false;
+    if (this.fac === 'spartan') this.gren = { frag: 3, plasma: 2 };
     this.resetTimers(); this.spawnProt = 2.2; this.dmgBy.clear(); this.poison = null;
     this.spawnSeq++; this.netT = null; this.carry = null; this.pf = null;
     this.rig.root.visible = !this.isPlayer || this.m.thirdPerson;
@@ -116,6 +122,7 @@ export class Actor {
 
   tickVitals(dt) {
     this.spawnProt = Math.max(0, this.spawnProt - dt);
+    if (this.m.inDome(this)) this.lastHit = Math.max(this.lastHit, RECHARGE_DELAY);
     this.lastHit += dt;
     this.lungeCd = Math.max(0, this.lungeCd - dt);
     this.gcd = Math.max(0, this.gcd - dt);
@@ -134,7 +141,7 @@ export class Actor {
     if (this.boostT > 0) this.boostT = Math.max(0, this.boostT - dt);
     const shieldCap = SHIELD_MAX + this.over;
     if (this.shield > SHIELD_MAX && this.over <= 0) this.shield = Math.max(SHIELD_MAX, this.shield - 22 * dt);
-    if (this.lastHit > RECHARGE_DELAY && this.shield < shieldCap) {
+    if (this.lastHit > RECHARGE_DELAY * (this.fac === 'spartan' ? 0.7 : 1) && this.shield < shieldCap) {
       if (this.shield <= 0.01 && this.isPlayer) Sound.play('charge', { vol: 0.5 });
       this.shield = Math.min(shieldCap, this.shield + RECHARGE_RATE * dt * (this.shield < 1 ? 1.4 : 1));
       if (this.shield >= SHIELD_MAX) this.health = Math.min(HEALTH_MAX, this.health + 20 * dt);
@@ -158,12 +165,19 @@ export class Actor {
     if (this.zoomLevel > 0) spd *= 0.65;
     if (this.carry === 'flag') spd *= 0.94;
     if (this.reloadT > 0 && this.def && (this.def.id === 'sniper')) spd *= 0.85;
-    if (this.cls === 'warlock') this.abilities(dt, frozen);
+    if (this.cls === 'warlock') this.abilities(dt, frozen); else if (this.fac === 'spartan') this.spartanKit(dt, frozen);
     if (this.glide) spd *= 1.12;
     let wx = frozen ? 0 : c.mx * spd, wz = frozen ? 0 : c.mz * spd;
-    if (this.lunge || this.novaT > 0) { wx = wz = 0; }
+    if (this.lunge || this.novaT > 0 || this.lockT > 0) { wx = wz = 0; }
+    if (this.dashing > 0) { wx = this.dashV.x; wz = this.dashV.z; this.vx = wx; this.vz = wz; }
     if (this.novaT > 0 && !this.grounded) this.vy = 0;
-    if (c.jump && this.grounded && !frozen) { this.vy = JUMP; this.grounded = false; if (this.isPlayer) Sound.play('jump', { vol: 0.5 }); }
+    const jEdge = c.jump && !this._jp; this._jp = c.jump;
+    if (this.grounded) this.jumpsLeft = 1;
+    if (c.jump && this.grounded && !frozen && this.lockT <= 0) { this.vy = JUMP; this.grounded = false; if (this.isPlayer) Sound.play('jump', { vol: 0.5 }); }
+    else if (jEdge && !this.grounded && this.cls === 'warlock' && this.jumpsLeft > 0 && !frozen && this.novaT <= 0) {
+      // destiny double jump: a second lift in the air with a burst ring
+      this.jumpsLeft--; this.vy = JUMP * 0.98; this.glide = false; m.fx.burst(this.x, this.y + 0.1, this.z, [0.6, 0.85, 1], 14, 3.5); m.sfx('blink', this, 0.45); if (this.isPlayer) Sound.play('jump', { vol: 0.5 });
+    }
     this.physics(dt, wx, wz, false);
     this.separate();
     // embedded in geometry (knockback, spawn overlap, edge cases): pop out to the nearest walkable spot
@@ -212,6 +226,80 @@ export class Actor {
     m.sfx('blink', this, 0.9);
     m.bus.emit('blink', this);
     return true;
+  }
+
+  // ---- spartan kit (Reach): power dash on the blink key, one armor ability on the nova key -------------
+  spartanKit(dt, frozen) {
+    const c = this.cmd, m = this.m;
+    if (this.dashCh < DASH_MAX) { this.dashT += dt; if (this.dashT >= DASH_CD) { this.dashT = 0; this.dashCh++; } } else this.dashT = 0;
+    if (this.dashing > 0) {
+      this.dashing -= dt;
+      // shoulder charge: first foe inside the lane takes a hit and gets thrown
+      for (const o of m.actors) {
+        if (o === this || !o.alive || !m.foe(this, o) || o === this.rammed) continue;
+        if (Math.hypot(o.x - this.x, o.z - this.z) < 1.25 && Math.abs(o.y - this.y) < 1.6) {
+          this.rammed = o; m.damage(o, 62, { attacker: this, weapon: 'dash', kind: 'melee', dir: { x: this.dashV.x / DASH_SPD, y: 0.2, z: this.dashV.z / DASH_SPD }, point: { x: o.x, y: o.chest, z: o.z } });
+          o.vx += this.dashV.x * 0.55; o.vz += this.dashV.z * 0.55; o.vy = Math.max(o.vy, 3.2); o.grounded = false;
+          m.fx.burst(o.x, o.chest, o.z, [1, 0.85, 0.5], 22, 6); m.sfx('explode', o, 0.45); m.bus.emit('shake', 0.4);
+        }
+      }
+      if (this.dashing <= 0) { this.rammed = null; this.vx *= 0.35; this.vz *= 0.35; }
+    }
+    if (c.blink && !frozen && this.dashCh > 0 && this.dashing <= 0 && this.lockT <= 0 && this.novaT <= 0) this.doDash();
+    this.aaCd = Math.max(0, this.aaCd - dt);
+    if (this.aa === 'lock') {
+      if (!this.lockMesh) {
+        const col = TEAM[this.team] ? TEAM[this.team].glow : 0x9fd8ff;
+        this.lockMesh = new THREE.Mesh(new THREE.IcosahedronGeometry(1.15, 2), new THREE.MeshBasicMaterial({ color: col, wireframe: true, transparent: true, opacity: 0.55, depthWrite: false, blending: THREE.AdditiveBlending }));
+        this.lockMesh.position.y = 0.9; this.lockMesh.visible = false; this.rig.root.add(this.lockMesh);
+      }
+      this.lockMesh.visible = this.lockT > 0 && (!this.isPlayer || this.m.thirdPerson);
+      if (this.lockMesh.visible) { this.lockMesh.rotation.y += dt * 2.2; this.lockMesh.scale.setScalar(1 + Math.sin(this.m.time * 18) * 0.03); }
+      if (this.lockT > 0) {
+        this.lockT -= dt;
+        if (this.lockT <= 0 || (!c.novaHeld && this.lockT < LOCK_T - 0.4) || c.nova) this.endLock();
+      } else if (c.nova && !frozen && this.aaCd <= 0) {
+        this.lockT = LOCK_T; this.lockAbs = 0; this.zoomLevel = 0; this.reloadT = 0; this.burstLeft = 0; this.vx = this.vz = 0;
+        m.sfx('shieldBreak', this, 0.9); m.fx.flash(this.x, this.y + 1, this.z, 1, 0x9fd8ff); m.bus.emit('lock', this);
+      }
+    } else if (this.aa === 'jet') {
+      const want = !!c.novaHeld && !frozen && this.fuel > 0.02;
+      this.jetting = want;
+      if (want) {
+        this.fuel = Math.max(0, this.fuel - dt * 0.5); this.grounded = false; this.glide = false;
+        this.vy = Math.min(5.2, this.vy + 30 * dt);
+        this.jetT = (this.jetT || 0) - dt; if (this.jetT <= 0) { this.jetT = 0.05; m.fx.burst(this.x, this.y + 0.2, this.z, [1, 0.7, 0.3], 3, 2.5); }
+        if (this.isPlayer) { this.jetSfx = (this.jetSfx || 0) - dt; if (this.jetSfx <= 0) { this.jetSfx = 0.11; Sound.play('jump', { vol: 0.16 }); } }
+      } else this.fuel = Math.min(JET_FUEL, this.fuel + dt * (this.grounded ? 0.55 : 0.1));
+    } else if (this.aa === 'drop') {
+      if (c.nova && !frozen && this.aaCd <= 0) { this.aaCd = DROP_CD; m.placeDome(this); }
+    }
+    if (this.aa !== 'lock') c.nova = false;
+  }
+
+  doDash() {
+    const c = this.cmd, m = this.m;
+    let dx = c.mx, dz = c.mz; const l = Math.hypot(dx, dz);
+    if (l < 0.15) { dx = -Math.sin(this.yaw); dz = -Math.cos(this.yaw); } else { dx /= l; dz /= l; }
+    this.dashCh--; this.dashT = 0; this.dashing = DASH_T; this.rammed = null; this.dashV.x = dx * DASH_SPD; this.dashV.z = dz * DASH_SPD;
+    this.zoomLevel = 0; if (this.sprintT < 0.5) this.sprintT = 1;
+    m.fx.blink(this.x, this.y, this.z, this.x + dx * 3.5, this.y, this.z + dz * 3.5);
+    m.sfx('blink', this, 0.8); m.bus.emit('dash', this);
+  }
+
+  endLock() {
+    const m = this.m, R = 7;
+    const dmg = clamp(this.lockAbs * 0.85, 28, 170);
+    this.lockT = 0; this.aaCd = LOCK_CD;
+    m.fx.explosion(this.x, this.y + 1, this.z, 2.4); m.sfx('novaBoom', this, 0.5); if (this.isPlayer) m.bus.emit('shake', 0.5);
+    for (const o of m.actors) {
+      if (o === this || !o.alive || !m.foe(this, o)) continue;
+      const dx = o.x - this.x, dz = o.z - this.z, d = Math.hypot(dx, dz, o.chest - this.chest);
+      if (d > R || !W.los(this.x, this.chest, this.z, o.x, o.chest, o.z)) continue;
+      m.damage(o, dmg * (1 - d / R * 0.6), { attacker: this, weapon: 'lockpulse', kind: 'explosion', explosion: true, dir: { x: dx / (d || 1), y: 0, z: dz / (d || 1) }, point: { x: o.x, y: o.chest, z: o.z } });
+      o.vx += (dx / (d || 1)) * 9; o.vz += (dz / (d || 1)) * 9; o.vy = Math.max(o.vy, 4); o.grounded = false;
+    }
+    this.lockAbs = 0;
   }
 
   // host-side cast state machine: returns true while the warlock is busy casting
@@ -334,6 +422,7 @@ export class Actor {
     if (this.throwT > 0) this.throwT -= dt;
     this.kick = damp(this.kick, 0, 14, dt);
     if (this.cls === 'warlock' && this.novaUpdate(dt)) { c.fire = false; c.fireEdge = false; c.melee = false; return; }
+    if (this.lockT > 0) { c.fire = false; c.fireEdge = false; c.melee = false; c.grenade = false; return; }
 
     // pending hits (melee) and throws
     if (this.pend) { this.pend.t -= dt; if (this.pend.t <= 0) { this.resolveMelee(this.pend); this.pend = null; } }
@@ -495,7 +584,7 @@ export class Match {
   constructor(scene, fx, cfg) {
     this.scene = scene; this.fx = fx; this.cfg = cfg; this.bus = new Bus();
     this.diff = DIFFICULTY[cfg.difficulty] || DIFFICULTY.normal;
-    this.actors = []; this.projs = []; this.pickups = [];
+    this.actors = []; this.projs = []; this.pickups = []; this.domes = [];
     this.variant = cfg.variant || 'standard';
     this.mode = MODES[cfg.mode] ? cfg.mode : 'slayer'; this.hunt = !!MODES[this.mode].hunt; setHuntTeams(this.hunt); this.ffa = this.mode === 'rumble'; this.teams = this.ffa ? P_TEAMS : ['red', 'blue'];
     this.time = 0; this.state = 'countdown'; this.count = 3.99; this.limit = cfg.limit || MODES[this.mode].limits[1]; this.timeLimit = (cfg.minutes || 12) * 60; this.clock = this.timeLimit;
@@ -664,6 +753,37 @@ export class Match {
     return true;
   }
 
+  // ---- factions: TEAM DESTINY (blink, glide, double jump, nova) vs TEAM SPARTANS (power dash, armor ability) ----
+  factionFor(team, isPlayer) {
+    const online = this.replica || (this.cfg.humans && this.cfg.humans.length);
+    if (this.hunt) return team === 'red' ? 'destiny' : online ? 'none' : 'spartan';
+    const f = this.cfg.faction || 'none';
+    if (f === 'none' || online) return 'none';
+    if (this.ffa) return isPlayer ? f : Math.random() < 0.5 ? 'destiny' : 'spartan';
+    const pt = this.cfg.team || 'blue';
+    return team === pt ? f : f === 'spartan' ? 'destiny' : 'spartan';
+  }
+  inDome(a) { for (const d of this.domes) if (d.team === a.team && Math.hypot(a.x - d.x, a.y + 0.9 - d.y, a.z - d.z) < DROP_R) return true; return false; }
+  placeDome(a) {
+    const col = TEAM[a.team] ? TEAM[a.team].glow : 0x8fd0ff;
+    const g = new THREE.Group();
+    const s = new THREE.Mesh(new THREE.SphereGeometry(1, 28, 18), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.16, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending }));
+    const w = new THREE.Mesh(new THREE.SphereGeometry(1.003, 20, 12), new THREE.MeshBasicMaterial({ color: col, wireframe: true, transparent: true, opacity: 0.22, depthWrite: false, blending: THREE.AdditiveBlending }));
+    const r = new THREE.Mesh(new THREE.RingGeometry(0.92, 1, 48), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })); r.rotation.x = -Math.PI / 2; r.position.y = -0.9;
+    g.add(s, w, r); g.scale.setScalar(0.01);
+    const d = { x: a.x, y: a.y + 0.9, z: a.z, team: a.team, life: DROP_T, mesh: g, s };
+    g.position.set(d.x, d.y, d.z); this.pgroup.add(g); this.domes.push(d);
+    this.sfx('shieldBreak', a, 0.7); this.fx.flash(d.x, d.y, d.z, 1.2, col);
+  }
+  updateDomes(dt) {
+    for (let i = this.domes.length - 1; i >= 0; i--) {
+      const d = this.domes[i]; d.life -= dt;
+      const k = Math.min(1, (DROP_T - d.life) / 0.25) * DROP_R * (d.life < 0.6 ? Math.max(0, d.life / 0.6) : 1);
+      d.mesh.scale.setScalar(Math.max(0.01, k)); d.mesh.rotation.y += dt * 0.5;
+      if (d.life <= 0) { this.pgroup.remove(d.mesh); d.mesh.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }); this.domes.splice(i, 1); }
+    }
+  }
+
   // ---- shooting ---------------------------------------------------------------
   muzzlePos(a, out) {
     if (a.isPlayer && !this.thirdPerson) {
@@ -686,6 +806,16 @@ export class Match {
     if (def.opening && wslot && wslot.fresh) { openMul = def.opening; sp *= 0.45; wslot.fresh = false; } else if (wslot) wslot.fresh = false;
     if (a.brain) sp *= 1 + (1 - this.diff.acc) * 2;
     const base = forward(a.yaw, a.pitch, { x: 0, y: 0, z: 0 });
+    // bullet magnetism (Halo style): shots bend toward a foe near the reticle, strongest dead centre
+    if (a.isPlayer && !a.brain && !def.proj && (this.cfg.assist ?? 1) > 0) {
+      const t = this.magnet(a, def.snd === 'sniper' ? 0.028 : def.pellets ? 0.05 : 0.085, Math.min(def.range, 60)), ang = this._magAng;
+      if (t) {
+        const dx = t.x - a.x, dy = t.chest + 0.05 - eye, dz = t.z - a.z, dl = Math.hypot(dx, dy, dz) || 1;
+        const k = clamp((1 - ang / (def.snd === 'sniper' ? 0.028 : def.pellets ? 0.05 : 0.085)) * 0.9 * (this.cfg.assist ?? 1), 0, 0.9);
+        base.x += (dx / dl - base.x) * k; base.y += (dy / dl - base.y) * k; base.z += (dz / dl - base.z) * k;
+        const bl = Math.hypot(base.x, base.y, base.z) || 1; base.x /= bl; base.y /= bl; base.z /= bl;
+      }
+    }
     const mp = this.muzzlePos(a, _mz);
     const mx = mp.x, my = mp.y, mz = mp.z;
     this.sfx(def.snd, a, def.snd === 'sniper' || def.snd === 'shotgun' ? 1.1 : 0.9);
@@ -914,6 +1044,8 @@ export class Match {
     if (!v.alive || v.spawnProt > 0 || this.state === 'ended') return 0;
     const a = info.attacker;
     if (a && a !== v && !this.foe(a, v)) return 0;
+    if (v.lockT > 0 && !info.self) { v.lockAbs += amt; v.rig.flash = 1; this.fx.sparks((info.point || v).x, (info.point || { y: v.chest }).y ?? v.chest, (info.point || v).z, 0, 1, 0, 6); this.bus.emit('lockhit', v, a, amt); return 0; }
+    if (a && a !== v && this.inDome(v)) amt *= 0.4;
     if (a && a.brain && v.isPlayer && !info.explosion) amt *= this.diff.dmgIn;
     if (a && a !== v && a.boostT > 0) amt *= 2;
     if (a && a !== v && a.cls === 'warlock' && !info.explosion) a.sup = Math.min(1, a.sup + amt * 0.0009);
@@ -1088,10 +1220,10 @@ export class Match {
         }
       }
       if (!a.alive && live && this.time >= a.respawnAt) a.spawn(this.spawnPoint(a));
-      a.cmd.fireEdge = false; a.cmd.jump = false; a.cmd.melee = false; a.cmd.grenade = false; a.cmd.reload = false; a.cmd.swap = false; a.cmd.use = false; a.cmd.gswitch = false; a.cmd.zoom = false; a.cmd.blink = false;
+      a.cmd.fireEdge = false; a.cmd.jump = false; a.cmd.melee = false; a.cmd.grenade = false; a.cmd.reload = false; a.cmd.swap = false; a.cmd.use = false; a.cmd.gswitch = false; a.cmd.zoom = false; a.cmd.blink = false; a.cmd.nova = false;
     }
     if (this.obj) this.obj.update(dt, live);
-    this.updateProjectiles(dt);
+    this.updateProjectiles(dt); this.updateDomes(dt);
     this.updatePickups(dt);
   }
 
@@ -1119,6 +1251,7 @@ export class Match {
       const ang = Math.acos(clamp((dx * b.x + dy * b.y + dz * b.z) / d, -1, 1));
       if (ang < bd && W.los(a.x, a.eye, a.z, o.x, o.chest, o.z)) { bd = ang; best = o; }
     }
+    this._magAng = bd;
     return best;
   }
 

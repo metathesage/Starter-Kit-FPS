@@ -74,7 +74,7 @@ export class HUD {
       </div>
       <div class="h-sprint"><svg viewBox="0 0 24 24"><path d="M6 6l6 6-6 6M13 6l6 6-6 6"/></svg>SPRINT</div>
       <div class="h-reticle"><svg viewBox="-40 -40 80 80"></svg></div>
-      <div class="h-hit"><svg viewBox="-20 -20 40 40"><path d="M-14-14L-6-6M14-14L6-6M-14 14L-6 6M14 14L6 6"/></svg></div>
+      <div class="h-hit"><svg viewBox="-20 -20 40 40"><path d="M-14-14L-6-6M14-14L6-6M-14 14L-6 6M14 14L6 6"/></svg></div><div class="h-dn"></div><div class="h-lock"></div>
       <div class="h-announce"></div><div class="h-count"></div><div class="h-mode"></div>
       <div class="h-elim"></div><div class="h-skull"></div><div class="h-tut"></div>
       <div class="h-medals"></div><div class="h-prompt"></div>
@@ -100,7 +100,7 @@ export class HUD {
     this.el = { fill: q('.sh-fill'), ghost: q('.sh-ghost'), over: q('.sh-over'), hp: q('.hp-row'), frag: q('.gr.frag'), plasma: q('.gr.plasma'),
       sc: { blue: q('.sc-row.blue'), red: q('.sc-row.red') }, clock: q('.sc-clock'), mode: q('.sc-mode'), feed: q('.feed'), radar: q('.h-radar canvas'),
       wIcon: q('.wp-icon'), wName: q('.wp-name'), wMag: q('.wp-mag'), wRes: q('.wp-res'), wRel: q('.wp-reload'), ret: q('.h-reticle'), retSvg: q('.h-reticle svg'),
-      hit: q('.h-hit'), ann: q('.h-announce'), count: q('.h-count'), modeBig: q('.h-mode'), medals: q('.h-medals'), prompt: q('.h-prompt'), cam: q('.h-cam'),
+      hit: q('.h-hit'), dn: q('.h-dn'), ann: q('.h-announce'), count: q('.h-count'), modeBig: q('.h-mode'), medals: q('.h-medals'), prompt: q('.h-prompt'), cam: q('.h-cam'),
       death: q('.h-death'), dName: q('.dd .nm'), dRes: q('.dd .rs'), board: q('.h-board'), fps: q('.h-fps'), flash: q('.h-flash'), dmg: q('.h-dmg'), sprint: q('.h-sprint'), scope: q('.h-scope'), brs: q('.h-brs'), brZt: q('.brs-zt'), brRg: q('.brs-rg b'), brAm: q('.brs-am b'), zt: q('.h-scope .zt'), rg: q('.h-scope .rg b'), am: q('.h-scope .am b'),
       tut: q('.h-tut'), obj: q('.h-obj'), lead: q('.sc-lead'), elim: q('.h-elim'), skull: q('.h-skull'), pu: q('.pu-row'), cmpTrack: cmp, cmpHd: q('.cmp-hd'), markers: q('.h-markers'), weaponBox: q('.h-weapon'), abil: q('.h-abil'), novaw: q('.h-novaw'), novawD: q('.h-novaw span'), novaBox: q('.ab.nova'), novaPg: q('.ab.nova .pg'), novaPct: q('.ab.nova .pct'), novaKd: q('.ab.nova .kd'), blinkKd: q('.ab.blink .kd'), pips: root.querySelectorAll('.ab.blink .pips i'), grRow: q('.gr-row') };
     this.el.hp.innerHTML = '<i></i>'.repeat(5);
@@ -114,12 +114,17 @@ export class HUD {
     this.match = match; this.p = match.player;
     document.body.style.setProperty('--team', TEAM[this.p.team].css);
     const B = (e, f) => this.subs.push(match.bus.on(e, f));
-    B('hit', (a, v, head, dead) => {
+    B('hit', (a, v, head, dead, amt) => {
       if (a !== this.p) return;
-      const h = this.el.hit; h.classList.remove('on', 'head', 'kill'); void h.offsetWidth;
-      h.innerHTML = head ? svg(ICONS.skull) : '<svg viewBox="-20 -20 40 40"><path d="M-14-14L-6-6M14-14L6-6M-14 14L-6 6M14 14L6 6"/></svg>';
-      h.classList.add('on'); if (head) h.classList.add('head'); if (dead) h.classList.add('kill');
-      Sound.play(head ? 'headshot' : 'hit', { vol: 0.8 });
+      const h = this.el.hit; h.className = 'h-hit'; void h.offsetWidth;
+      const hp = v.shield <= 0 && !dead;
+      const ticks = dead ? 'M-17-17L-6-6M17-17L6-6M-17 17L-6 6M17 17L6 6M0-19V-10M0 19V10M-19 0H-10M19 0H10' : 'M-15-15L-7-7M15-15L7-7M-15 15L-7 7M15 15L7 7';
+      h.innerHTML = (head && !dead ? svg(ICONS.skull) : `<svg viewBox="-20 -20 40 40"><path d="${ticks}"/><circle r="15"/></svg>`);
+      h.classList.add('on'); if (head) h.classList.add('head'); if (dead) h.classList.add('kill'); if (hp) h.classList.add('hp');
+      // stacked damage number: sums hits inside 0.7s, pops and drifts up beside the reticle
+      const now = performance.now(); if (now - (this.dnT || 0) > 700) this.dnSum = 0; this.dnT = now; this.dnSum = (this.dnSum || 0) + (amt || 0);
+      const d = this.el.dn; if (d) { d.className = 'h-dn'; void d.offsetWidth; d.textContent = Math.max(1, Math.round(this.dnSum)); d.classList.add('on'); if (head) d.classList.add('head'); if (dead) d.classList.add('kill'); }
+      Sound.play(dead ? 'headshot' : head ? 'headshot' : 'hit', { vol: dead ? 1 : 0.8 });
     });
     B('hurt', (v, a, amt, src) => {
       if (v !== this.p) return;
@@ -157,7 +162,16 @@ export class HUD {
     } else this.el.tut.classList.remove('on');
     this.mk = new Map();
   }
-  unbind() { this.subs.forEach((u) => u()); this.subs = []; document.body.classList.remove('is-warlock'); }
+  // swap ability panel labels and icons when the kit changes (destiny nova / spartan armor ability)
+  setKit(k) {
+    if (this.kit === k) return; this.kit = k;
+    const E = this.el, L = { w: ['NOVA BOMB', 'BLINK', 'nova', 'blink'], slock: ['ARMOR LOCK', 'POWER DASH', 'lock', 'dash'], sjet: ['JETPACK', 'POWER DASH', 'jet', 'dash'], sdrop: ['DROP SHIELD', 'POWER DASH', 'drop', 'dash'] }[k];
+    const ic = (id, cls) => svg(ICONS[id], cls);
+    E.novaBox.querySelector('em').textContent = L[0]; E.novaBox.querySelector('.ic').outerHTML = ic(L[2], 'ic');
+    const bl = E.abil.querySelector('.ab.blink'); bl.querySelector('em').textContent = L[1]; bl.querySelector('.ic').outerHTML = ic(L[3], 'ic');
+  }
+
+  unbind() { this.subs.forEach((u) => u()); this.subs = []; document.body.classList.remove('is-warlock', 'is-spartan', 'is-locked', 'is-jetting'); this.kit = null; }
 
   modeIntro() {
     const md = MODES[this.match.mode], m = this.el.modeBig;
@@ -288,17 +302,27 @@ export class HUD {
         this.nwT = (this.nwT || 0) - dt; if (this.nwT <= 0) { this.nwT = clamp(nd / 45, 0.16, 0.6); Sound.play('alarm', { vol: 0.35 }); }
       }
     }
-    const wl = p.cls === 'warlock';
-    document.body.classList.toggle('is-warlock', wl);
+    const wl = p.cls === 'warlock', sp = p.fac === 'spartan';
+    document.body.classList.toggle('is-warlock', wl); document.body.classList.toggle('is-spartan', sp); document.body.classList.toggle('is-locked', sp && p.lockT > 0); document.body.classList.toggle('is-jetting', sp && !!p.jetting);
     E.grRow.style.display = wl ? 'none' : '';
-    E.abil.style.display = wl && p.alive ? '' : 'none';
+    E.abil.style.display = (wl || sp) && p.alive ? '' : 'none';
     if (wl && p.alive) {
       const pct = Math.floor(p.sup * 100);
+      this.setKit('w');
       E.novaPg.style.strokeDashoffset = 100 - pct;
       E.novaBox.classList.toggle('ready', p.sup >= 1); E.novaBox.classList.toggle('cast', p.novaT > 0);
       E.novaPct.textContent = p.novaT > 0 ? 'CASTING' : p.sup >= 1 ? 'READY' : pct + '%';
       const kn = Input.last + glyphText('nova'); if (this.kn !== kn) { this.kn = kn; E.novaKd.textContent = glyphText('nova'); E.blinkKd.textContent = glyphText('blink'); }
       E.pips.forEach((el, i) => { const full = p.blinkCh > i, part = p.blinkCh === i ? Math.min(1, p.blinkT / 3.6) : 0; el.style.setProperty('--f', full ? 1 : part); el.classList.toggle('full', full); });
+    } else if (sp && p.alive) {
+      this.setKit('s' + p.aa);
+      const CD = { lock: 11, drop: 22 }[p.aa];
+      const pct = p.aa === 'jet' ? Math.floor(p.fuel * 100) : p.aaCd > 0 ? Math.floor((1 - p.aaCd / CD) * 100) : 100;
+      E.novaPg.style.strokeDashoffset = 100 - pct;
+      E.novaBox.classList.toggle('ready', pct >= 100 && p.lockT <= 0); E.novaBox.classList.toggle('cast', p.lockT > 0 || p.jetting);
+      E.novaPct.textContent = p.lockT > 0 ? 'LOCKED' : p.jetting ? 'THRUST' : p.aa === 'jet' ? pct + '%' : pct >= 100 ? 'READY' : pct + '%';
+      const kn = Input.last + glyphText('nova'); if (this.kn !== kn) { this.kn = kn; E.novaKd.textContent = glyphText('nova'); E.blinkKd.textContent = glyphText('blink'); }
+      E.pips.forEach((el, i) => { const full = p.dashCh > i, part = p.dashCh === i ? Math.min(1, p.dashT / 4.4) : 0; el.style.setProperty('--f', full ? 1 : part); el.classList.toggle('full', full); });
     }
     // reticle
     const retId = def ? def.ret : 'none';

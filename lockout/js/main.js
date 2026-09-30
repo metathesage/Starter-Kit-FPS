@@ -28,8 +28,8 @@ import { Net, friendlyError } from './net.js';
 import { initTouch } from './touch.js';
 
 const Q = new URLSearchParams(location.search);
-const settings = Object.assign({ sens: 1, padSens: 1, invertY: false, fov: 66, master: 0.8, sfx: 1, music: 0.5, shadows: true, bloom: true, quality: 'auto', reticle: '#ffffff', hudScale: 1, announcer: true }, store('settings', {}));
-const loadout = Object.assign({ waifu: 0, team: 'blue', diff: 'normal', limit: 25, helmet: false, map: 'lockout', mode: 'slayer', variant: 'standard', limits: {} }, store('loadout', {}));
+const settings = Object.assign({ sens: 1, padSens: 1, invertY: false, fov: 66, master: 0.8, sfx: 1, music: 0.5, shadows: true, bloom: true, quality: 'auto', reticle: '#ffffff', hudScale: 1, announcer: true, assist: 1 }, store('settings', {}));
+const loadout = Object.assign({ waifu: 0, team: 'blue', diff: 'normal', limit: 25, helmet: false, map: 'lockout', mode: 'slayer', variant: 'standard', limits: {}, faction: 'spartan', aa: 'lock' }, store('loadout', {}));
 if (!MODES[loadout.mode]) loadout.mode = 'slayer';
 if (Q.get('mode') && MODES[Q.get('mode')]) loadout.mode = Q.get('mode');
 if (Q.get('variant')) loadout.variant = Q.get('variant');
@@ -39,10 +39,11 @@ const haloHex = (id) => { const h = C.HALOS.find((x) => x.id === (id || Profile.
 const skinHex = (id) => { const s = C.SKINS.find((x) => x.id === (id || Profile.d.eq.skin)); return s ? s.tint : null; };
 const VARIANTS = [['standard', 'STANDARD'], ['lowgrav', 'LOW GRAVITY'], ['fiesta', 'FIESTA'], ['snipers', 'SNIPERS'], ['swords', 'SWORDS + MAGNUMS'], ['iconic', 'ICONIC HAND CANNONS']];
 if (!VARIANTS.some((v) => v[0] === loadout.variant)) loadout.variant = 'standard';
-const matchCfg = () => ({ variant: loadout.variant, mode: loadout.mode, limit: limitOf(), haloColor: haloHex(), skinTint: skinHex() });
+const matchCfg = () => ({ faction: loadout.faction, aa: loadout.aa, assist: settings.assist, variant: loadout.variant, mode: loadout.mode, limit: limitOf(), haloColor: haloHex(), skinTint: skinHex() });
 { const i = WAIFUS.findIndex((w) => w.id === Profile.d.eq.operator); if (i >= 0) loadout.waifu = i; else loadout.waifu = 0; }
 if (Q.get('map')) loadout.map = Q.get('map');
 if (!['lockout', 'cryostat', 'mesa', 'overgrowth', 'warsat'].includes(loadout.map)) loadout.map = 'lockout';
+const FAC_TAG = { spartan: 'TEAM SPARTANS: power dash, an armor ability (lock, jetpack or drop shield), faster shield recharge, extra grenades.', destiny: 'TEAM DESTINY: blink, glide, double jump and a charging Nova Bomb super. The other side fields Spartans.', none: 'CLASSIC: no abilities, pure gunplay.' };
 const persist = () => { save('settings', settings); save('loadout', loadout); };
 
 const EXPOSURE = { lockout: 1.05, cryostat: 1.3, mesa: 0.95, overgrowth: 1.2, warsat: 1.35, sanctum: 0.92 };
@@ -293,6 +294,7 @@ function showSettings(backFn) {
   const rows = [];
   rows.push(UI.slider(box, 'Mouse sensitivity', 0.2, 3, 0.1, settings.sens, (v) => v.toFixed(1), (v) => { settings.sens = v; applySettings(); persist(); }));
   rows.push(UI.slider(box, 'Stick sensitivity', 0.3, 2.5, 0.1, settings.padSens, (v) => v.toFixed(1), (v) => { settings.padSens = v; applySettings(); persist(); }));
+  rows.push(UI.choice(box, 'Aim assist', [{ label: 'OFF', value: 0 }, { label: 'LIGHT', value: 0.5 }, { label: 'STANDARD', value: 1 }], settings.assist === 0 ? 0 : settings.assist === 0.5 ? 1 : 2, (v) => { settings.assist = v; persist(); }));
   rows.push(UI.choice(box, 'Invert Y', [{ label: 'OFF', value: false }, { label: 'ON', value: true }], settings.invertY ? 1 : 0, (v) => { settings.invertY = v; applySettings(); persist(); }));
   rows.push(UI.slider(box, 'Field of view', 50, 90, 2, settings.fov, (v) => v + '°', (v) => { settings.fov = v; persist(); }));
   rows.push(UI.slider(box, 'Master volume', 0, 1, 0.05, settings.master, (v) => Math.round(v * 100) + '%', (v) => { settings.master = v; applySettings(); persist(); }));
@@ -359,12 +361,15 @@ function showSetup(focusRow) {
   rows.push(variantRow(box));
   rows.push(UI.choice(box, 'Map', World.MAP_LIST.map((m) => ({ label: m.name, value: m.id })), World.MAP_LIST.findIndex((m) => m.id === loadout.map), (v) => { loadout.map = v; persist(); $('#mapTag').textContent = World.MAP_LIST.find((m) => m.id === v).tag; }));
   if (loadout.mode !== 'rumble') rows.push(UI.choice(box, MODES[loadout.mode].hunt ? 'Side' : 'Team', MODES[loadout.mode].hunt ? [{ label: 'SPARTANS', value: 'blue' }, { label: 'WARLOCKS', value: 'red' }] : [{ label: 'BLUE', value: 'blue' }, { label: 'RED', value: 'red' }], loadout.team === 'blue' ? 0 : 1, (v) => { loadout.team = v; rebuildShowcase(); persist(); }));
+  if (!MODES[loadout.mode].hunt) rows.push(UI.choice(box, 'Faction', [{ label: 'SPARTANS', value: 'spartan' }, { label: 'DESTINY', value: 'destiny' }, { label: 'CLASSIC', value: 'none' }], ['spartan', 'destiny', 'none'].indexOf(loadout.faction), (v) => { loadout.faction = v; persist(); $('#facTag').textContent = FAC_TAG[v]; }));
+  rows.push(UI.choice(box, 'Armor ability', [{ label: 'ARMOR LOCK', value: 'lock' }, { label: 'JETPACK', value: 'jet' }, { label: 'DROP SHIELD', value: 'drop' }], ['lock', 'jet', 'drop'].indexOf(loadout.aa), (v) => { loadout.aa = v; persist(); }));
   rows.push(UI.choice(box, 'Armor', [{ label: 'SPARTAN HELM', value: true }, { label: 'ANGEL', value: false }], loadout.helmet ? 0 : 1, (v) => { loadout.helmet = v; rebuildShowcase(); setHero(); persist(); }));
   rows.push(callsignRow(box));
   const dk = Object.keys(DIFFICULTY);
   rows.push(UI.choice(box, 'Bot difficulty', dk.map((k) => ({ label: DIFFICULTY[k].name, value: k })), dk.indexOf(loadout.diff), (v) => { loadout.diff = v; persist(); }));
   rows.push(limitRow(box));
   $('#mapTag').textContent = (World.MAP_LIST.find((m) => m.id === loadout.map) || World.MAP_LIST[0]).tag;
+  $('#facTag').textContent = MODES[loadout.mode].hunt ? 'WARLOCK HUNT: warlocks glide, blink and cast Nova Bombs. Spartans dash and lock down.' : FAC_TAG[loadout.faction] || '';
   const drop = $('#btnDrop'); UI.button(drop, () => startMatch()); rows.push(drop);
   UI.show('setup', { rows, onBack: () => showTitle(), focus: focusRow ?? rows.length - 1 });
   $('#modeBlurb') && ($('#modeBlurb').textContent = MODES[loadout.mode].blurb);
@@ -773,7 +778,7 @@ function playerInput(p) {
   if (Input.last === 'pad') { if (Input.pressed.sprint) padSprint = !padSprint; if (Math.hypot(mv.x, mv.y) < 0.25 || Input.held.fire || Input.held.zoom) padSprint = false; c.sprint = padSprint; } else c.sprint = Input.held.sprint;
   if (Input.pressed.melee) c.melee = true; if (Input.pressed.grenade) c.grenade = true; if (Input.pressed.reload) c.reload = true;
   if (Input.pressed.swap) c.swap = true; if (Input.pressed.use) c.use = true; if (Input.pressed.zoom) c.zoom = true; if (Input.pressed.gswitch) c.gswitch = true;
-  if (Input.pressed.blink) c.blink = true; if (Input.pressed.nova) c.nova = true;
+  if (Input.pressed.blink) c.blink = true; if (Input.pressed.nova) c.nova = true; c.novaHeld = !!Input.held.nova;
   // holding use also keeps pickup intent alive for a frame or two
   if (Input.held.use) c.use = true;
 }

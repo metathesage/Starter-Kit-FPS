@@ -281,6 +281,24 @@ export class Brain {
         if (d < 17) { const l = d || 1; c.mx = dx / l; c.mz = dz / l; if (a.grounded && chance(dt * 1.2)) c.jump = true; break; }
       }
     }
+    if (a.fac === 'spartan') {
+      c.novaHeld = false;
+      const dist = t ? Math.hypot(t.x - a.x, t.z - a.z) : 99;
+      if (a.dashCh > 0 && this.bCool <= 0 && !a.dashing) {
+        if (t && a.lastHit < 0.4 && chance(dt * 3)) { const dx = t.x - a.x, dz = t.z - a.z, l = Math.hypot(dx, dz) || 1, sd = chance(0.5) ? 1 : -1; c.mx = (-dz / l) * sd; c.mz = (dx / l) * sd; c.blink = true; this.bCool = rand(1.5, 3); }
+        else if (t && this.visible && dist > 5 && dist < 13 && a.dashCh >= 1 && chance(dt * 0.45)) { c.mx = (t.x - a.x) / dist; c.mz = (t.z - a.z) / dist; c.blink = true; this.bCool = rand(2.5, 4.5); }
+      }
+      if (a.aa === 'lock') {
+        if (a.lockT > 0) c.novaHeld = a.lockT > 1.0;
+        else if (a.aaCd <= 0 && a.shield < 45 && a.lastHit < 0.35 && chance(dt * 3)) { c.nova = true; c.novaHeld = true; }
+      } else if (a.aa === 'jet') {
+        if (moveTarget && moveTarget.y > a.y + 1.6 && a.fuel > 0.1 && Math.hypot(moveTarget.x - a.x, moveTarget.z - a.z) < 9) c.novaHeld = true;
+        else if (t && a.lastHit < 0.5 && a.fuel > 0.5 && chance(dt * 1.5)) c.novaHeld = true;
+      } else if (a.aa === 'drop') {
+        if (a.aaCd <= 0 && t && this.visible && (a.shield < 55 || dist < 14) && chance(dt * 1.2)) c.nova = true;
+      }
+      return;
+    }
     if (a.cls !== 'warlock') return;
     if (a.grounded) this.glideOn = chance(0.65);
     else if (this.glideOn && a.vy < 0.4) c.jump = true;

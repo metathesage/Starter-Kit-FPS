@@ -427,7 +427,7 @@ body.touch-on.playing #touch, body.touch-on.online-play #touch { display: block;
 .ab.blink .pips i:not(.full)::after { opacity: .45; }
 @media (max-width: 900px) { .h-abil { bottom: calc(150px + var(--safe-b)); transform: scale(.8); transform-origin: right bottom; } }
 .t-blink, .t-nova { display: none; }
-body.is-warlock .t-blink, body.is-warlock .t-nova { display: grid; }
+body.is-warlock .t-blink, body.is-warlock .t-nova, body.is-spartan .t-blink, body.is-spartan .t-nova { display: grid; }
 body.is-warlock .t-gren { display: none; }
 .t-blink { right: calc(96px + var(--safe-r)); bottom: calc(126px + var(--safe-b)); border-color: #b98cff; }
 .t-nova { right: calc(170px + var(--safe-r)); bottom: calc(150px + var(--safe-b)); width: 64px; height: 64px; border-color: #b98cff; box-shadow: 0 0 18px rgba(185, 140, 255, .45); }
