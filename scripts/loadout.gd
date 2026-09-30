@@ -141,9 +141,8 @@ func _card(id: String) -> Button:
 	vpc.add_child(vp)
 	var cam := Camera3D.new()
 	cam.fov = 34
-	cam.position = Vector3(0, 1.05, 4.2)
 	vp.add_child(cam)
-	cam.look_at(Vector3(0, 0.98, 0))
+	cam.look_at_from_position(Vector3(0, 1.05, 4.2), Vector3(0, 0.98, 0))
 	var key := DirectionalLight3D.new()
 	key.rotation_degrees = Vector3(-35, 30, 0)
 	key.light_energy = 2.4

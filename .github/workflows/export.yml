@@ -1,0 +1,74 @@
+name: Build game
+
+# Builds a Windows .exe and a browser build on every push.
+# Download the .exe from the run's "Artifacts" (or a Release), and play in the browser from GitHub Pages.
+
+on:
+  push:
+    branches: [main, "claude/**"]
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: "4.6-stable"
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Godot and export templates
+        run: |
+          set -e
+          BASE=https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}
+          curl -sSL -o godot.zip  $BASE/Godot_v${GODOT_VERSION}_linux.x86_64.zip
+          curl -sSL -o tpl.tpz    $BASE/Godot_v${GODOT_VERSION}_export_templates.tpz
+          unzip -q godot.zip
+          mv Godot_v${GODOT_VERSION}_linux.x86_64 /usr/local/bin/godot
+          mkdir -p ~/.local/share/godot/export_templates/4.6.stable
+          unzip -q tpl.tpz -d tpl
+          mv tpl/templates/* ~/.local/share/godot/export_templates/4.6.stable/
+
+      - name: Import project
+        run: godot --headless --import || true
+
+      - name: Export Windows
+        run: |
+          mkdir -p build/windows
+          godot --headless --export-release "Windows Desktop" build/windows/StarterKitFPS.exe
+          ls -la build/windows
+
+      - name: Export Web
+        run: |
+          mkdir -p build/web
+          godot --headless --export-release "Web" build/web/index.html
+          ls -la build/web
+
+      - name: Zip Windows build
+        run: cd build/windows && zip -r ../StarterKitFPS-windows.zip .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: StarterKitFPS-windows
+          path: build/StarterKitFPS-windows.zip
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+  pages:
+    # Needs Settings > Pages > Source = "GitHub Actions" once. Runs on the default branch only.
+    if: github.ref == 'refs/heads/main'
+    needs: export
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

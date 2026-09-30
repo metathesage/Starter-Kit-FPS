@@ -79,3 +79,9 @@ Crouch: C / Ctrl / B. Sprint: Shift / L3. Slide: crouch while sprinting.
 
 `models/maps/rust.glb` is the project's own Rust map mesh (from Drive). `maps/rust.gd` scales it by 0.25, re-skins it with a height-tinted shader and wraps it in invisible walls; spawns are probed onto open floor.
 Icons (`scripts/icons.gd`) use the project's ui-*/wp-* icon paths. Third-party or ripped meshes are for private prototyping; replace them before any public release.
+
+## Play / download
+
+- **Windows .exe**: GitHub > Actions > latest "Build game" run > Artifacts > `StarterKitFPS-windows` (a zip containing `StarterKitFPS.exe`, no install needed).
+- **In the browser**: after merging to `main`, set Settings > Pages > Source to "GitHub Actions". The game is then served from your Pages URL.
+- **Run from source**: install Godot 4.6, open `project.godot`, press F5.
