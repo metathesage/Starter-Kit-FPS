@@ -167,3 +167,10 @@ Title menu > Enter Sanctum. A clean, sunlit art-deco utopia you walk around in t
 - **The Vault** (north; interact to open the door): all 11 weapons on plinths (stats, test fire, rotate, skin preview), all 9 operators, dioramas of every map, a codex orb and a wall of your medals.
 - **Discoveries:** statues, weapons, operators, maps and secrets. Milestones pay credits; 20 unseals the Deep Vault and its relic (Sakura halo + Keeper title).
 - **Life:** koi, a carillon bell, a plaza cat, seats, a void obelisk, fireflies, photo mode (V hides the HUD).
+
+
+## New Light: what changed lately
+- **Operators** are real textured models skinned at load (`js/angel.js`): Mualani, Kagome and Lucy (UDIM atlas built by `tools/blender/prep_udim.py`), plus the original angel for EOS. Palette variants (`look: { hue, sat, val }` in `WAIFUS` / `BOT_STYLES`) make one model several operators. Add a model: run `tools/blender/prep_char.py`, add an entry with joint landmarks to `OPERATOR_MODELS`.
+- **Weapons** from the Drive pack are conformed with `tools/blender/conform.py` and listed in `models/weapons/manifest.json`.
+- **Menu stage** (`js/space.js`): procedural Earth, Milky Way, moon, the Halo ring (`models/space/halo_ring.glb`) and a deco platform.
+- **Audio**: licensed guitar score (`audio/music/CREDITS.txt`), narrator VO (`tools/vo/gen_vo.py`), and a synthesized UI palette (FM ticks, glass partials, air sweeps, sub thumps, short bright reverb) with a space ambience bed.
