@@ -515,3 +515,18 @@ body.wow-shake #hud { animation: hudShake .28s; } @keyframes hudShake { 20% { tr
 .h-sprint { position: absolute; left: 50%; bottom: 22%; translate: -50% 0; display: flex; gap: 8px; align-items: center; padding: 6px 16px; font: 700 10px var(--f-disp); letter-spacing: .4em; color: var(--champ); opacity: 0; transition: opacity .18s; border-block: 1px solid var(--champ); background: rgba(0, 0, 0, .45); }
 .h-sprint svg { width: 16px; height: 16px; stroke-width: 2.2; } .h-sprint.on { opacity: 1; } .h-sprint.on svg { animation: sprintCh .5s linear infinite; }
 @keyframes sprintCh { from { transform: translateX(-4px); opacity: .3; } 50% { opacity: 1; } to { transform: translateX(4px); opacity: .3; } }
+
+/* panel frame lives in the panel's own background so it never scrolls away with long content */
+.panel::before, .panel::after { display: none; }
+.panel {
+  background:
+    linear-gradient(var(--champ), var(--champ)) 0 0 / 30px 2px no-repeat,
+    linear-gradient(var(--champ), var(--champ)) 100% 100% / 30px 2px no-repeat,
+    linear-gradient(rgba(255, 226, 168, .3), rgba(255, 226, 168, .3)) 22px 9px / calc(100% - 22px) 1px no-repeat,
+    linear-gradient(rgba(255, 226, 168, .3), rgba(255, 226, 168, .3)) 0 calc(100% - 9px) / calc(100% - 22px) 1px no-repeat,
+    linear-gradient(rgba(255, 226, 168, .3), rgba(255, 226, 168, .3)) 9px 22px / 1px calc(100% - 22px) no-repeat,
+    linear-gradient(rgba(255, 226, 168, .3), rgba(255, 226, 168, .3)) calc(100% - 9px) 0 / 1px calc(100% - 22px) no-repeat,
+    radial-gradient(55% 35% at 0% 0%, rgba(255, 255, 255, .11), transparent 70%),
+    radial-gradient(45% 35% at 100% 100%, rgba(255, 196, 107, .08), transparent 70%),
+    linear-gradient(165deg, rgba(14, 14, 17, .92), rgba(2, 2, 4, .96));
+}
