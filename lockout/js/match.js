@@ -2,7 +2,9 @@
 import * as THREE from 'three';
 import * as W from './world.js';
 import { WEAPONS, EXOTICS, makeWeaponMesh, makeGrenadeMesh, makeRocketMesh, makeNovaMesh } from './weapons.js';
-import { buildWaifu, animateRig, disposeRig, BOT_STYLES, TEAM, setHuntTeams } from './rig.js';
+import { buildWaifu, animateRig, disposeRig, BOT_STYLES as BOT_ALL, RIGGED, TEAM, setHuntTeams } from './rig.js';
+// phones skip the heavy rigged bodies for bots (the player's own choice is always honoured)
+const BOT_STYLES = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches ? BOT_ALL.filter((s) => !RIGGED.has(s.model)) : BOT_ALL;
 import { MODES, P_TEAMS, Objectives } from './modes.js';
 import { Sound } from './audio.js';
 import { Bus, clamp, rand, pick, forward, lerp, damp, angDiff } from './util.js';

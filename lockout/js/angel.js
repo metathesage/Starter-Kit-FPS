@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from '../vendor/jsm/loaders/GLTFLoader.js';
 import { mergeGeometries } from '../vendor/jsm/utils/BufferGeometryUtils.js';
 import { toonGradient, outlineSkinned } from './toon.js';
+import { loadRigged, attachClipped, syncClipped } from './clipped.js';
 
 // Skinned operators. Every model is a static mesh normalised to height 1 (y -0.5..0.5, character-left = +x, front = +z).
 // Landmarks below place the joints; weights come from distance to bone segments at load time. The procedural rig drives the motion.
@@ -20,6 +21,10 @@ export const OPERATOR_MODELS = {
     J: { hips: [0, 0.0], spine: [0, 0.09], chest: [0, 0.2], head: [0, 0.31], sh: [0.075, 0.27], el: [0.17, 0.15], wr: [0.245, 0.06], hand: [0.28, 0.03], hip: [0.055, -0.02], kn: [0.065, -0.22], an: [0.05, -0.44], toe: [0.05, -0.5] } },
   lucy: { url: 'models/operator/lucy.glb', S: 1.74, shScale: 1.0, glow: 0.22,
     J: { hips: [0, 0.03], spine: [0, 0.12], chest: [0, 0.22], head: [0, 0.335], sh: [0.09, 0.285], el: [0.1, 0.15], wr: [0.09, 0.02], hand: [0.085, -0.02], hip: [0.045, 0.0], kn: [0.05, -0.24], an: [0.05, -0.45], toe: [0.05, -0.5] } },
+  // authored, rigged and animated (real clips). S = height in rig units; gun* place the weapon in the right hand
+  loba: { url: 'models/operator/loba.glb', rigged: true, S: 1.74, glow: 0.3, gunPos: [0, 0, 0], gunRot: [0, 0, 0] },
+  revenant: { url: 'models/operator/revenant.glb', rigged: true, S: 1.86, glow: 0.3, gunPos: [0, 0, 0], gunRot: [0, 0, 0] },
+  wraith: { url: 'models/operator/wraith.glb', rigged: true, S: 1.7, glow: 0.3, gunPos: [0, 0, 0], gunRot: [0, 0, 0] },
   kagome: { url: 'models/operator/kagome.glb', S: 1.76, shScale: 1.0, glow: 0.34,
     J: { hips: [0, -0.02], spine: [0, 0.07], chest: [0, 0.2], head: [0, 0.33], sh: [0.08, 0.29], el: [0.24, 0.29], wr: [0.34, 0.29], hand: [0.4, 0.29], hip: [0.045, -0.03], kn: [0.05, -0.24], an: [0.05, -0.46], toe: [0.05, -0.5] } },
 };
@@ -69,6 +74,7 @@ async function fetchGltf(loader, url) {
 
 export async function loadOperator(id = 'angel') {
   if (caches[id]) return caches[id];
+  if (OPERATOR_MODELS[id] && OPERATOR_MODELS[id].rigged) return (caches[id] = await loadRigged(id, OPERATOR_MODELS[id], fetchGltf));
   const cfg = OPERATOR_MODELS[id], BONES = table(cfg.J, cfg), S = cfg.S, loader = new GLTFLoader();
   const g = await fetchGltf(loader, cfg.url);
   const meshes = []; g.scene.traverse((o) => { if (o.isMesh) meshes.push(o); });
@@ -179,6 +185,7 @@ function toonMats(cache, hair, tint, look) {
 // Attach a skinned operator to a procedural rig. Hides the classic body, keeps halo + weapon + joints.
 export function attachAngel(rig, { hair = 0xff86c2, tint = 0x4aa0ff, model = 'angel', look = null } = {}) {
   const cache = caches[model] || caches.angel; if (!cache) return false;
+  if (cache.clipped) return attachClipped(rig, cache, { tint });
   const cfg = cache.cfg, S = cfg.S, J = cfg.J, W = (p) => new THREE.Vector3(-p[0] * S, (p[1] + 0.5) * S, 0);
   const bones = {}, list = [];
   for (const b of cache.bones) {
@@ -212,7 +219,8 @@ export function attachAngel(rig, { hair = 0xff86c2, tint = 0x4aa0ff, model = 'an
 const q1 = new THREE.Quaternion(), q2 = new THREE.Quaternion(), qi = new THREE.Quaternion();
 const RESTX = 0.15;
 // Copy the procedural rig's animated joints onto the skinned skeleton. Called at the end of animateRig.
-export function syncAngel(rig, s) {
+export function syncAngel(rig, s, dt = 1 / 60) {
+  if (rig.sam.clip) return syncClipped(rig, s, dt);
   const S_ = rig.sam, B = S_.bones;
   B.hips.position.y = S_.hipsY + (rig.hips.position.y - 0.96) * 0.92;
   B.hips.rotation.copy(rig.hips.rotation); B.spine.rotation.copy(rig.spine.rotation); B.chest.rotation.copy(rig.chest.rotation);

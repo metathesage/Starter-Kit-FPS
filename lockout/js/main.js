@@ -4,9 +4,9 @@ import { $, $$, clamp, lerp, damp, nextFrame, store, save, forward, TAU, angDiff
 import { Input } from './input.js';
 import { Sound } from './audio.js';
 import * as World from './world.js';
-import { WAIFUS, TEAM, buildWaifu, animateRig, disposeRig } from './rig.js';
+import { RIGGED, WAIFUS, TEAM, buildWaifu, animateRig, disposeRig } from './rig.js';
 import { WEAPONS, loadWeaponModels } from './weapons.js';
-import { loadOperator } from './angel.js';
+import { loadOperator, operatorReady } from './angel.js';
 import { Profile, rollCallsign } from './profile.js';
 import { Hub } from './hub.js';
 import { Post } from './post.js';
@@ -44,6 +44,7 @@ if (!VARIANTS.some((v) => v[0] === loadout.variant)) loadout.variant = 'standard
 const matchCfg = () => ({ faction: loadout.faction, aa: loadout.aa, assist: settings.assist, variant: loadout.variant, mode: loadout.mode, limit: limitOf(), haloColor: haloHex(), skinTint: skinHex() });
 { const i = WAIFUS.findIndex((w) => w.id === Profile.d.eq.operator); if (i >= 0) loadout.waifu = i; else loadout.waifu = 0; }
 if (Q.get('map')) loadout.map = Q.get('map');
+if (Q.get('op')) { const i = WAIFUS.findIndex((w) => w.id === Q.get('op')); if (i >= 0) loadout.waifu = i; }
 if (!['lockout', 'cryostat', 'mesa', 'overgrowth', 'warsat'].includes(loadout.map)) loadout.map = 'lockout';
 const FAC_TAG = { spartan: 'TEAM SPARTANS: power dash, an armor ability (lock, jetpack or drop shield), faster shield recharge, extra grenades.', destiny: 'TEAM DESTINY: blink, glide, double jump and a charging Nova Bomb super. The other side fields Spartans.', none: 'CLASSIC: no abilities, pure gunplay.' };
 const persist = () => { save('settings', settings); save('loadout', loadout); };
@@ -157,6 +158,7 @@ async function boot() {
   await setProg(0.62, 'Checking weapon models');
   try { setProg(0.6, 'Operators'); await loadOperator('angel'); } catch (e) { console.warn('angel model unavailable, using classic body', e); }
   for (const id of ['mualani', 'kagome', 'lucy']) { try { await loadOperator(id); } catch (e) { console.warn('operator model unavailable', id, e); } }
+  ensureRigged();   // authored rigs stream in the background (phones fetch only the one you pick)
   try { const got = await loadWeaponModels((l) => setProg(0.64, l)); if (got.length) console.info('custom weapon models:', got.join(', ')); } catch (e) { console.warn(e); }
   await setProg(0.7, 'Rigging operators');
   fx = new FX(scene);
@@ -198,6 +200,7 @@ function refreshPrompts() {
 function rebuildShowcase(pv = {}) {
   if (showcase) { scene.remove(showcase.root); disposeRig(showcase); }
   const w = WAIFUS.find((x) => x.id === pv.operator) || WAIFUS[loadout.waifu];
+  if (RIGGED.has(w.model) && !operatorReady(w.model)) loadOp(w.model).then(() => { if (operatorReady(w.model)) rebuildShowcase(pv); });
   showcase = buildWaifu({ model: w.model, look: w.look, team: loadout.team, hair: w.hair, eye: w.eye, helmet: loadout.helmet, haloColor: haloHex(pv.halo), skin: skinHex(pv.skin) });
   showcase.root.position.set(...MENU[loadout.map].show); showcase.root.rotation.y = 1.75; scene.add(showcase.root);
 }
@@ -539,8 +542,15 @@ async function ensureMap(id) {
   await setProg(1, 'Ready');
 }
 
+const opP = {}, COARSE = matchMedia('(pointer: coarse)').matches;
+const loadOp = (id) => (opP[id] ||= loadOperator(id).catch((e) => { console.warn('operator model unavailable', id, e); }));
+function ensureRigged() {
+  const mine = WAIFUS[loadout.waifu] && WAIFUS[loadout.waifu].model;
+  const ids = COARSE ? [mine].filter((m) => RIGGED.has(m)) : [...RIGGED];
+  return Promise.all(ids.map(loadOp));
+}
 async function startMatch() {
-  await ensureMap(loadout.map);
+  await ensureMap(loadout.map); await ensureRigged();
   const w = WAIFUS[loadout.waifu];
   beginMatch(new Match(scene, fx, { waifu: w, name: Profile.callsign, team: loadout.team, helmet: loadout.helmet, difficulty: loadout.diff, ...matchCfg(), autoPlayer: Q.has('bot') }), w);
 }
