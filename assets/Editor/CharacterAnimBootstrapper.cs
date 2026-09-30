@@ -55,6 +55,7 @@ public static class CharacterAnimBootstrapper
 ("LucyWW",          "Assets/Characters/LucyWW/LucyWW.fbx",                          "Assets/Characters/LucyWW/LucyWW_AnimReady.prefab"),
 ("LowPolyPanther",  "Assets/Characters/LowPolyPanther/LowPolyPanther.fbx",          "Assets/Characters/LowPolyPanther/LowPolyPanther_AnimReady.prefab"),
 ("BlackPanther",    "Assets/Characters/BlackPanther/BlackPanther.fbx",              "Assets/Characters/BlackPanther/BlackPanther_AnimReady.prefab"),
+("WaifuA",          "Assets/Characters/WaifuA/WaifuA.fbx",                          "Assets/Characters/WaifuA/WaifuA_AnimReady.prefab"),
     };
     private const string Ual1Fbx = "Assets/Animations/UniversalAnimationLibrary/UAL1_Standard.fbx";
     private const string Ual2Fbx = "Assets/Animations/UniversalAnimationLibrary/UAL2_Standard.fbx";
@@ -131,6 +132,17 @@ public static class CharacterAnimBootstrapper
         var go = AssetDatabase.LoadAssetAtPath<GameObject>(path);
         var av = go != null ? go.GetComponent<Animator>() : null;
         Debug.Log($"[CharacterAnim] {Path.GetFileName(path)}: avatar={(av != null && av.avatar != null ? "assigned" : "MISSING")} human={(av != null && av.avatar != null && av.avatar.isHuman)}");
+        if (av == null || av.avatar == null || !av.avatar.isHuman)
+        {
+            // retry once: heavy import batches occasionally poison the avatar cache
+            importer.animationType = ModelImporterAnimationType.Generic;
+            importer.SaveAndReimport();
+            importer = AssetImporter.GetAtPath(path) as ModelImporter;
+            importer.animationType = ModelImporterAnimationType.Human;
+            importer.SaveAndReimport();
+            go = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            av = go != null ? go.GetComponent<Animator>() : null;
+        }
         if (av == null || av.avatar == null || !av.avatar.isHuman)
         {
             Debug.LogWarning($"[CharacterAnim] {Path.GetFileName(path)}: Humanoid mapping failed - falling back to Generic (clips play by direct bone-name match).");

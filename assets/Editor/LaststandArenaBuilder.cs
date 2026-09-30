@@ -66,6 +66,33 @@ public static class LaststandArenaBuilder
         RenderSettings.fogColor = new Color(0.16f, 0.15f, 0.2f);
         RenderSettings.fogDensity = 0.018f;
 
+        // ---- Japanese prop dressing (static FBX props, auto-scaled)
+        PlacePropScaled("Assets/Environment/torii.fbx", new Vector3(0f, 0f, -6f), 5.5f, 0f);
+        PlacePropScaled("Assets/Environment/cyberpagoda.fbx", new Vector3(-18f, 0f, -14f), 8f, 30f);
+        PlacePropScaled("Assets/Environment/machiya.fbx", new Vector3(18f, 0f, -14f), 7f, -30f);
+        PlacePropScaled("Assets/Environment/kiosk.fbx", new Vector3(-20f, 0f, 8f), 3f, 90f);
+        PlacePropScaled("Assets/Environment/stall.fbx", new Vector3(20f, 0f, 8f), 3f, -90f);
+        PlacePropScaled("Assets/Environment/bridge.fbx", new Vector3(0f, 0f, 18f), 4f, 0f);
+        for (int i = 0; i < 6; i++)
+        {
+            float a = i * Mathf.PI / 3f;
+            PlacePropScaled("Assets/Environment/lantern.fbx",
+                new Vector3(Mathf.Cos(a) * 12f, 0f, Mathf.Sin(a) * 12f), 1.2f, 0f);
+        }
+        for (int i = 0; i < 4; i++)
+        {
+            float a = i * Mathf.PI / 2f + 0.5f;
+            PlacePropScaled("Assets/Environment/sakura.fbx",
+                new Vector3(Mathf.Cos(a) * 26f, 0f, Mathf.Sin(a) * 26f), 5f, a * 57f);
+        }
+        for (int i = 0; i < 6; i++)
+        {
+            float a = UnityEngine.Random.Range(0f, Mathf.PI * 2f);
+            PlacePropScaled("Assets/Environment/chest.fbx",
+                new Vector3(Mathf.Cos(a) * UnityEngine.Random.Range(8f, 22f), 0f, Mathf.Sin(a) * UnityEngine.Random.Range(8f, 22f)),
+                0.7f, UnityEngine.Random.Range(0f, 360f));
+        }
+
         // ---- player
         var playerPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(
             "Assets/Characters/WuwaLucy/WuwaLucy_AnimReady.prefab");
@@ -120,6 +147,28 @@ public static class LaststandArenaBuilder
             AssetDatabase.CreateFolder("Assets", "Scenes");
         EditorSceneManager.SaveScene(scene, ScenePath);
         Debug.Log($"[Arena] scene saved: {ScenePath} with {loaded.Count} enemy prefabs");
+    }
+
+    private static void PlacePropScaled(string path, Vector3 pos, float targetHeight, float rotY)
+    {
+        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+        if (prefab == null) { Debug.LogWarning("[Arena] prop missing: " + path); return; }
+        var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+        var renderers = go.GetComponentsInChildren<Renderer>();
+        float h = 0f;
+        if (renderers.Length > 0)
+        {
+            var b = renderers[0].bounds;
+            foreach (var r in renderers) b.Encapsulate(r.bounds);
+            h = b.size.y;
+        }
+        if (h > 0.0001f)
+        {
+            float s = targetHeight / h;
+            go.transform.localScale = go.transform.localScale * s;
+        }
+        go.transform.position = pos;
+        go.transform.rotation = Quaternion.Euler(0f, rotY, 0f);
     }
 
     private static void EnsureTag(string tag)

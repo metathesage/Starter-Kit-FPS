@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1001 &309831747584285509
+--- !u!1001 &8687155765108426514
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -66,26 +66,26 @@ PrefabInstance:
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: e910717614d47e94183274e85110cf41, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 4603006377526471156}
+      addedObject: {fileID: 4484478150368825786}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: e910717614d47e94183274e85110cf41, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 316072734159514127}
+      addedObject: {fileID: 9028847936596323036}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: e910717614d47e94183274e85110cf41, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 1466873714553157545}
+      addedObject: {fileID: 6430559558424265861}
   m_SourcePrefab: {fileID: 100100000, guid: e910717614d47e94183274e85110cf41, type: 3}
---- !u!1 &616385689493923348 stripped
+--- !u!1 &8381080114918292035 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: e910717614d47e94183274e85110cf41, type: 3}
-  m_PrefabInstance: {fileID: 309831747584285509}
+  m_PrefabInstance: {fileID: 8687155765108426514}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &4603006377526471156
+--- !u!114 &4484478150368825786
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 616385689493923348}
+  m_GameObject: {fileID: 8381080114918292035}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a7c07805cb0663f44a62e48fac8337d1, type: 3}
@@ -95,13 +95,13 @@ MonoBehaviour:
   weaponLayerName: Weapon Aim
   emoteLayerName: Emote
   isArmed: 1
---- !u!114 &316072734159514127
+--- !u!114 &9028847936596323036
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 616385689493923348}
+  m_GameObject: {fileID: 8381080114918292035}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: aaf3d835acec4fb498b047402066e103, type: 3}
@@ -111,13 +111,13 @@ MonoBehaviour:
   positionOffset: {x: 0, y: 0, z: 0.08}
   rotationOffsetEuler: {x: 90, y: 0, z: 180}
   socket: 18
---- !u!143 &1466873714553157545
+--- !u!143 &6430559558424265861
 CharacterController:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 616385689493923348}
+  m_GameObject: {fileID: 8381080114918292035}
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2

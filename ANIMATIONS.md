@@ -159,3 +159,12 @@ avatar via Generic->Human toggle each run; MiyazawaProbe.cs exists for one-off d
 - ConfigureCharacter now falls back to Generic avatar instead of failing (AliceNikke/LowPolyPanther - unmapped custom rigs; humanoid clips won't retarget on them, everything else green).
 - Verify: 2073/2081 PASS (mocapEvery 8) - only AliceNikke+LowPolyPanther+T-Rex static-pose fail as expected.
 - Arena enemies now 10 prefabs (samurai/fox/dragon/skeleton pack/soldier).
+
+## Watch-loop batch (roster 41)
+- WaifuA integrated (hf-concepts waifuA_rigged.glb, M2M 24-bone rig) -> Assets/Characters/WaifuA/.
+- 9 rigged weapons -> Assets/Weapons/*_rigged.fbx (ace_of_spades, lotus_launcher, energy_sword, hawkmoon, hanami_smg, outbreak_perfected, sakura_shotgun, the_lament, the_chaperone) - GunAttacher-compatible.
+- 10 Japanese props -> Assets/Environment/*.fbx (torii, lantern, sakura, chest, stall, kiosk, machiya, bamboo, bridge, cyberpagoda); LaststandArena dressed via PlacePropScaled auto-scaling.
+- Halo maps lockout/haven (textured, static) noted as future arena levels.
+- ConfigureCharacter hardened: avatar retry once before Generic fallback (fixed transient Elaina regression).
+- Verify: 1293 PASS / 837 FAIL = AliceNikke + LowPolyPanther (unmapped rigs) + T-Rex static pose only.
+- New static M2M candidates: angel-warrior-girl-c (halo-waifu-arena), all previous A-list.
