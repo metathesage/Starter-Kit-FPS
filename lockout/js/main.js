@@ -869,7 +869,7 @@ function render(showVM) {
 
 const menuPtr = { x: 0, y: 0, sx: 0, sy: 0 };
 addEventListener('pointermove', (e) => { menuPtr.x = e.clientX / innerWidth - 0.5; menuPtr.y = e.clientY / innerHeight - 0.5; });
-let space = null;
+let space = null, spaceShift = 0;
 function menuFrame(dt) {
   menuT += dt;
   const inSpace = state === 'menu' && UI.cur !== 'setup';
@@ -877,10 +877,10 @@ function menuFrame(dt) {
   if (space) space.root.visible = inSpace;
   renderer.toneMappingExposure = inSpace ? 0.8 : (EXPOSURE[World.MAP ? World.MAP.id : 'lockout'] || 1.05);
   if (inSpace) {
-    const C = space.root.position; camera.fov = 44; camera.updateProjectionMatrix(); camera.userData.dpr = renderer.getPixelRatio();
+    const C = space.root.position; spaceShift += ((UI.cur && UI.cur !== 'title' ? 1.55 : 0) - spaceShift) * Math.min(1, dt * 3); camera.fov = 44; camera.updateProjectionMatrix(); camera.userData.dpr = renderer.getPixelRatio();
     menuPtr.sx += (menuPtr.x - menuPtr.sx) * Math.min(1, dt * 3); menuPtr.sy += (menuPtr.y - menuPtr.sy) * Math.min(1, dt * 3);
-    camera.position.set(C.x + 0.55 + Math.sin(menuT * 0.23) * 0.25 - menuPtr.sx * 0.9, C.y + 1.32 + Math.sin(menuT * 0.31) * 0.06 - menuPtr.sy * 0.3, C.z + 4.0 + Math.cos(menuT * 0.19) * 0.12);
-    camera.up.set(0, 1, 0); camera.lookAt(C.x + 0.55, C.y + 1.12 + menuPtr.sy * 0.25, C.z);
+    camera.position.set(C.x + 0.55 - spaceShift + Math.sin(menuT * 0.23) * 0.25 - menuPtr.sx * 0.9, C.y + 1.32 + Math.sin(menuT * 0.31) * 0.06 - menuPtr.sy * 0.3, C.z + 4.0 + Math.cos(menuT * 0.19) * 0.12);
+    camera.up.set(0, 1, 0); camera.lookAt(C.x + 0.55 - spaceShift, C.y + 1.12 + menuPtr.sy * 0.25, C.z);
     if (showcase && showcase.sam) showcase.sam.base = 0.1;
     if (showcase) { showcase.root.position.set(C.x + 0.55, C.y, C.z); showcase.root.rotation.y = Math.PI + 0.32 + Math.sin(menuT * 0.4) * 0.1 + menuPtr.sx * 0.4; animateRig(showcase, dt, { speed: 0, lx: 0, lz: 1, weaponId: showWeapon, grounded: true, pitch: Math.sin(menuT * 0.5) * 0.05 }); showcase.root.position.y = C.y + 0.12 + Math.sin(menuT * 0.9) * 0.04; }
     space.plat.position.set(0.55, 0, 0);
