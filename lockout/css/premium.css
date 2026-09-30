@@ -608,3 +608,34 @@ body.is-replay #hud, body.is-replay .touch { display: none !important; }
 .ld-sweep { position: absolute; inset: 6%; border-radius: 50%; background: conic-gradient(from 0deg, transparent 0 78%, rgba(255,226,168,.32) 100%); animation: ldspin 3.2s linear infinite; mask: radial-gradient(circle, transparent 0 24%, #000 25%); -webkit-mask: radial-gradient(circle, transparent 0 24%, #000 25%); }
 @keyframes ldspin { to { transform: rotate(360deg); } } @keyframes ldpulse { 50% { transform: scale(1.12); opacity: .7; } }
 @media (max-height: 520px) { .ld-emb { top: calc(44px + var(--safe-t)); width: 90px; } }
+
+/* lobby comms: chat log, input, push-to-talk */
+#comms { position: fixed; left: calc(16px + var(--safe-l, 0px)); bottom: calc(96px + var(--safe-b, 0px)); z-index: 30; width: min(360px, 62vw); pointer-events: none; font-family: 'Chakra Petch', 'Rajdhani', sans-serif; }
+#comms[hidden] { display: none; }
+.cm-log { display: grid; gap: 3px; justify-items: start; }
+.cm-line { display: flex; gap: 8px; padding: 4px 10px; font-size: 13px; line-height: 1.3; color: #fff; background: rgba(6, 8, 14, .58); backdrop-filter: blur(8px); clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); border-left: 2px solid var(--champ, #ffd48a); transition: opacity 1.2s; animation: cmin .25s cubic-bezier(.2,.8,.2,1) both; word-break: break-word; }
+.cm-line b { font: 700 11px 'JetBrains Mono', monospace; letter-spacing: .1em; color: var(--champ, #ffd48a); text-transform: uppercase; white-space: nowrap; padding-top: 2px; } .cm-line.me { border-left-color: #fff; } .cm-line.sys { border-left-color: #ff6a76; }
+.cm-line.old { opacity: 0; } #comms.typing .cm-line.old { opacity: 1; }
+@keyframes cmin { from { opacity: 0; transform: translateX(-14px); } }
+.cm-form { pointer-events: auto; display: flex; gap: 6px; margin-top: 8px; }
+.cm-form input { flex: 1; min-width: 0; font: 500 14px 'Chakra Petch', sans-serif; padding: 10px 12px; color: #fff; background: rgba(6, 8, 14, .85); border: 1px solid rgba(255, 226, 168, .5); outline: none; border-radius: 0; }
+.cm-form button { font: 700 11px 'JetBrains Mono', monospace; letter-spacing: .2em; padding: 0 14px; color: #000; background: var(--champ, #ffd48a); border: 0; }
+.cm-bar { position: fixed; left: calc(16px + var(--safe-l, 0px)); bottom: calc(24px + var(--safe-b, 0px)); display: flex; gap: 8px; pointer-events: auto; }
+.cm-bar button { position: relative; display: grid; grid-auto-flow: column; align-items: center; gap: 6px; padding: 9px 12px; color: #fff; background: rgba(6, 8, 14, .6); backdrop-filter: blur(8px); border: 0; box-shadow: inset 0 0 0 1px rgba(255,255,255,.22); clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%); touch-action: none; user-select: none; -webkit-user-select: none; }
+.cm-bar svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; } .cm-bar b { font: 700 10px 'JetBrains Mono', monospace; opacity: .6; }
+.cm-mic i { position: absolute; right: 6px; top: 6px; width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.25); } .cm-mic.live { color: #000; background: #7dffb0; box-shadow: 0 0 22px rgba(125,255,176,.7); } .cm-mic.live i { background: #000; }
+body.touch-on .cm-bar { left: auto; right: calc(112px + var(--safe-r, 0px)); bottom: auto; top: calc(10px + var(--safe-t, 0px)); } body.touch-on .cm-bar button { padding: 11px 14px; } body.touch-on .cm-bar b { display: none; }
+body.touch-on #comms { bottom: auto; top: calc(58px + var(--safe-t, 0px)); left: calc(12px + var(--safe-l, 0px)); width: min(300px, 46vw); } body.touch-on .cm-line { font-size: 12px; }
+body.touch-on #comms.typing .cm-form { position: fixed; left: 8px; right: 8px; top: 8px; z-index: 60; }
+body.is-replay #comms { display: none; }
+
+/* phones: keep the HUD out of the thumbs' way */
+body.touch-on .cm-bar { right: auto; left: calc(12px + var(--safe-l, 0px)); top: calc(96px + var(--safe-t, 0px)); }
+body.touch-on #comms { top: calc(146px + var(--safe-t, 0px)); }
+body.touch-on .h-weapon { scale: .62; transform-origin: bottom center; bottom: 2px !important; opacity: .9; }
+body.touch-on .h-weapon .gr-row, body.touch-on .h-weapon .wp-name { display: none; }
+body.touch-on .h-abil { display: none !important; }
+body.touch-on .h-score { scale: .72; transform-origin: top right; }
+body.touch-on .h-tut { display: none !important; }
+
+.cm-form[hidden] { display: none !important; }

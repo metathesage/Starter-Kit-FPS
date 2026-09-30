@@ -42,6 +42,7 @@ export const Input = {
     ACTIONS.forEach((a) => { this.held[a] = false; this.prev[a] = false; this.pressed[a] = false; this.released[a] = false; });
     ['up', 'down', 'left', 'right'].forEach((a) => (this.nav[a] = false));
     addEventListener('keydown', (e) => {
+      if (e.target && /^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;
       if (['Tab', 'Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
       if (e.repeat) return;
       keys.add(e.code); tap.add(e.code); this.last = 'kbm';

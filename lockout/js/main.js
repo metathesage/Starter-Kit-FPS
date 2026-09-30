@@ -27,6 +27,7 @@ import { UI } from './ui.js';
 import { Net, friendlyError } from './net.js';
 import { initTouch } from './touch.js';
 import { ReplayPlayer } from './replay.js';
+import { Comms } from './comms.js';
 
 const Q = new URLSearchParams(location.search);
 const settings = Object.assign({ sens: 1, padSens: 1, invertY: false, fov: 66, master: 0.8, sfx: 1, music: 0.5, shadows: true, bloom: true, quality: 'auto', reticle: '#ffffff', hudScale: 1, announcer: true, assist: 1 }, store('settings', {}));
@@ -90,10 +91,10 @@ renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap;
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(62, 1, 0.05, 700);
 camera.rotation.order = 'YXZ';
-let resScale = 1, W = 1, H = 1;
+let resScale = matchMedia('(pointer: coarse)').matches ? 0.75 : 1, W = 1, H = 1;
 function resize() {
   W = innerWidth; H = innerHeight;
-  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2) * resScale);
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, matchMedia('(pointer: coarse)').matches ? 1.5 : 2) * resScale);
   renderer.setSize(W, H, false);
   { const db = renderer.getDrawingBufferSize(new THREE.Vector2()); post.resize(db.x, db.y); }
   camera.aspect = W / H; camera.updateProjectionMatrix();
@@ -107,7 +108,7 @@ let state = 'splash', world = null, fx = null, viewmodel = null, hud = null, mat
 let trauma = 0, camKick = 0, fovCur = 62, menuT = 0, last = performance.now(), padCrouch = false, padSprint = false, fpsAcc = 0, fpsN = 0, showFps = Q.has('fps'), muted = false;
 let camRoll = 0, replay = null, kcAt = -1, topDone = false, rpUI = null, hitstop = 0, showWeapon = null, mstats = null, lastDevice = 'kbm', endShown = false, quick = Q.has('quick'), fast = Q.has('fast') || Q.has('quick'), netAcc = 0, netEdges = 0;
 const shakeN = { t: 0 };
-window.__game = { get post() { return post; }, get hub() { return hub; }, ensureMap: (id) => ensureMap(id), World, get world() { return world; }, render: () => render(false), Net, hostLobby: () => hostLobby(), joinLobby: (c) => joinLobby(c), startOnlineHost: () => startOnlineHost(), renderer, get fx() { return fx; }, get match() { return match; }, get state() { return state; }, get scene() { return scene; }, get camera() { return camera; }, start: () => startMatch(), Input, THREE };
+window.__game = { Comms, get post() { return post; }, get hub() { return hub; }, ensureMap: (id) => ensureMap(id), World, get world() { return world; }, render: () => render(false), Net, hostLobby: () => hostLobby(), joinLobby: (c) => joinLobby(c), startOnlineHost: () => startOnlineHost(), renderer, get fx() { return fx; }, get match() { return match; }, get state() { return state; }, get scene() { return scene; }, get camera() { return camera; }, start: () => startMatch(), Input, THREE };
 
 function applySettings() {
   Input.sens = settings.sens; Input.padSens = settings.padSens; Input.invertY = settings.invertY;
@@ -132,7 +133,7 @@ async function boot() {
   const touchDevice = initTouch();
   if (touchDevice) { if (store('settings', {}).shadows === undefined) settings.shadows = false; if (store('settings', {}).bloom === undefined) settings.bloom = false; resScale = 0.75; }
   resize(); applySettings();
-  Input.init(canvas);
+  Input.init(canvas); Comms.init(() => Profile.callsign);
   Input.onLockChange = (locked) => { if (!locked && state === 'playing' && !Input.fallback) pauseGame(); else if (!locked && state === 'hub' && !Input.fallback) openHubPause(); };
   Input.onPadLost = () => { if (state === 'playing') pauseGame(); };
   const unlock = () => Sound.unlock();
@@ -408,14 +409,14 @@ function openOnline() {
 
 async function hostLobby() {
   goFullscreen(); onlineStatus('Contacting lobby server...');
-  try { await Net.startHost(); } catch (e) { onlineStatus(friendlyError(e), true); return; }
+  try { await Net.startHost(); Comms.hostReady(); } catch (e) { onlineStatus(friendlyError(e), true); return; }
   lobby.players.clear();
   showLobby(true); pushLobby();
 }
 
 async function joinLobby(code) {
   goFullscreen(); onlineStatus('Connecting...');
-  try { await Net.join(code); } catch (e) { onlineStatus(friendlyError(e), true); Net.close(); return; }
+  try { await Net.join(code); Comms.guestReady(); } catch (e) { onlineStatus(friendlyError(e), true); Net.close(); return; }
   Net.send({ t: 'hello', name: Profile.callsign, waifu: loadout.waifu, helmet: loadout.helmet, v: 1 });
   showLobby(false);
 }
@@ -485,7 +486,7 @@ async function startReplica(msg) {
 }
 
 function leaveOnline() {
-  Net.close(); lobby.players.clear();
+  Comms.stop(); Net.close(); lobby.players.clear();
   if (match) endMatchToMenu();
   showTitle();
 }
@@ -493,6 +494,7 @@ function leaveOnline() {
 function wireNet() {
   Net.bus.on('msg', (from, m) => {
     if (!m || !m.t) return;
+    if (m.t === 'chat') { Comms.onChat(from, m, (p) => (lobby.players.get(p) || {}).name); return; }
     if (Net.isHost) {
       if (m.t === 'hello') {
         if (match && !match.replica && state !== 'menu') { Net.sendTo(from, { t: 'busy' }); return; }
@@ -563,6 +565,7 @@ function beginMatch(m, w) {
   match.bus.on('land', (v) => { camKick = Math.min(camKick, -Math.min(0.06, v * 0.0048)); });
   match.bus.on('shot', (a, def) => { if (a === match.player && def) { viewmodel.kickNow(0.4 + def.kick * 8); camKick = Math.min(0.06, camKick + def.kick * 0.35); } });
   match.bus.on('state', (s) => { if (s === 'ended') onMatchEnd(); });
+  Comms.show(Net.online);
   if (replay) replay.dispose(); replay = new ReplayPlayer(scene, fx); kcAt = -1; topDone = false;
   match.bus.on('kill', (r) => { if (r.victim === match.player && r.killer && !r.suicide && match.state === 'live' && !Q.has('nokillcam')) kcAt = match.time + 0.7; });
   match.player.pitch = 0; fovCur = settings.fov; endShown = false; padCrouch = false; trauma = 0; netAcc = 0; netEdges = 0;
@@ -742,7 +745,7 @@ function startMission(m) {
 }
 
 function endMatchToMenu() {
-  missionActive = null;
+  missionActive = null; Comms.show(false);
   if (replay) { replay.dispose(); replay = null; } if (match) { match.dispose(); match = null; }
   showcase.root.visible = true; renderPCard();
   UI.hide('pause'); UI.hide('results');

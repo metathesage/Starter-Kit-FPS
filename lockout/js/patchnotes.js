@@ -1,6 +1,16 @@
 // Patch notes: the single source. `node tools/gen-notes.mjs` writes docs/PATCH_NOTES.md from this list; the in-game Patch Notes screen reads it directly.
 // Newest first. Section kinds: NEW, CHANGED, FIXED, KNOWN.
 export const PATCHES = [
+  { v: '0.13', date: '2026-09-30', name: 'Squad Comms', blurb: 'Text chat, push-to-talk voice and a proper phone layout for online matches.', sections: [
+    ['NEW', [
+      'Lobby text chat: press Y (or tap the chat button) in an online match. Messages relay through the host to everyone.',
+      'Push-to-talk voice: hold B (or hold the mic button on a phone). Guests connect to the host, who mixes everyone back to each player. Browsers ask for microphone permission the first time.',
+      'Join links carry the lobby code after the # as well as in the query, so they survive chat apps.',
+    ]],
+    ['CHANGED', [
+      'Phones: lower default render scale and pixel ratio, a compact weapon panel and scoreboard, and the armor-ability ring and field manual are hidden behind the touch buttons.',
+    ]],
+  ] },
   { v: '0.12', date: '2026-09-30', name: 'Depth Pass I', blurb: 'Two factions, killcams, a top-kill cinematic, tighter hits and airtight walls.', sections: [
     ['NEW', [
       'TEAM DESTINY vs TEAM SPARTANS. Pick a faction in Setup: your side gets that kit and the enemy fields the other. CLASSIC keeps pure gunplay.',

@@ -2,6 +2,20 @@
 
 Generated from `js/patchnotes.js` (edit that file, then run `node tools/gen-notes.mjs`). Newest first.
 
+## 0.13 · Squad Comms · 2026-09-30
+
+_Text chat, push-to-talk voice and a proper phone layout for online matches._
+
+**NEW**
+
+- Lobby text chat: press Y (or tap the chat button) in an online match. Messages relay through the host to everyone.
+- Push-to-talk voice: hold B (or hold the mic button on a phone). Guests connect to the host, who mixes everyone back to each player. Browsers ask for microphone permission the first time.
+- Join links carry the lobby code after the # as well as in the query, so they survive chat apps.
+
+**CHANGED**
+
+- Phones: lower default render scale and pixel ratio, a compact weapon panel and scoreboard, and the armor-ability ring and field manual are hidden behind the touch buttons.
+
 ## 0.12 · Depth Pass I · 2026-09-30
 
 _Two factions, killcams, a top-kill cinematic, tighter hits and airtight walls._
