@@ -282,10 +282,14 @@ export class Actor {
     this.vz += clamp(wz - this.vz, -acc * dt, acc * dt);
     if (this.lunge) this.lungeStep(dt);
     const h = this.h;
-    const nx = this.x + this.vx * dt;
-    if (!W.blocked(nx, this.z, this.y, RAD, h)) this.x = nx; else this.vx = 0;
-    const nz = this.z + this.vz * dt;
-    if (!W.blocked(this.x, nz, this.y, RAD, h)) this.z = nz; else this.vz = 0;
+    // sub-stepped so a dash, blink or knockback can never carry a body through a thin wall
+    const nsub = Math.min(8, Math.max(1, Math.ceil(Math.hypot(this.vx, this.vz) * dt / 0.22))), sdt = dt / nsub;
+    for (let k = 0; k < nsub; k++) {
+      const nx = this.x + this.vx * sdt;
+      if (!W.blocked(nx, this.z, this.y, RAD, h)) this.x = nx; else this.vx = 0;
+      const nz = this.z + this.vz * sdt;
+      if (!W.blocked(this.x, nz, this.y, RAD, h)) this.z = nz; else this.vz = 0;
+    }
     if (this.grounded) {
       const g = W.groundAt(this.x, this.z, this.y);
       if (g >= this.y - W.STEP * 1.1) this.y = g; else this.grounded = false;
@@ -792,8 +796,8 @@ export class Match {
         const sdt = dt / steps;
         let boom = false, direct = null;
         for (let s = 0; s < steps && !boom; s++) {
-          p.x += p.vx * sdt; p.y += p.vy * sdt; p.z += p.vz * sdt;
-          if (W.pointSolid(p.x, p.y, p.z)) { boom = true; break; }
+          const qx = p.x, qy = p.y, qz = p.z; p.x += p.vx * sdt; p.y += p.vy * sdt; p.z += p.vz * sdt;
+          if (!W.segClear(qx, qy, qz, p.x, p.y, p.z) || W.pointSolid(p.x, p.y, p.z)) { boom = true; break; }
           for (const o of this.actors) {
             if (!o.alive || (o === p.owner && p.life > 5.85)) continue;
             if (!this.foe(p.owner, o) && o !== p.owner) continue;
@@ -822,8 +826,8 @@ export class Match {
         if (best && p.age > 0.08) { const k = Math.min(1, dt * 4.2), dx = best.x - p.x, dy = best.chest - p.y, dz = best.z - p.z, d = Math.hypot(dx, dy, dz) || 1; p.vx += ((dx / d) * 26 - p.vx) * k; p.vy += ((dy / d) * 26 - p.vy) * k; p.vz += ((dz / d) * 26 - p.vz) * k; }
         let boom = false, direct = null; const steps = Math.ceil((Math.hypot(p.vx, p.vy, p.vz) * dt) / 0.4), sdt = dt / steps;
         for (let s = 0; s < steps && !boom; s++) {
-          p.x += p.vx * sdt; p.y += p.vy * sdt; p.z += p.vz * sdt;
-          if (W.pointSolid(p.x, p.y, p.z)) { boom = true; break; }
+          const qx = p.x, qy = p.y, qz = p.z; p.x += p.vx * sdt; p.y += p.vy * sdt; p.z += p.vz * sdt;
+          if (!W.segClear(qx, qy, qz, p.x, p.y, p.z) || W.pointSolid(p.x, p.y, p.z)) { boom = true; break; }
           for (const o of this.actors) { if (!o.alive || !this.foe(p.owner, o)) continue; if (Math.abs(p.x - o.x) < 0.6 && Math.abs(p.z - o.z) < 0.6 && p.y > o.y && p.y < o.y + o.h) { boom = true; direct = o; break; } }
         }
         this.fx.emit(p.x, p.y, p.z, rand(-0.3, 0.3), rand(-0.3, 0.3), rand(-0.3, 0.3), 0.4, 0.28, 0.05, 1, 0.55, 0.2, 0.9, 0);
@@ -848,8 +852,8 @@ export class Match {
         const steps = Math.ceil((NOVA_SPEED * dt) / 0.4), sdt = dt / steps;
         let boom = false, direct = null;
         for (let s = 0; s < steps && !boom; s++) {
-          p.x += p.vx * sdt; p.y += p.vy * sdt; p.z += p.vz * sdt;
-          if (W.pointSolid(p.x, p.y, p.z)) { boom = true; break; }
+          const qx = p.x, qy = p.y, qz = p.z; p.x += p.vx * sdt; p.y += p.vy * sdt; p.z += p.vz * sdt;
+          if (!W.segClear(qx, qy, qz, p.x, p.y, p.z) || W.pointSolid(p.x, p.y, p.z)) { boom = true; break; }
           for (const o of this.actors) {
             if (!o.alive || !this.foe(p.owner, o)) continue;
             if (Math.abs(p.x - o.x) < 0.9 && Math.abs(p.z - o.z) < 0.9 && p.y > o.y - 0.3 && p.y < o.y + o.h + 0.3) { boom = true; direct = o; break; }
@@ -879,14 +883,14 @@ export class Match {
           }
         }
         if (!p.stuck) {
-          if (!W.pointSolid(nx, ny, nz)) { p.x = nx; p.y = ny; p.z = nz; }
+          if (W.segClear(p.x, p.y, p.z, nx, ny, nz) && !W.pointSolid(nx, ny, nz)) { p.x = nx; p.y = ny; p.z = nz; }
           else if (p.type === 'plasma') { p.rest = true; p.life = Math.min(p.life, 1.5); this.sfx('plasmaStick', p, 0.6); }
           else {
-            const bx = W.pointSolid(nx, p.y, p.z), bz = W.pointSolid(p.x, p.y, nz), by = W.pointSolid(p.x, ny, p.z);
+            const bx = W.pointSolid(nx, p.y, p.z), bz = W.pointSolid(p.x, p.y, nz), by = W.pointSolid(p.x, ny, p.z), all = !bx && !bz && !by;
             if (bx || (!by && !bz)) p.vx *= -0.45; else p.vx *= 0.8;
             if (bz || (!by && !bx)) p.vz *= -0.45; else p.vz *= 0.8;
-            if (by) { p.vy *= -0.4; p.vx *= 0.8; p.vz *= 0.8; if (Math.abs(p.vy) < 1.4) p.vy = 0; } else p.y = ny;
-            if (!bx) p.x = nx; if (!bz) p.z = nz;
+            if (by) { p.vy *= -0.4; p.vx *= 0.8; p.vz *= 0.8; if (Math.abs(p.vy) < 1.4) p.vy = 0; } else if (!all) p.y = ny;
+            if (!bx && !all) p.x = nx; if (!bz && !all) p.z = nz;
             if (Math.random() < 0.7) this.sfx('bounce', p, 0.5);
             if (!W.pointSolid(p.x, p.y - 0.15, p.z) === false && Math.hypot(p.vx, p.vz) < 0.4 && p.vy === 0) p.rest = true;
           }

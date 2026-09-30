@@ -352,22 +352,31 @@ export function pointSolid(x, y, z) {
   return false;
 }
 
-// distance along ray to first solid hit, or Infinity
+// distance along ray to first solid hit, or Infinity. Exact slab test per solid (no stepping, so nothing is thin enough to slip through);
+// ramps are marched only inside their own box.
 export function rayWorld(ox, oy, oz, dx, dy, dz, max = 120) {
-  const step = 0.2;
-  let t = 0, prev = 0;
-  while (t < max) {
-    if (pointSolid(ox + dx * t, oy + dy * t, oz + dz * t)) {
-      let lo = prev, hi = t;
-      for (let i = 0; i < 6; i++) {
-        const m = (lo + hi) * 0.5;
-        if (pointSolid(ox + dx * m, oy + dy * m, oz + dz * m)) hi = m; else lo = m;
-      }
-      return hi;
+  let best = max;
+  const ix = dx !== 0 ? 1 / dx : 1e30, iy = dy !== 0 ? 1 / dy : 1e30, iz = dz !== 0 ? 1 / dz : 1e30;
+  for (let i = 0; i < solids.length; i++) {
+    const s = solids[i];
+    let t0 = 0, t1 = best, a, b, tmp;
+    if (dx === 0) { if (ox < s.x0 || ox > s.x1) continue; } else { a = (s.x0 - ox) * ix; b = (s.x1 - ox) * ix; if (a > b) { tmp = a; a = b; b = tmp; } if (a > t0) t0 = a; if (b < t1) t1 = b; if (t0 > t1) continue; }
+    if (dy === 0) { if (oy < s.y0 || oy > s.y1) continue; } else { a = (s.y0 - oy) * iy; b = (s.y1 - oy) * iy; if (a > b) { tmp = a; a = b; b = tmp; } if (a > t0) t0 = a; if (b < t1) t1 = b; if (t0 > t1) continue; }
+    if (dz === 0) { if (oz < s.z0 || oz > s.z1) continue; } else { a = (s.z0 - oz) * iz; b = (s.z1 - oz) * iz; if (a > b) { tmp = a; a = b; b = tmp; } if (a > t0) t0 = a; if (b < t1) t1 = b; if (t0 > t1) continue; }
+    if (!s.ramp) { if (t0 < best) best = t0; continue; }
+    for (let t = t0; t <= t1; t += 0.05) {
+      const x = ox + dx * t, y = oy + dy * t, z = oz + dz * t;
+      if (y <= topAt(s, x, z)) { best = t; break; }
     }
-    prev = t; t += step + t * 0.004;
   }
-  return Infinity;
+  return best < max ? best : Infinity;
+}
+
+// true when the straight segment a->b touches no solid (used by fast projectiles so they cannot tunnel)
+export function segClear(ax, ay, az, bx, by, bz) {
+  const dx = bx - ax, dy = by - ay, dz = bz - az, d = Math.hypot(dx, dy, dz);
+  if (d < 1e-6) return !pointSolid(bx, by, bz);
+  return rayWorld(ax, ay, az, dx / d, dy / d, dz / d, d) === Infinity;
 }
 
 export function los(ax, ay, az, bx, by, bz) {
