@@ -139,6 +139,13 @@ function toonMats(cache, hair, tint) {
     if (src.transparent || src.alphaTest > 0) { m.alphaTest = src.alphaTest > 0 ? src.alphaTest : 0.45; }
     if (map) m.emissiveMap = map; m.emissive.setScalar(cfg.glow);
     if (cfg.recolor) m.color.set(0xffffff).lerp(new THREE.Color(tint), 0.3);
+    // anime rim light in the team colour: reads as style and as team identification
+    const rimC = new THREE.Color(tint);
+    m.onBeforeCompile = (sh) => {
+      sh.uniforms.uRim = { value: rimC };
+      sh.fragmentShader = 'uniform vec3 uRim;\n' + sh.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n float rimK = pow(1.0 - clamp(dot(normalize(vViewPosition), normal), 0.0, 1.0), 2.6);\n totalEmissiveRadiance += uRim * rimK * 0.75;');
+    };
+    m.customProgramCacheKey = () => 'rimtoon';
     out.push(m);
   });
   return out;

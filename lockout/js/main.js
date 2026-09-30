@@ -424,7 +424,7 @@ function showLobby(host) {
   const copy = $('#btnCopy'), share = $('#btnShare');
   const doCopy = async () => { try { await navigator.clipboard.writeText(Net.link()); UI.toast('LINK COPIED'); } catch { UI.toast(Net.link(), 4000); } };
   UI.button(copy, doCopy);
-  UI.button(share, async () => { if (navigator.share) { try { await navigator.share({ title: 'LOCKOUT', text: 'Join my LOCKOUT lobby', url: Net.link() }); return; } catch { /* cancelled */ } } doCopy(); });
+  UI.button(share, async () => { if (navigator.share) { try { await navigator.share({ title: 'NEW LIGHT', text: 'Join my NEW LIGHT lobby', url: Net.link() }); return; } catch { /* cancelled */ } } doCopy(); });
   rows.push(copy, share);
   const btns = $('#lobbyBtns'); btns.innerHTML = '';
   const leave = document.createElement('button'); leave.className = 'btn'; leave.innerHTML = '<span>LEAVE</span><i></i>';
@@ -873,7 +873,7 @@ let space = null, spaceShift = 0;
 function menuFrame(dt) {
   menuT += dt;
   const inSpace = state === 'menu' && UI.cur !== 'setup';
-  if (inSpace && !space) { space = buildSpace(scene); space.place(new THREE.Vector3(0, 0, -1)); }
+  if (inSpace && !space) { space = buildSpace(scene); space.place(new THREE.Vector3(0, 0, -1)); space.loadRing().catch((e) => console.warn('halo ring unavailable', e)); }
   if (space) space.root.visible = inSpace;
   renderer.toneMappingExposure = inSpace ? 0.8 : (EXPOSURE[World.MAP ? World.MAP.id : 'lockout'] || 1.05);
   if (inSpace) {

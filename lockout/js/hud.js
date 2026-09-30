@@ -72,6 +72,7 @@ export class HUD {
         <div class="sc-row blue"><i class="sq"></i><em class="sc-nm">BLUE</em><div class="sc-bar"><i></i></div><div class="sc-n">0</div></div>
         <div class="h-obj"></div><div class="sc-lead"></div>
       </div>
+      <div class="h-sprint"><svg viewBox="0 0 24 24"><path d="M6 6l6 6-6 6M13 6l6 6-6 6"/></svg>SPRINT</div>
       <div class="h-reticle"><svg viewBox="-40 -40 80 80"></svg></div>
       <div class="h-hit"><svg viewBox="-20 -20 40 40"><path d="M-14-14L-6-6M14-14L6-6M-14 14L-6 6M14 14L6 6"/></svg></div>
       <div class="h-announce"></div><div class="h-count"></div><div class="h-mode"></div>
@@ -100,7 +101,7 @@ export class HUD {
       sc: { blue: q('.sc-row.blue'), red: q('.sc-row.red') }, clock: q('.sc-clock'), mode: q('.sc-mode'), feed: q('.feed'), radar: q('.h-radar canvas'),
       wIcon: q('.wp-icon'), wName: q('.wp-name'), wMag: q('.wp-mag'), wRes: q('.wp-res'), wRel: q('.wp-reload'), ret: q('.h-reticle'), retSvg: q('.h-reticle svg'),
       hit: q('.h-hit'), ann: q('.h-announce'), count: q('.h-count'), modeBig: q('.h-mode'), medals: q('.h-medals'), prompt: q('.h-prompt'), cam: q('.h-cam'),
-      death: q('.h-death'), dName: q('.dd .nm'), dRes: q('.dd .rs'), board: q('.h-board'), fps: q('.h-fps'), flash: q('.h-flash'), dmg: q('.h-dmg'), scope: q('.h-scope'), brs: q('.h-brs'), brZt: q('.brs-zt'), brRg: q('.brs-rg b'), brAm: q('.brs-am b'), zt: q('.h-scope .zt'), rg: q('.h-scope .rg b'), am: q('.h-scope .am b'),
+      death: q('.h-death'), dName: q('.dd .nm'), dRes: q('.dd .rs'), board: q('.h-board'), fps: q('.h-fps'), flash: q('.h-flash'), dmg: q('.h-dmg'), sprint: q('.h-sprint'), scope: q('.h-scope'), brs: q('.h-brs'), brZt: q('.brs-zt'), brRg: q('.brs-rg b'), brAm: q('.brs-am b'), zt: q('.h-scope .zt'), rg: q('.h-scope .rg b'), am: q('.h-scope .am b'),
       tut: q('.h-tut'), obj: q('.h-obj'), lead: q('.sc-lead'), elim: q('.h-elim'), skull: q('.h-skull'), pu: q('.pu-row'), cmpTrack: cmp, cmpHd: q('.cmp-hd'), markers: q('.h-markers'), weaponBox: q('.h-weapon'), abil: q('.h-abil'), novaw: q('.h-novaw'), novawD: q('.h-novaw span'), novaBox: q('.ab.nova'), novaPg: q('.ab.nova .pg'), novaPct: q('.ab.nova .pct'), novaKd: q('.ab.nova .kd'), blinkKd: q('.ab.blink .kd'), pips: root.querySelectorAll('.ab.blink .pips i'), grRow: q('.gr-row') };
     this.el.hp.innerHTML = '<i></i>'.repeat(5);
     this.rctx = this.el.radar.getContext('2d');
@@ -309,6 +310,7 @@ export class HUD {
     const tk = E.retSvg.querySelector('.tk');
     if (tk && def) { const sp = (def.spread + p.bloom + (p.lastMoveSpeed / 5.4) * def.spread * 0.6) * 22; tk.style.transform = `scale(${1 + clamp(sp, 0, 1.2)})`; }
     E.scope.classList.toggle('on', zoomScope);
+    E.sprint.classList.toggle('on', !!(p.alive && p.sprinting));
     E.brs.classList.toggle('on', brScope); this.root.classList.toggle('brscoped', !!brScope);
     if (brScope) {
       E.brZt.textContent = def.zoom[p.zoomLevel - 1] + 'X'; E.brAm.textContent = w ? w.mag : 0;

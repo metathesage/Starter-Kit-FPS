@@ -24,7 +24,7 @@ export function inkMaterial(color, width) {
   m.onBeforeCompile = (sh) => {
     sh.uniforms.uInk = { value: width };
     sh.vertexShader = 'uniform float uInk;\n' + sh.vertexShader.replace('#include <begin_vertex>',
-      '#include <begin_vertex>\n transformed += normalize(normal) * uInk / length(modelMatrix[0].xyz);');
+      '#include <begin_vertex>\n float dCam = length(cameraPosition - (modelMatrix * vec4(position, 1.0)).xyz);\n transformed += normalize(normal) * uInk * (1.0 + 0.055 * dCam) / length(modelMatrix[0].xyz);');
   };
   m.customProgramCacheKey = () => 'ink' + width;
   _inkCache.set(key, m); return m;

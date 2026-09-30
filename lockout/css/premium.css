@@ -504,3 +504,14 @@ body.wow-shake #hud { animation: hudShake .28s; } @keyframes hudShake { 20% { tr
 .ld-map { position: absolute; right: calc(48px + var(--safe-r)); bottom: 20vh; text-align: right; display: grid; gap: 6px; }
 .ld-map small { font: 500 11px var(--f-mono); letter-spacing: .6em; color: var(--champ); } .ld-map b { font: 700 clamp(30px, 7vh, 72px) var(--f-disp); letter-spacing: .14em; text-shadow: 6px 6px 0 rgba(0, 0, 0, .5); }
 .ld-map::after { content: ''; height: 10px; margin-top: 6px; justify-self: end; width: 70%; background: linear-gradient(var(--champ), var(--champ)) 0 0 / 100% 2px no-repeat, linear-gradient(var(--champ), var(--champ)) 100% 6px / 60% 2px no-repeat; }
+
+/* ---------- NEW LIGHT mark ---------- */
+@keyframes markSpin { to { transform: rotate(360deg); } } @keyframes markPulse { 50% { opacity: .55; transform: scale(1.12); } }
+.mark { width: 46px; height: 46px; fill: none; stroke: var(--champ); stroke-width: 2.2; stroke-linejoin: miter; stroke-linecap: square; display: block; filter: drop-shadow(0 0 10px rgba(255, 226, 168, .55)); }
+.mark .m-ring { stroke: #fff; stroke-width: 1.6; } .mark .m-rays { stroke-width: 2; transform-origin: 32px 32px; animation: markSpin 24s linear infinite; opacity: .8; } .mark .m-star { fill: #fff; stroke: none; transform-origin: 32px 32px; animation: markPulse 3s ease-in-out infinite; }
+.mark.big { width: clamp(64px, 12vh, 120px); height: clamp(64px, 12vh, 120px); opacity: 0; animation: rise 1.2s .3s var(--ease) forwards; }
+.title-main .mark { margin-bottom: 14px; }
+@media (max-height: 620px) { .title-main .mark { width: 34px; height: 34px; margin-bottom: 6px; } }
+.h-sprint { position: absolute; left: 50%; bottom: 22%; translate: -50% 0; display: flex; gap: 8px; align-items: center; padding: 6px 16px; font: 700 10px var(--f-disp); letter-spacing: .4em; color: var(--champ); opacity: 0; transition: opacity .18s; border-block: 1px solid var(--champ); background: rgba(0, 0, 0, .45); }
+.h-sprint svg { width: 16px; height: 16px; stroke-width: 2.2; } .h-sprint.on { opacity: 1; } .h-sprint.on svg { animation: sprintCh .5s linear infinite; }
+@keyframes sprintCh { from { transform: translateX(-4px); opacity: .3; } 50% { opacity: 1; } to { transform: translateX(4px); opacity: .3; } }

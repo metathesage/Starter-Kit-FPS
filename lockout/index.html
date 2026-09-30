@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>LOCKOUT — Team Slayer, Waifu Edition</title>
-<meta name="description" content="A low-poly arena shooter tribute: 4v4 Team Slayer on a symmetrical Forerunner yard, armored waifus, energy swords, sniper towers. Runs in your browser. Xbox controller ready.">
+<title>NEW LIGHT — Halo-born Arena Shooter</title>
+<meta name="description" content="NEW LIGHT: a browser arena shooter. 4v4 Team Slayer, Oddball and CTF, anime operators, Destiny exotics, a marble sanctum hub. Xbox controller ready.">
 <meta name="theme-color" content="#040404">
-<meta property="og:title" content="LOCKOUT — Team Slayer, Waifu Edition">
-<meta property="og:description" content="4v4 arena shooter in your browser. Low-poly armored waifus, sniper tower, energy swords. Full Xbox controller support.">
+<meta property="og:title" content="NEW LIGHT — Halo-born Arena Shooter">
+<meta property="og:description" content="4v4 arena shooter in your browser. Anime operators, Destiny exotics, a sanctum hub, Xbox controller support.">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23070b14'/%3E%3Cpath d='M16 3l11 6.5v13L16 29 5 22.5v-13z' fill='none' stroke='%23ffd48a' stroke-width='2'/%3E%3Cpath d='M11 11v10h10' fill='none' stroke='%2362e4ff' stroke-width='3'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23050508'/%3E%3Cpath d='M32 3l22 9 7 20-7 20-22 9-22-9-7-20 7-20z' fill='none' stroke='%23ffe2a8' stroke-width='3'/%3E%3Ccircle cx='32' cy='32' r='14' fill='none' stroke='%23fff' stroke-width='2'/%3E%3Cpath d='M32 22l3 7 7 3-7 3-3 7-3-7-7-3 7-3z' fill='%23ffe2a8'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Geist:wght@200;300;400;500;600;700&family=Geist+Mono:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -24,15 +24,16 @@
 
 <!-- SPLASH -->
 <section id="splash" class="screen active" data-screen="splash">
+  <svg class="mark big" viewBox="0 0 64 64" aria-hidden="true"><path class="m-frame" d="M32 3l22 9 7 20-7 20-22 9-22-9-7-20 7-20z"/><circle class="m-ring" cx="32" cy="32" r="14"/><path class="m-rays" d="M32 6v10M32 48v10M6 32h10M48 32h10M14 14l7 7M43 43l7 7M50 14l-7 7M21 43l-7 7"/><path class="m-star" d="M32 22l3 7 7 3-7 3-3 7-3-7-7-3 7-3z"/></svg>
   <div class="sp-line"></div>
   <div class="sp-studio">METATHESAGE</div>
-  <h1 class="sp-title">LOCKOUT</h1>
+  <h1 class="sp-title">NEW LIGHT</h1>
   <div class="press" id="splashPress">PRESS ANY BUTTON</div>
 </section>
 
 <!-- LOADING -->
 <section id="loading" class="screen" data-screen="loading">
-  <div class="ld-top"><span>LOCKOUT</span><span id="loadStage">Booting</span></div>
+  <div class="ld-top"><span>NEW LIGHT</span><span id="loadStage">Booting</span></div>
   <div class="ld-pct"><span id="loadPct">000</span><small>%</small></div>
   <div class="ld-map"><small>DEPLOYING TO</small><b id="ldMapName">LOCKOUT</b></div>
   <div class="ld-tip" id="loadTip"></div>
@@ -49,8 +50,9 @@
     </div>
   </header>
   <div class="title-main">
+    <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><path class="m-frame" d="M32 3l22 9 7 20-7 20-22 9-22-9-7-20 7-20z"/><circle class="m-ring" cx="32" cy="32" r="14"/><path class="m-rays" d="M32 6v10M32 48v10M6 32h10M48 32h10M14 14l7 7M43 43l7 7M50 14l-7 7M21 43l-7 7"/><path class="m-star" d="M32 22l3 7 7 3-7 3-3 7-3-7-7-3 7-3z"/></svg>
     <div class="eyebrow">FOUR MODES <b>/</b> THREE MAPS <b>/</b> WAIFU EDITION</div>
-    <h1 class="logo" aria-label="Lockout"><span class="l1">LOCK</span><span class="l2">OUT</span></h1>
+    <h1 class="logo" aria-label="New Light"><span class="l1">NEW</span><span class="l2">LIGHT</span></h1>
     <nav class="menu" id="titleMenu"></nav>
   </div>
   <div class="pcard" id="pCard"></div>
@@ -59,7 +61,7 @@
     <div class="hc-name" id="hcName">AOI</div>
     <div class="hc-blurb" id="hcBlurb"></div>
   </aside>
-  <div class="ticker" aria-hidden="true"><div class="tk-track"><span>LOCKOUT<i></i>WAIFU NOIR<i></i>4V4 ARENA<i></i>EXOTICS ARMED<i></i>CONTROLLER READY<i></i>SPRINT / SLIDE / SHOOT<i></i></span><span>LOCKOUT<i></i>WAIFU NOIR<i></i>4V4 ARENA<i></i>EXOTICS ARMED<i></i>CONTROLLER READY<i></i>SPRINT / SLIDE / SHOOT<i></i></span></div></div>
+  <div class="ticker" aria-hidden="true"><div class="tk-track"><span>NEW LIGHT<i></i>WAIFU NOIR<i></i>4V4 ARENA<i></i>EXOTICS ARMED<i></i>CONTROLLER READY<i></i>SPRINT / SLIDE / SHOOT<i></i></span><span>NEW LIGHT<i></i>WAIFU NOIR<i></i>4V4 ARENA<i></i>EXOTICS ARMED<i></i>CONTROLLER READY<i></i>SPRINT / SLIDE / SHOOT<i></i></span></div></div>
   <footer class="prompts" id="titlePrompts"></footer>
 </section>
 

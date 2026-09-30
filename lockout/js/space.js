@@ -111,6 +111,18 @@ export function buildSpace(scene, center = new THREE.Vector3(0, 3000, 0)) {
   for (let i = 0; i < 3; i++) { const g = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3(0, 0, 14)]); const l = new THREE.Line(g, sm.clone()); l.frustumCulled = false; l.visible = false; l.userData = { t: -1 }; root.add(l); shoots.push(l); }
   let nextShoot = 2;
   const S = { root, plat, planet, sun, moon, T: 0 };
+  // the ring: a Halo-scale megastructure arcing across the sky (models/space/halo_ring.glb)
+  S.loadRing = async () => {
+    const { GLTFLoader } = await import('../vendor/jsm/loaders/GLTFLoader.js'), loader = new GLTFLoader(), url = 'models/space/halo_ring.glb'; let gltf;
+    try { gltf = await loader.loadAsync(url); }
+    catch (e0) { const r = await fetch(url.replace(/\.glb$/, '.b64.txt')); if (!r.ok) throw e0; const bin = atob((await r.text()).trim()), buf = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i); gltf = await new Promise((res, rej) => loader.parse(buf.buffer, '', res, rej)); }
+    const ring = gltf.scene, holder = new THREE.Group(); holder.add(ring);
+    ring.traverse((o) => { if (!o.isMesh) return; o.frustumCulled = false; const m = o.material; const nm = new THREE.MeshBasicMaterial({ map: m.map || null, color: m.map ? 0xffffff : m.color, fog: false, toneMapped: true, side: THREE.DoubleSide, transparent: !!m.transparent, opacity: m.opacity, alphaTest: m.alphaTest }); o.material = nm; });
+    const R = 520; ring.scale.setScalar(R * 2);
+    holder.position.set(40, -318, -760);
+    holder.rotation.set(0.42, 0, 0);
+    root.add(holder); S.ring = holder; return holder;
+  };
   S.place = (facing) => { // planet sits behind the operator, low and to the right of frame; `facing` = camera→operator direction
     const f = new THREE.Vector3(facing.x, 0, facing.z).normalize(), r = new THREE.Vector3(-f.z, 0, f.x);
     planet.position.copy(f.clone().multiplyScalar(230).add(r.clone().multiplyScalar(74)).add(new THREE.Vector3(0.55, -58, 0)));
@@ -121,6 +133,7 @@ export function buildSpace(scene, center = new THREE.Vector3(0, 3000, 0)) {
     S.T += dt; T.value = S.T; sky.position.copy(camera.position).sub(root.position);
     pm.uniforms.cam.value.copy(camera.position);
     root.userData.starMat.uniforms.px.value = Math.min(2.2, camera.userData.dpr || 1) * 1.2;
+    if (S.ring) S.ring.rotation.z = S.T * 0.003;
     planet.rotation.y = 0;   // shader spins the surface; the shell stays put so the terminator holds
     if (S.moonBase) moon.position.copy(S.moonBase).add(S.r.clone().multiplyScalar(Math.sin(S.T * 0.05) * 8)).add(new THREE.Vector3(0, Math.cos(S.T * 0.05) * 2, 0));
     nextShoot -= dt;

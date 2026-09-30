@@ -1,4 +1,6 @@
-# LOCKOUT — Team Slayer, Waifu Edition
+# NEW LIGHT
+
+(formerly LOCKOUT; the Lockout map keeps its name)
 
 A browser arena shooter built as a tribute to classic console team-slayer on a symmetrical map.
 4v4 against bots or friends. Cyber-angel armored operators (halo, wing blades, twin tails), three symmetrical maps, a full sandbox of Halo-style weapons and power-ups. Noir minimal UI.
@@ -52,7 +54,7 @@ Landscape works best. The menu asks for fullscreen on tap.
 ### Deploy (GitHub Pages)
 
 `.github/workflows/lockout-pages.yml` publishes `lockout/` to Pages. In the repo: Settings -> Pages -> Source: **GitHub Actions**.
-It runs on pushes to `main` and can be run by hand (Actions -> Deploy LOCKOUT -> Run workflow).
+It runs on pushes to `main` and can be run by hand (Actions -> Deploy NEW LIGHT -> Run workflow).
 Live URL: `https://<owner>.github.io/<repo>/`.
 
 ## Modes

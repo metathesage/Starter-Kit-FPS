@@ -46,12 +46,12 @@ export const Profile = {
   // portable save: paste it on another device or keep it as a backup. Checksummed so a truncated paste is rejected.
   exportCode() {
     const j = JSON.stringify({ p: data, l: store('loadout', {}) });
-    return `LOCKOUT${SAVE_VERSION}.${hash(j)}.${btoa(unescape(encodeURIComponent(j)))}`;
+    return `NEWLIGHT${SAVE_VERSION}.${hash(j)}.${btoa(unescape(encodeURIComponent(j)))}`;
   },
   importCode(str) {
     try {
       const [tag, h, b] = String(str).trim().split('.');
-      if (!tag || !tag.startsWith('LOCKOUT') || !b) return { ok: false, err: 'Not a Lockout save code' };
+      if (!tag || !(tag.startsWith('NEWLIGHT') || tag.startsWith('LOCKOUT')) || !b) return { ok: false, err: 'Not a New Light save code' };
       const j = decodeURIComponent(escape(atob(b)));
       if (hash(j) !== h) return { ok: false, err: 'Code is damaged or cut off' };
       const o = JSON.parse(j);
