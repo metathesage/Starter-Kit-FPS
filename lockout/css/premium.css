@@ -590,3 +590,21 @@ body.is-replay #hud, body.is-replay .touch { display: none !important; }
 @keyframes rptitle { from { opacity: 0; transform: translateX(-30px); filter: blur(8px); } }
 .rp-skip { position: absolute; right: calc(4vw + var(--safe-r, 0px)); bottom: calc(9vh + 26px); display: flex; align-items: center; gap: 10px; font: 600 11px 'JetBrains Mono', monospace; letter-spacing: .3em; color: rgba(255,255,255,.75); }
 .rp-rec { position: absolute; right: calc(4vw + var(--safe-r, 0px)); top: calc(9vh + 22px); width: 12px; height: 12px; background: #ff3b4a; box-shadow: 0 0 14px #ff3b4a; border-radius: 50%; animation: recblink 1s steps(2, jump-none) infinite; } @keyframes recblink { 50% { opacity: .15; } }
+
+.rcard.topk { grid-column: 1 / -1; display: grid; gap: 4px; text-align: left; padding: 14px 20px; border-left: 3px solid var(--champ, #ffd48a); }
+.rcard.topk em { font: 600 10px 'JetBrains Mono', monospace; letter-spacing: .4em; color: var(--champ, #ffd48a); font-style: normal; }
+.rcard.topk b { font: 700 22px 'Unbounded', 'Chakra Petch', sans-serif; letter-spacing: .03em; text-transform: uppercase; } .rcard.topk span { font: 500 11px 'JetBrains Mono', monospace; letter-spacing: .24em; opacity: .7; text-transform: uppercase; }
+
+/* loading emblem: counter-rotating rings, live progress arc, radar sweep */
+.ld-emb { position: absolute; right: calc(48px + var(--safe-r)); top: calc(64px + var(--safe-t)); width: clamp(120px, 26vh, 240px); aspect-ratio: 1; pointer-events: none; --p: 0; }
+#loading { --p: 0; }
+.ld-emb svg { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke: var(--champ, #ffd48a); overflow: visible; }
+.ld-emb .e1 { stroke-width: .6; stroke-dasharray: 2 5; opacity: .6; transform-origin: center; animation: ldspin 40s linear infinite; }
+.ld-emb .e2 { stroke-width: .4; opacity: .4; }
+.ld-emb .e3 { stroke-width: 2; opacity: .85; transform-origin: center; animation: ldspin 9s linear infinite reverse; }
+.ld-emb .e4 { stroke: rgba(255,255,255,.14); stroke-width: 3; transform: rotate(-90deg); } .ld-emb .e5 { stroke: #fff; stroke-width: 3; stroke-dasharray: 100; stroke-dashoffset: calc(100 - var(--p) * 100); transform: rotate(-90deg); filter: drop-shadow(0 0 5px rgba(255,226,168,.9)); }
+.ld-emb .e6 { stroke-width: 1.6; fill: rgba(255,226,168,.08); transform-origin: center; animation: ldpulse 2.2s ease-in-out infinite; }
+.ld-emb .e7 { stroke-width: 1.2; }
+.ld-sweep { position: absolute; inset: 6%; border-radius: 50%; background: conic-gradient(from 0deg, transparent 0 78%, rgba(255,226,168,.32) 100%); animation: ldspin 3.2s linear infinite; mask: radial-gradient(circle, transparent 0 24%, #000 25%); -webkit-mask: radial-gradient(circle, transparent 0 24%, #000 25%); }
+@keyframes ldspin { to { transform: rotate(360deg); } } @keyframes ldpulse { 50% { transform: scale(1.12); opacity: .7; } }
+@media (max-height: 520px) { .ld-emb { top: calc(44px + var(--safe-t)); width: 90px; } }

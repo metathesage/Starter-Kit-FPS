@@ -394,7 +394,7 @@ export class Actor {
         const g = W.groundAt(this.x, this.z, this.y);
         if (ny <= g) {
           ny = g;
-          if (this.vy < -7 && !dead) { this.m.sfx('land', this, 0.8); if (this.isPlayer) this.m.bus.emit('shake', 0.12); }
+          if (this.vy < -7 && !dead) { this.m.sfx('land', this, 0.8); this.m.fx.dust(this.x, this.y + 0.05, this.z, 7); if (this.isPlayer) { this.m.bus.emit('shake', 0.12); this.m.bus.emit('land', -this.vy); } }
           this.vy = 0; this.grounded = true;
         }
       }

@@ -105,7 +105,7 @@ addEventListener('resize', resize);
 let hub = null, missionActive = null;
 let state = 'splash', world = null, fx = null, viewmodel = null, hud = null, match = null, showcase = null;
 let trauma = 0, camKick = 0, fovCur = 62, menuT = 0, last = performance.now(), padCrouch = false, padSprint = false, fpsAcc = 0, fpsN = 0, showFps = Q.has('fps'), muted = false;
-let replay = null, kcAt = -1, topDone = false, rpUI = null, hitstop = 0, showWeapon = null, mstats = null, lastDevice = 'kbm', endShown = false, quick = Q.has('quick'), fast = Q.has('fast') || Q.has('quick'), netAcc = 0, netEdges = 0;
+let camRoll = 0, replay = null, kcAt = -1, topDone = false, rpUI = null, hitstop = 0, showWeapon = null, mstats = null, lastDevice = 'kbm', endShown = false, quick = Q.has('quick'), fast = Q.has('fast') || Q.has('quick'), netAcc = 0, netEdges = 0;
 const shakeN = { t: 0 };
 window.__game = { get post() { return post; }, get hub() { return hub; }, ensureMap: (id) => ensureMap(id), World, get world() { return world; }, render: () => render(false), Net, hostLobby: () => hostLobby(), joinLobby: (c) => joinLobby(c), startOnlineHost: () => startOnlineHost(), renderer, get fx() { return fx; }, get match() { return match; }, get state() { return state; }, get scene() { return scene; }, get camera() { return camera; }, start: () => startMatch(), Input, THREE };
 
@@ -123,6 +123,7 @@ function applySettings() {
 const setProg = (p, label) => {
   $('#loadPct').textContent = String(Math.round(p * 100)).padStart(3, '0');
   $('#loadBar').style.width = p * 100 + '%';
+  $('#loading').style.setProperty('--p', p.toFixed(3));
   if (label) $('#loadStage').textContent = label;
   return nextFrame();
 };
@@ -559,6 +560,7 @@ function beginMatch(m, w) {
   match.bus.on('shot', (a) => { if (a === match.player) mstats.shots++; });
   match.bus.on('hit', (a) => { if (a === match.player) mstats.hits++; });
   match.bus.on('shake', (a) => { trauma = Math.min(1, trauma + a); });
+  match.bus.on('land', (v) => { camKick = Math.min(camKick, -Math.min(0.06, v * 0.0048)); });
   match.bus.on('shot', (a, def) => { if (a === match.player && def) { viewmodel.kickNow(0.4 + def.kick * 8); camKick = Math.min(0.06, camKick + def.kick * 0.35); } });
   match.bus.on('state', (s) => { if (s === 'ended') onMatchEnd(); });
   if (replay) replay.dispose(); replay = new ReplayPlayer(scene, fx); kcAt = -1; topDone = false;
@@ -599,7 +601,7 @@ function showResults() {
   award(m, p, won, win === 'tie');
   { const S = mstats || { shots: 0, hits: 0, heads: 0, streakBest: 0, medals: {} }, mn = Object.values(S.medals).reduce((a, b) => a + b, 0), acc = S.shots ? Math.round((S.hits / S.shots) * 100) : 0, kd = p.deaths ? (p.kills / p.deaths).toFixed(2) : p.kills.toFixed(2);
     const mvp = m.ranking()[0], C = (l, v, cls = '') => `<div class="rcard ${cls}"><b data-n="${v}">0</b><span>${l}</span></div>`;
-    $('#resCards').innerHTML = (mvp ? `<div class="mvp"><em>MVP</em><b>${mvp.name}</b><span>${mvp.kills} KILLS</span></div>` : '') + C('KILLS', p.kills, 'hot') + C('DEATHS', p.deaths) + C('ASSISTS', p.assists) + `<div class="rcard"><b data-n="${kd}" data-d="2">0</b><span>K/D</span></div>` + `<div class="rcard"><b data-n="${acc}" data-s="%">0</b><span>ACCURACY</span></div>` + C('HEADSHOTS', S.heads || 0) + C('BEST STREAK', S.streakBest || 0) + C('MEDALS', mn, 'gold');
+    $('#resCards').innerHTML = (mvp ? `<div class="mvp"><em>MVP</em><b>${mvp.name}</b><span>${mvp.kills} KILLS</span></div>` : '') + C('KILLS', p.kills, 'hot') + C('DEATHS', p.deaths) + C('ASSISTS', p.assists) + `<div class="rcard"><b data-n="${kd}" data-d="2">0</b><span>K/D</span></div>` + `<div class="rcard"><b data-n="${acc}" data-s="%">0</b><span>ACCURACY</span></div>` + C('HEADSHOTS', S.heads || 0) + C('BEST STREAK', S.streakBest || 0) + C('MEDALS', mn, 'gold') + (() => { const R = m.rec, c = R && (R.bestMine && (!R.best || R.bestMine.score >= R.best.score * 0.6) ? R.bestMine : R.best); if (!c) return ''; const wn = (WEAPONS[c.weapon] && WEAPONS[c.weapon].name) || c.weapon; return `<div class="rcard topk"><em>TOP KILL</em><b>${c.killerName}</b><span>${wn} &middot; ${c.dist} M${c.head ? ' &middot; HEADSHOT' : ''}${c.multi >= 2 ? ' &middot; ' + c.multi + 'X' : ''}</span></div>`; })();
     countUps($('#resCards')); }
   const mres = missionActive ? MS.resolve(missionActive, won, mstats, Object.values(mstats.medals).reduce((a, b) => a + b, 0)) : null;
   if (mres) $('#resXp').insertAdjacentHTML('afterbegin', `<div class="ms-res ${mres.cleared ? 'ok' : 'no'}"><em>MISSION</em><b>${missionActive.name}</b><span>${mres.cleared ? (mres.first ? 'CLEARED' : 'REPEAT CLEAR') : 'FAILED'}</span>${mres.cleared ? `<i>+${mres.credits} CR${mres.bonusHit ? '  ·  BONUS: ' + missionActive.bonus.text.toUpperCase() : ''}</i>` : '<i>Win the match to clear it.</i>'}</div>`);
@@ -806,6 +808,7 @@ function updateCamera(dt) {
   const p = match.player, m = match;
   trauma = Math.max(0, trauma - dt * 1.4); camKick = damp(camKick, 0, 12, dt);
   const tr = trauma * trauma; shakeN.t += dt * 38;
+  { const lat = p.alive ? (p.vx * Math.cos(p.yaw) - p.vz * Math.sin(p.yaw)) : 0; camRoll = damp(camRoll, -clamp(lat / 5.4, -1.3, 1.3) * 0.022, 9, dt); }
   const sx = (Math.sin(shakeN.t * 1.3) + Math.sin(shakeN.t * 2.7)) * 0.5 * tr * 0.05, sy = (Math.sin(shakeN.t * 1.7 + 2) + Math.sin(shakeN.t * 3.1)) * 0.5 * tr * 0.05, sr = Math.sin(shakeN.t * 2.1) * tr * 0.05;
   const zoom = p.alive ? p.fovZoom : 1;
   const base = settings.fov;
@@ -814,7 +817,7 @@ function updateCamera(dt) {
   if (Math.abs(camera.fov - fovCur) > 0.01) { camera.fov = fovCur; camera.updateProjectionMatrix(); }
   if (p.alive && !m.thirdPerson) {
     camera.position.set(p.x, p.eye, p.z);
-    camera.rotation.set(p.pitch + camKick + sy, p.yaw + sx, sr);
+    camera.rotation.set(p.pitch + camKick + sy, p.yaw + sx, sr + camRoll);
   } else if (p.alive) {
     const f = forward(p.yaw, p.pitch, { x: 0, y: 0, z: 0 });
     const rx = Math.cos(p.yaw), rz = -Math.sin(p.yaw);
