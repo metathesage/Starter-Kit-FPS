@@ -6,11 +6,21 @@ const FONT_BODY := preload("res://fonts/rajdhani_semibold.ttf")
 
 const MAPS := [
 	{"scene": "res://scenes/lockout.tscn", "name": "LOCKOUT", "tag": "FORERUNNER  /  100 x 60", "accent": Color("39e3ff"),
-		"blurb": "Twin decks. Central tower. Two rail bridges. Every edge is sealed."},
+		"blurb": "Twin decks, central tower, two rail bridges."},
+	{"scene": "res://scenes/the_pit.tscn", "name": "THE PIT", "tag": "FORERUNNER  /  80 x 50", "accent": Color("b58cff"),
+		"blurb": "Spawn corridors, rim catwalks, a spire plateau."},
 	{"scene": "res://scenes/nuketown.tscn", "name": "NUKETOWN 24/7", "tag": "SUBURBAN  /  60 x 34", "accent": Color("ffa02b"),
-		"blurb": "Two houses, one street, zero downtime. Kills respawn in seconds."},
+		"blurb": "Two houses, one street, zero downtime."},
+	{"scene": "res://scenes/terminal.tscn", "name": "TERMINAL", "tag": "CONCOURSE  /  70 x 36", "accent": Color("ffd166"),
+		"blurb": "Mezzanine galleries over a carousel floor."},
+	{"scene": "res://scenes/rust.tscn", "name": "RUST", "tag": "OIL YARD  /  56 x 40", "accent": Color("e9812a"),
+		"blurb": "Sniper tower, containers, walkable huts."},
+	{"scene": "res://scenes/cinder.tscn", "name": "CINDER", "tag": "TWO SITES  /  80 x 40", "accent": Color("ff4655"),
+		"blurb": "Attack or defend A and B through three lanes."},
+	{"scene": "res://scenes/triad.tscn", "name": "TRIAD", "tag": "THREE SITES  /  72 x 44", "accent": Color("4fe39a"),
+		"blurb": "Flank sites and a raised B platform."},
 	{"scene": "res://scenes/beaver_creek.tscn", "name": "BEAVER CREEK", "tag": "BUNKERS  /  60 x 48", "accent": Color("d23a2c"),
-		"blurb": "Flat-shaded blocks. Walk-through halls. One bridge across the middle."},
+		"blurb": "Flat-shaded blocks, walk-through halls."},
 ]
 
 const BG_SHADER := """
@@ -57,12 +67,11 @@ func _ready() -> void:
 
 	var kicker := _label("ARENA SELECT", FONT_BODY, 22, Color(1, 1, 1, 0.55))
 	col.add_child(kicker)
-	var title := _label("CHOOSE YOUR\nGROUND", FONT_DISPLAY, 84, Color.WHITE)
-	title.add_theme_constant_override("line_spacing", -14)
+	var title := _label("CHOOSE YOUR GROUND", FONT_DISPLAY, 60, Color.WHITE)
 	col.add_child(title)
 
 	var row := GridContainer.new()
-	row.columns = 3
+	row.columns = 4
 	row.add_theme_constant_override("h_separation", 24)
 	row.add_theme_constant_override("v_separation", 24)
 	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -112,7 +121,7 @@ func _style(fill: Color, border: Color, width: int, offset := 0) -> StyleBoxFlat
 
 func _map_card(m: Dictionary) -> Button:
 	var b := Button.new()
-	b.custom_minimum_size = Vector2(360, 240)
+	b.custom_minimum_size = Vector2(250, 176)
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	b.focus_mode = Control.FOCUS_ALL
@@ -127,21 +136,23 @@ func _map_card(m: Dictionary) -> Button:
 	var v := VBoxContainer.new()
 	v.set_anchors_preset(Control.PRESET_FULL_RECT)
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.offset_left = 32
-	v.offset_top = 28
-	v.offset_right = -32
-	v.offset_bottom = -28
+	v.offset_left = 22
+	v.offset_top = 20
+	v.offset_right = -22
+	v.offset_bottom = -20
 	v.add_theme_constant_override("separation", 6)
 	b.add_child(v)
-	var tag := _label(m.tag, FONT_BODY, 20, accent)
+	var tag := _label(m.tag, FONT_BODY, 16, accent)
 	v.add_child(tag)
-	v.add_child(_label(m.name, FONT_DISPLAY, 38, Color.WHITE))
-	var blurb := _label(m.blurb, FONT_BODY, 24, Color(1, 1, 1, 0.7))
+	v.add_child(_label(m.name, FONT_DISPLAY, 26, Color.WHITE))
+	var blurb := _label(m.blurb, FONT_BODY, 20, Color(1, 1, 1, 0.7))
 	blurb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	v.add_child(blurb)
 
 	var scene: String = m.scene
-	b.pressed.connect(func(): get_tree().change_scene_to_file(scene))
+	b.pressed.connect(func():
+		Game.map_scene = scene
+		get_tree().change_scene_to_file("res://scenes/loadout.tscn"))
 	b.focus_entered.connect(func():
 		var tw := create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
 		b.pivot_offset = b.size * 0.5

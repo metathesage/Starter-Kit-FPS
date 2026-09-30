@@ -66,3 +66,11 @@ The menu shows a live count (top right). It reads from a presence server; with n
     PRESENCE_URL=http://host:8787 godot --path .   # or set project setting game/presence_url
 
 Each client heartbeats every 20s; sessions expire after 45s.
+
+## Classes and movement
+
+Pick a class after choosing a map. **Spartan** (mobility): sprint, long slides, Thruster dash (Q / LB), Active Camo (F / X).
+**Guardian** (heavy): 150 HP with regen, Aegis shield (Q / LB), Seismic Slam (F / X, press again to dive).
+Crouch: C / Ctrl / B. Sprint: Shift / L3. Slide: crouch while sprinting.
+
+    godot --headless --fixed-fps 60 -s tools/ability_test.gd

@@ -314,3 +314,37 @@ func sky_ring(radius := 900.0, tilt_deg := 62.0, color := Color("bcd8ff")) -> vo
 	m.emission_energy_multiplier = 0.8
 	mi.material_override = m
 	add_child(mi)
+
+
+## Wall along X (thin in Z). openings: [[a, b, sill, top]] in x, sill/top relative to y0 (sill 0 = doorway).
+func wall_x(x0: float, x1: float, z0: float, t: float, y0: float, y1: float, color: Color, openings := [], mx := false, mz := false) -> void:
+	var ops := openings.duplicate()
+	ops.sort_custom(func(a, b): return a[0] < b[0])
+	var cur := x0
+	for o in ops:
+		if o[0] > cur:
+			box(Vector3(cur, y0, z0), Vector3(o[0] - cur, y1 - y0, t), color, mx, mz)
+		if o[2] > 0.0:
+			box(Vector3(o[0], y0, z0), Vector3(o[1] - o[0], o[2], t), color, mx, mz)
+		if o[3] < y1 - y0:
+			box(Vector3(o[0], y0 + o[3], z0), Vector3(o[1] - o[0], y1 - y0 - o[3], t), color, mx, mz)
+		cur = o[1]
+	if x1 > cur:
+		box(Vector3(cur, y0, z0), Vector3(x1 - cur, y1 - y0, t), color, mx, mz)
+
+
+## Wall along Z (thin in X). Same opening format, along z.
+func wall_z(z0: float, z1: float, x0: float, t: float, y0: float, y1: float, color: Color, openings := [], mx := false, mz := false) -> void:
+	var ops := openings.duplicate()
+	ops.sort_custom(func(a, b): return a[0] < b[0])
+	var cur := z0
+	for o in ops:
+		if o[0] > cur:
+			box(Vector3(x0, y0, cur), Vector3(t, y1 - y0, o[0] - cur), color, mx, mz)
+		if o[2] > 0.0:
+			box(Vector3(x0, y0, o[0]), Vector3(t, o[2], o[1] - o[0]), color, mx, mz)
+		if o[3] < y1 - y0:
+			box(Vector3(x0, y0 + o[3], o[0]), Vector3(t, y1 - y0 - o[3], o[1] - o[0]), color, mx, mz)
+		cur = o[1]
+	if z1 > cur:
+		box(Vector3(x0, y0, cur), Vector3(t, y1 - y0, z1 - cur), color, mx, mz)

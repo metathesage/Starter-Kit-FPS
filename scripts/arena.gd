@@ -7,6 +7,11 @@ const MAPS := {
 	"lockout": preload("res://maps/lockout.gd"),
 	"beaver_creek": preload("res://maps/beaver_creek.gd"),
 	"nuketown": preload("res://maps/nuketown.gd"),
+	"the_pit": preload("res://maps/the_pit.gd"),
+	"terminal": preload("res://maps/terminal.gd"),
+	"rust": preload("res://maps/rust.gd"),
+	"cinder": preload("res://maps/cinder.gd"),
+	"triad": preload("res://maps/triad.gd"),
 }
 const ENEMY := preload("res://objects/enemy.tscn")
 const FONT_DISPLAY := preload("res://fonts/chakra_petch_bold.ttf")
@@ -34,6 +39,9 @@ func _ready() -> void:
 	($HUD/Health as Label).label_settings.font = FONT_DISPLAY
 	_build_title_card()
 	_build_kill_counter()
+	var ah := preload("res://scripts/ability_hud.gd").new()
+	ah.player = player
+	$HUD.add_child(ah)
 
 
 func _spawn_enemy(p: Vector3) -> void:
@@ -41,6 +49,7 @@ func _spawn_enemy(p: Vector3) -> void:
 	e.player = player
 	e.position = p
 	e.killed.connect(_on_enemy_destroyed.bind(p))
+	e.add_to_group("enemies")
 	enemies.add_child(e)
 
 
@@ -68,8 +77,9 @@ func _apply_look() -> void:
 	var env := Environment.new()
 	env.background_mode = Environment.BG_SKY
 	env.sky = sky
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	env.ambient_light_energy = map.ambient_energy
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.ambient_light_color = map.sky_horizon.lerp(Color.WHITE, 0.4)
+	env.ambient_light_energy = map.ambient_energy * 0.45
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	env.glow_enabled = true
 	env.glow_intensity = 0.6

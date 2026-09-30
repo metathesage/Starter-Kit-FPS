@@ -49,6 +49,8 @@ func destroy():
 # Shoot when timer hits 0
 
 func _on_timer_timeout():
+	if player and player.get("cloaked"):
+		return
 	raycast.force_raycast_update()
 
 	if raycast.is_colliding():

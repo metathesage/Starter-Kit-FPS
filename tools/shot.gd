@@ -11,8 +11,8 @@ func _initialize() -> void:
 	var a := OS.get_cmdline_user_args()
 	id = a[0]
 	if a.size() > 1: out = a[1]
-	if id == "menu":
-		root.add_child(load("res://scenes/menu.tscn").instantiate())
+	if id == "menu" or id == "loadout":
+		root.add_child(load("res://scenes/%s.tscn" % id).instantiate())
 		root.size = Vector2i(1280, 720)
 		return
 	arena = load("res://scenes/arena.tscn").instantiate()
@@ -22,9 +22,9 @@ func _initialize() -> void:
 
 func _process(_d: float) -> bool:
 	f += 1
-	if id == "menu":
+	if id == "menu" or id == "loadout":
 		if f == 90:
-			root.get_texture().get_image().save_png(out + "/menu.png")
+			root.get_texture().get_image().save_png(out + "/" + id + ".png")
 			quit()
 		return false
 	if f == 3:
@@ -35,10 +35,14 @@ func _process(_d: float) -> bool:
 		arena.add_child(cam)
 		cam.current = true
 		cam.far = 400
+		var bd: AABB = arena.map.bounds
+		var ext := maxf(bd.size.x, bd.size.z)
+		var sp: Dictionary = arena.map.spawns[0]
+		var fwd := Vector3(-sin(sp.yaw), 0, -cos(sp.yaw))
 		var views = [
-			[Vector3(0, 55, 60), Vector3(0, 0, 0)] if id == "lockout" else ([Vector3(0, 46, 34), Vector3.ZERO] if id == "nuketown" else [Vector3(0, 40, 45), Vector3.ZERO]),
-			[Vector3(-46, 14, 0), Vector3(0, 3, 0)] if id == "lockout" else ([Vector3(0, 3.0, 14), Vector3(16, 2.5, -2)] if id == "nuketown" else [Vector3(-27, 10, 0), Vector3(0, 2, 0)]),
-			[Vector3(30, 9, 27), Vector3(0, 3, -4)] if id == "lockout" else ([Vector3(6, 2.0, 0), Vector3(-16, 3.0, 0)] if id == "nuketown" else [Vector3(24, 8, 21), Vector3(0, 2, -4)]),
+			[Vector3(0, ext * 0.75, bd.size.z * 0.55), Vector3.ZERO],
+			[sp.pos + Vector3(0, 1.6, 0) - fwd * 0.5, sp.pos + Vector3(0, 1.3, 0) + fwd * 10.0],
+			[Vector3(-bd.size.x * 0.3, 8.0, bd.size.z * 0.4), Vector3(bd.size.x * 0.1, 2.0, 0)],
 		]
 		cams = views
 	if f > 3 and f % 6 == 0 and i < cams.size() + 1:
