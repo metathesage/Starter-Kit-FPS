@@ -28,7 +28,7 @@ export const Net = {
   get isHost() { return this.role === 'host'; },
   get isClient() { return this.role === 'client'; },
 
-  link() { return `${location.origin}${location.pathname}?join=${this.code}`; },
+  link() { return `${location.origin}${location.pathname}?join=${this.code}#join=${this.code}`; },
 
   async startHost() {
     this.close();

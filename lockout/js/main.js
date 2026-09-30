@@ -171,7 +171,7 @@ async function boot() {
   clearInterval(tipTimer);
   await new Promise((r) => setTimeout(r, quick ? 0 : 350));
   buildMenus(); wireNet();
-  const jc = Q.get('join');
+  const jc = Q.get('join') || (location.hash.match(/join=([A-Za-z0-9]+)/) || [])[1];
   if (quick) { showTitle(); startMatch(); } else if (jc) { showTitle(); openOnline(); const inp = $('#joinCode'); if (inp) inp.value = jc.toUpperCase(); joinLobby(jc); } else showTitle();
 }
 let skipSplash = false;
