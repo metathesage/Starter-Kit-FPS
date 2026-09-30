@@ -13,6 +13,7 @@ import { Post } from './post.js';
 import { Wow } from './wow.js';
 import { watchIcons } from './icons.js';
 import { buildSpace } from './space.js';
+import { PATCHES } from './patchnotes.js';
 import * as MS from './missions.js';
 import { MODES } from './modes.js';
 import { showArmory, showRecord, emblemHtml, titleText } from './armory.js';
@@ -219,6 +220,7 @@ function showTitle() {
     UI.item(menu, 'Service Record', '06', () => openRecord()),
     UI.item(menu, 'Controls', '07', () => showControls('title')),
     UI.item(menu, 'Settings', '08', () => showSettings(() => showTitle())),
+    UI.item(menu, 'Patch Notes', '09', () => showPatch()),
   ];
   renderPCard();
   UI.show('title', { rows });
@@ -256,6 +258,18 @@ function showControls(from) {
   const b = $('#btnCtrlBack'); UI.button(b, () => back());
   const back = () => (from === 'pause' ? pauseMenu() : from === 'hub' ? openHubPauseAgain() : showTitle());
   UI.show('controls', { rows: [b], onBack: back });
+}
+
+function showPatch() {
+  const list = $('#patchList'); list.innerHTML = '';
+  const cards = PATCHES.map((p, i) => {
+    const c = document.createElement('button'); c.className = 'pn-card' + (i === 0 ? ' latest' : '');
+    c.innerHTML = `<div class="pn-top"><b>${p.v}</b><span>${p.name}</span><em>${p.date}</em></div><p>${p.blurb}</p>` + p.sections.map(([k, items]) => `<div class="pn-sec ${k.toLowerCase()}"><i>${k}</i><ul>${items.map((t) => `<li>${t}</li>`).join('')}</ul></div>`).join('');
+    list.appendChild(c); UI.button(c, () => {}); return c;
+  });
+  const b = $('#btnPatchBack'); UI.button(b, () => showTitle());
+  $('#patchSub').textContent = `${PATCHES.length} releases · v${PATCHES[0].v} ${PATCHES[0].name}`;
+  UI.show('patch', { rows: [...cards, b], onBack: () => showTitle() });
 }
 
 function showSaveData(backFn) {

@@ -1,0 +1,139 @@
+# NEW LIGHT patch notes
+
+Generated from `js/patchnotes.js` (edit that file, then run `node tools/gen-notes.mjs`). Newest first.
+
+## 0.11 · New Light · 2026-09-30
+
+_The game gets its name, real textured operators and a sleeker sound._
+
+**NEW**
+
+- Game renamed to NEW LIGHT (the Lockout map keeps its name). New brand mark on splash, title and tab icon.
+- Lucy joins the roster: a textured cyberpunk operator built from a 10-tile UDIM atlas.
+- Palette variants: one model becomes several operators through hue, saturation and brightness shifts (hue-safe for skin).
+- The Halo ring now arcs across the menu sky, behind the Earth and moon.
+- Futuristic UI sound palette: FM ticks, glass chimes, air sweeps, sub thumps and a short bright reverb. New panel-open whoosh, cinematic win and lose stingers, and a drifting space ambience under the menus.
+- Loading screens now report an error on screen if anything throws while a map or match loads.
+- Patch Notes screen (this one), plus docs/DEV_NOTES.md and HALO.md (roadmap and design rules).
+
+**CHANGED**
+
+- Bots and operators use Mualani, Kagome and Lucy. Only EOS (top unlock) still uses the angel model.
+- Marble goddess statues are carved from the Mualani model instead of the angel.
+- Team-coloured anime rim light on operators; outlines widen with distance to reduce shimmer.
+- A bad operator model can no longer block a match: it falls back to the classic body.
+
+**KNOWN**
+
+- Characters are static meshes skinned at load with hand-placed joints and driven by the procedural rig. Limb deformation is approximate. A real rigged pipeline is the top roadmap item.
+- Outline shimmer can still show at low render resolution.
+
+## 0.10 · Real Operators · 2026-09-30
+
+_Real character models, a space stage, stats and end screens._
+
+**NEW**
+
+- Real textured operator models (Mualani, Kagome) replace the low-poly body; the procedural body remains as the animation driver.
+- Menu stage: procedural spinning Earth with clouds, city lights and aurora, a Milky Way band, moon, shooting stars and a deco platform.
+- Loading screens show the map being loaded with a slow push-in and its name.
+- Full stat tracking: kills, deaths, K/D, accuracy, headshots, playtime, win rate, win streak, best game, losses, per-weapon kills, per-map and per-mode books and a 30-match history.
+- End-of-match screen: slab banner, slam-in title, MVP strip and eight count-up performance cards.
+- 10 new emblems and 10 new badges with new glyphs; animated ring on earned badges.
+
+**CHANGED**
+
+- Brutalist art-deco noir pass: chamfered corners, gold double rules, sunburst behind the logo, mono labels, Syncopate display type.
+- Double arrows on buttons removed: icons carry the meaning.
+- Panel frames live in the panel background so they stay put while long screens scroll.
+
+## 0.9 · Drive Pack · 2026-09-30
+
+_Destiny weapon models, sprint, classic BR scope, narrator and a guitar score._
+
+**NEW**
+
+- Weapon models from your Drive: Ace of Spades, Izanagi's Burden, Chaperone, Vex Mythoclast, Outbreak Perfected, plus the cyberpunk pistol, PDW, sci-fi rifle and Mindbender's Ambition swapped in for Magnum, SMG, Plasma Rifle and Shotgun.
+- Five new exotics with perks: Memento Mori (hotter mags after reload), Honed Edge (kill reloads instantly), Slug Rounds, Timeless Adaptive (kills restore shield), Nanite Culture (poison stacks).
+- Sprint: hold Shift (LS click on pad, toggle). 40% faster, forward only, cancelled by firing, zooming or crouching. Weapon lowers and FOV kicks. Crouch moves to D-Pad on controller.
+- Classic Halo BR scope: black surround, rounded window, stadia reticle, range and magazine readouts.
+- Narrator VO: 68 holographic-AI lines (kills, streaks, lead changes, exotics, match start and end, shield critical).
+- Licensed guitar-driven score: acoustic bed for menus and hub, rock playlist for matches (credits in audio/music/CREDITS.txt).
+- Arcade motion layer: dash-in menus, wipe transitions, slamming medals, ticker on the title.
+- Oddball carriers can shoot.
+- Guns use a gentler cel shading (softer bands, thinner ink) than characters.
+
+## 0.8 · Premium Pass · 2026-09-29
+
+_Liquid-glass UI, wow moments and sculpted guardians._
+
+**NEW**
+
+- Liquid-glass UI layer (Geist and Geist Mono), springy motion, aurora focus rings.
+- Wow layer: match intro title card with letterbox, exotic acquisition flash and god rays, level-up confetti, kill and medal chromatic pulses.
+- Four sculpted female warlock-mage guardian statues (Blender) across the Sanctum.
+
+## 0.7 · Iconic · 2026-09-29
+
+_Destiny exotics and the post pipeline._
+
+**NEW**
+
+- Hawkmoon, Last Word, Felwinter's Lie, Gjallarhorn and Thorn with their signature perks, exotic spawns with beams and a vault display.
+- HDR bloom chain, FXAA, per-map colour grade, vignette and chromatic fringe (toggle in Settings).
+
+## 0.6 · The Sanctum · 2026-09-29
+
+_A solo hub: marble, gold, cherry blossom and a vault._
+
+**NEW**
+
+- Sanctum hub: art-deco utopia plaza with reflecting pool, fountains, 17 marble statues, deco skyline, day and night cycle, tea buff, garden cat and photo mode.
+- Vault museum with exhibits and discoveries, mission board with bonus objectives, the Keeper.
+- Save system v2: profile migration, checksummed export and import codes.
+
+## 0.5 · Maps · 2026-09-29
+
+_Three new maps and an art pass on every map._
+
+**NEW**
+
+- Halcyon-style dusk ruins, Overgrowth (Venus atrium) and Warsat maps with bevelled, baked-AO geometry, foliage, vines and normal-mapped panels.
+- Warlock Hunt: asymmetric mode with glide, blink, homing Nova Bomb, cast interrupt and bot AI.
+
+## 0.4 · Cel Shade · 2026-09-29
+
+_The anime look arrives._
+
+**NEW**
+
+- Toon gradient and inverted-hull ink outlines on weapons and operators, per-weapon saturation.
+- Cryostat night-snow map, cyber-angel operators, new weapons and power-ups.
+
+## 0.3 · Progression · 2026-09-29
+
+_Levels, armory and modes._
+
+**NEW**
+
+- Profile, XP and levels, Armory (locker, shop, codex), Service Record, badges, emblems, halos and operators.
+- Rumble Pit, CTF and Oddball; kill leader crown; PERFECT medal; widescreen sniper scope.
+- Daily and weekly challenges, Quick Play variants (low gravity, fiesta, snipers, swords).
+
+## 0.2 · Online · 2026-09-29
+
+_Play with friends anywhere._
+
+**NEW**
+
+- Host-authoritative online lobbies (PeerJS) by code or link, phone touch controls and a Pages deploy workflow.
+- Weapon models: Halo-style low-poly set, then generated and optimised models.
+
+## 0.1 · Lockout · 2026-09-29
+
+_First playable._
+
+**NEW**
+
+- 4v4 Team Slayer on a Forerunner-style symmetrical map, bots with nav-graph AI, Reach-style HUD, Xbox controller support.
+
