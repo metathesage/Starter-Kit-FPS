@@ -1,4 +1,4 @@
-# NEW LIGHT dev notes
+# NU LIGHT dev notes
 
 How the game is built, how to add things, what bit us. Keep this current; if you fix a nasty bug, add it to Gotchas.
 

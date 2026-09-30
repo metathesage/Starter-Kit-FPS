@@ -1,4 +1,4 @@
-# NEW LIGHT patch notes
+# NU LIGHT patch notes
 
 Generated from `js/patchnotes.js` (edit that file, then run `node tools/gen-notes.mjs`). Newest first.
 
@@ -23,13 +23,13 @@ _Two factions, killcams, a top-kill cinematic, tighter hits and airtight walls._
 - Fast movement (dash, blink, knockback) is sub-stepped so nobody is carried through geometry.
 - The weapon panel stretched over the screen in short windows.
 
-## 0.11 · New Light · 2026-09-30
+## 0.11 · Nu Light · 2026-09-30
 
 _The game gets its name, real textured operators and a sleeker sound._
 
 **NEW**
 
-- Game renamed to NEW LIGHT (the Lockout map keeps its name). New brand mark on splash, title and tab icon.
+- Game renamed to NU LIGHT (the Lockout map keeps its name). New brand mark on splash, title and tab icon.
 - Lucy joins the roster: a textured cyberpunk operator built from a 10-tile UDIM atlas.
 - Palette variants: one model becomes several operators through hue, saturation and brightness shifts (hue-safe for skin).
 - The Halo ring now arcs across the menu sky, behind the Earth and moon.

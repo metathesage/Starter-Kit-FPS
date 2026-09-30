@@ -1,4 +1,4 @@
-# NEW LIGHT
+# NU LIGHT
 
 (formerly LOCKOUT; the Lockout map keeps its name)
 
@@ -54,7 +54,7 @@ Landscape works best. The menu asks for fullscreen on tap.
 ### Deploy (GitHub Pages)
 
 `.github/workflows/lockout-pages.yml` publishes `lockout/` to Pages. In the repo: Settings -> Pages -> Source: **GitHub Actions**.
-It runs on pushes to `main` and can be run by hand (Actions -> Deploy NEW LIGHT -> Run workflow).
+It runs on pushes to `main` and can be run by hand (Actions -> Deploy NU LIGHT -> Run workflow).
 Live URL: `https://<owner>.github.io/<repo>/`.
 
 ## Modes
@@ -169,7 +169,7 @@ Title menu > Enter Sanctum. A clean, sunlit art-deco utopia you walk around in t
 - **Life:** koi, a carillon bell, a plaza cat, seats, a void obelisk, fireflies, photo mode (V hides the HUD).
 
 
-## New Light: what changed lately
+## Nu Light: what changed lately
 - **Operators** are real textured models skinned at load (`js/angel.js`): Mualani, Kagome and Lucy (UDIM atlas built by `tools/blender/prep_udim.py`), plus the original angel for EOS. Palette variants (`look: { hue, sat, val }` in `WAIFUS` / `BOT_STYLES`) make one model several operators. Add a model: run `tools/blender/prep_char.py`, add an entry with joint landmarks to `OPERATOR_MODELS`.
 - **Weapons** from the Drive pack are conformed with `tools/blender/conform.py` and listed in `models/weapons/manifest.json`.
 - **Menu stage** (`js/space.js`): procedural Earth, Milky Way, moon, the Halo ring (`models/space/halo_ring.glb`) and a deco platform.

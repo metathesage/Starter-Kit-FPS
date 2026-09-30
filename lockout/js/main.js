@@ -445,7 +445,7 @@ function showLobby(host) {
   const copy = $('#btnCopy'), share = $('#btnShare');
   const doCopy = async () => { try { await navigator.clipboard.writeText(Net.link()); UI.toast('LINK COPIED'); } catch { UI.toast(Net.link(), 4000); } };
   UI.button(copy, doCopy);
-  UI.button(share, async () => { if (navigator.share) { try { await navigator.share({ title: 'NEW LIGHT', text: 'Join my NEW LIGHT lobby', url: Net.link() }); return; } catch { /* cancelled */ } } doCopy(); });
+  UI.button(share, async () => { if (navigator.share) { try { await navigator.share({ title: 'NU LIGHT', text: 'Join my NU LIGHT lobby', url: Net.link() }); return; } catch { /* cancelled */ } } doCopy(); });
   rows.push(copy, share);
   const btns = $('#lobbyBtns'); btns.innerHTML = '';
   const leave = document.createElement('button'); leave.className = 'btn'; leave.innerHTML = '<span>LEAVE</span><i></i>';

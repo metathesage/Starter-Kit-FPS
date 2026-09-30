@@ -80,7 +80,7 @@ export const EMBLEMS = [
 
 export const TITLES = [
   { id: 'rookie', text: 'ROOKIE', lvl: 1 }, { id: 'warden', text: 'WARDEN', lvl: 5 }, { id: 'walker', text: 'HALO WALKER', lvl: 10 },
-  { id: 'nightshift', text: 'NIGHT SHIFT', lvl: 15 }, { id: 'frost', text: 'ANGEL OF FROST', lvl: 25 }, { id: 'legend', text: 'NEW LIGHT LEGEND', lvl: 35 },
+  { id: 'nightshift', text: 'NIGHT SHIFT', lvl: 15 }, { id: 'frost', text: 'ANGEL OF FROST', lvl: 25 }, { id: 'legend', text: 'NU LIGHT LEGEND', lvl: 35 },
   { id: 'choir', text: 'SEVENTH CHOIR', lvl: 50 },
   { id: 'headhunter', text: 'HEADHUNTER', stat: 'headshots', n: 100, lvl: 1 }, { id: 'cleanhands', text: 'CLEAN HANDS', stat: 'perfects', n: 10, lvl: 1 },
   { id: 'flagrunner', text: 'FLAG RUNNER', stat: 'caps', n: 10, lvl: 1 }, { id: 'ballhog', text: 'BALL HOG', stat: 'ballTime', n: 600, lvl: 1 },

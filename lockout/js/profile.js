@@ -51,7 +51,7 @@ export const Profile = {
   importCode(str) {
     try {
       const [tag, h, b] = String(str).trim().split('.');
-      if (!tag || !(tag.startsWith('NEWLIGHT') || tag.startsWith('LOCKOUT')) || !b) return { ok: false, err: 'Not a New Light save code' };
+      if (!tag || !(tag.startsWith('NEWLIGHT') || tag.startsWith('LOCKOUT')) || !b) return { ok: false, err: 'Not a Nu Light save code' };
       const j = decodeURIComponent(escape(atob(b)));
       if (hash(j) !== h) return { ok: false, err: 'Code is damaged or cut off' };
       const o = JSON.parse(j);

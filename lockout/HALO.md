@@ -1,9 +1,9 @@
-# HALO.md: the New Light north star
+# HALO.md: the Nu Light north star
 
 One page for what we are making, the rules every screen and system follows, and where it goes next.
 Companion docs: `docs/PATCH_NOTES.md` (what shipped), `docs/DEV_NOTES.md` (how it is built), `README.md` (how to run it).
 
-## What New Light is
+## What Nu Light is
 A browser arena shooter with Halo's rules of engagement (shields, sandbox weapons, symmetrical maps, Oddball and CTF), Destiny's loot and exotics, Genshin's character art, and Apex's UI confidence. Noir, art deco, luxury. Anime operators, marble and gold, a quiet hub between fights. Runs in a tab. Xbox controller first-class.
 
 ## Pillars
@@ -104,7 +104,7 @@ Core is solid; this pass makes it alive. Each brick ships alone.
 
 ### Done recently
 - [x] Depth Pass I: factions (Destiny and Spartan kits), killcam, top-kill cinematic, hit markers v2, bullet magnetism, exact wall collision for hit-scan and projectiles
-- [x] New Light rename and brand mark
+- [x] Nu Light rename and brand mark
 - [x] Real textured operators (Mualani, Kagome, Lucy) with palette variants
 - [x] Space menu stage with the Halo ring
 - [x] Futuristic UI sound palette and space ambience

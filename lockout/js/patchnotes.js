@@ -18,9 +18,9 @@ export const PATCHES = [
       'The weapon panel stretched over the screen in short windows.',
     ]],
   ] },
-  { v: '0.11', date: '2026-09-30', name: 'New Light', blurb: 'The game gets its name, real textured operators and a sleeker sound.', sections: [
+  { v: '0.11', date: '2026-09-30', name: 'Nu Light', blurb: 'The game gets its name, real textured operators and a sleeker sound.', sections: [
     ['NEW', [
-      'Game renamed to NEW LIGHT (the Lockout map keeps its name). New brand mark on splash, title and tab icon.',
+      'Game renamed to NU LIGHT (the Lockout map keeps its name). New brand mark on splash, title and tab icon.',
       'Lucy joins the roster: a textured cyberpunk operator built from a 10-tile UDIM atlas.',
       'Palette variants: one model becomes several operators through hue, saturation and brightness shifts (hue-safe for skin).',
       'The Halo ring now arcs across the menu sky, behind the Earth and moon.',
