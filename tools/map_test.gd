@@ -21,6 +21,10 @@ var fuzz_time := 0.0
 var fuzz_heading := 0.0
 var fuzz_anchor := Vector3.ZERO
 var fuzz_anchor_t := 0.0
+var fuzz_probe := Vector3.ZERO
+var fuzz_prev := Vector3.ZERO
+var fuzz_path := 0.0
+var fuzz_probe_t := 0.0
 var rng := RandomNumberGenerator.new()
 const FUZZ_RUNS := 24
 const FUZZ_SECONDS := 20.0
@@ -126,6 +130,10 @@ func _fuzz_begin() -> void:
 	fuzz_time = 0.0
 	fuzz_anchor = player.position
 	fuzz_anchor_t = 0.0
+	fuzz_probe = player.position
+	fuzz_prev = player.position
+	fuzz_path = 0.0
+	fuzz_probe_t = 0.0
 	Input.action_press("move_forward")
 
 
@@ -134,21 +142,33 @@ func _fuzz_step(delta: float) -> bool:
 	fuzz_anchor_t += delta
 	if fmod(fuzz_time, 1.0) < delta:
 		fuzz_heading = rng.randf() * TAU
+	# a real player who is blocked turns away: re-roll the heading when barely moving
+	fuzz_probe_t += delta
+	if fuzz_probe_t >= 0.5:
+		if player.position.distance_to(fuzz_probe) < 0.6:
+			fuzz_heading = rng.randf() * TAU
+			Input.action_press("jump")
+			jump_release = true
+		fuzz_probe = player.position
+		fuzz_probe_t = 0.0
 	player.rotation.y = fuzz_heading
 	player.rotation_target.y = fuzz_heading
 	if rng.randf() < 0.02:
 		Input.action_press("jump")
 		jump_release = true
 	var p := player.position
+	fuzz_path += p.distance_to(fuzz_prev)
+	fuzz_prev = p
 	var b := map.bounds
 	if p.y < -1.0 or p.x < b.position.x - 0.5 or p.x > b.end.x + 0.5 or p.z < b.position.z - 0.5 or p.z > b.end.z + 0.5 or p.y > 30.0:
 		failures += 1
 		print("FAIL fuzz %d left map at %s (t=%.1f)" % [fuzz_run, p, fuzz_time])
 		player.respawn()
 	if fuzz_anchor_t > 5.0:
-		if p.distance_to(fuzz_anchor) < 1.0:
+		if fuzz_path < 6.0:   # holding forward for 5s should cover ~25m; <6m of path means blocked
 			failures += 1
-			print("FAIL fuzz %d pinned near %s" % [fuzz_run, p])
+			print("FAIL fuzz %d pinned near %s (path %.1fm)" % [fuzz_run, p, fuzz_path])
+		fuzz_path = 0.0
 		fuzz_anchor = p
 		fuzz_anchor_t = 0.0
 	if fuzz_time > FUZZ_SECONDS:

@@ -97,9 +97,9 @@ func _house() -> void:
 	box(Vector3(15.0, H2 + 0.3, -7.0), Vector3(10.4, 1.6, 7.0), OLIVE, true, false)
 	box(Vector3(15.0, H2 + 0.3, 0.0), Vector3(10.4, 1.6, 7.0), OLIVE, true, false)
 	# interior dressing (all jump-height or above, no dead ends)
-	_b(16.0, 19.0, 0, 0.9, -6.4, -5.2, WALL_D)
-	_b(16.0, 19.0, 0, 1.0, 4.4, 6.0, WALL_D)
-	_b(16.2, 18.2, FL2, FL2 + 1.0, 3.6, 5.4, WALL_D)
+	_b(15.4, 17.4, 0, 0.9, -6.6, -5.4, WALL_D)
+	_b(15.4, 17.4, 0, 1.0, 5.0, 6.6, WALL_D)
+	_b(15.4, 17.4, FL2, FL2 + 1.0, 3.6, 5.4, WALL_D)
 
 
 func build() -> void:
