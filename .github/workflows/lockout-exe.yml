@@ -1,0 +1,48 @@
+name: LOCKOUT desktop exe
+
+# Wraps the web game (the `lockout/` folder on the Pages branch) in Electron and builds a portable Windows .exe.
+# Run it from Actions > "LOCKOUT desktop exe" > Run workflow. Download the exe from the run's Artifacts.
+
+on:
+  workflow_dispatch:
+    inputs:
+      game_ref:
+        description: Branch that holds the lockout/ web game
+        default: claude/halo-2-lockout-clone-97czlr
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Wrapper (this branch)
+        uses: actions/checkout@v4
+        with:
+          path: wrap
+
+      - name: Game (web build source)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.game_ref }}
+          path: game
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Assemble
+        shell: pwsh
+        run: |
+          Copy-Item wrap/desktop desk -Recurse
+          Copy-Item game/lockout desk/app -Recurse
+
+      - name: Build portable exe
+        shell: pwsh
+        working-directory: desk
+        run: |
+          npm install --no-audit --no-fund electron@33 electron-builder@25 --save-dev
+          npx electron-builder --win portable --publish never
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LOCKOUT-portable-exe
+          path: desk/dist/*.exe

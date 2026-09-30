@@ -85,3 +85,8 @@ Icons (`scripts/icons.gd`) use the project's ui-*/wp-* icon paths. Third-party o
 - **Windows .exe**: GitHub > Actions > latest "Build game" run > Artifacts > `StarterKitFPS-windows` (a zip containing `StarterKitFPS.exe`, no install needed).
 - **In the browser**: after merging to `main`, set Settings > Pages > Source to "GitHub Actions". The game is then served from your Pages URL.
 - **Run from source**: install Godot 4.6, open `project.godot`, press F5.
+
+## LOCKOUT desktop exe (web game)
+
+The web LOCKOUT game lives in `lockout/` on branch `claude/halo-2-lockout-clone-97czlr` (deployed to GitHub Pages).
+Actions > "LOCKOUT desktop exe" > Run workflow builds `LOCKOUT-portable.exe` (Electron wrapper in `desktop/`) as a downloadable artifact.

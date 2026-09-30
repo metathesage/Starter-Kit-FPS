@@ -1,0 +1,16 @@
+{
+  "name": "lockout-desktop",
+  "version": "1.0.0",
+  "description": "LOCKOUT desktop build (Electron wrapper around the web game)",
+  "main": "main.js",
+  "author": "metathesage",
+  "license": "UNLICENSED",
+  "build": {
+    "appId": "com.metathesage.lockout",
+    "productName": "LOCKOUT",
+    "files": ["main.js", "app/**/*"],
+    "asar": true,
+    "win": { "target": "portable" },
+    "portable": { "artifactName": "LOCKOUT-portable.exe" }
+  }
+}
