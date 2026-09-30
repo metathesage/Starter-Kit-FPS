@@ -20,7 +20,9 @@ const MIME = {
   '.wav': 'audio/wav',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
-  '.svg': 'image/svg+xml'
+  '.webp': 'image/webp',
+  '.svg': 'image/svg+xml',
+  '.txt': 'text/plain; charset=utf-8'
 };
 
 const server = http.createServer((req, res) => {
@@ -31,6 +33,10 @@ const server = http.createServer((req, res) => {
   if (cleanUrl === '/d3' || cleanUrl === '/d3/') {
     filePath = path.join(__dirname, '../d3/index.html');
   } else if (cleanUrl.startsWith('/d3/')) {
+    filePath = path.join(__dirname, '..', cleanUrl);
+  } else if (cleanUrl === '/lockout' || cleanUrl === '/lockout/') {
+    filePath = path.join(__dirname, '../LOCKOUT/index.html');
+  } else if (cleanUrl.startsWith('/lockout/')) {
     filePath = path.join(__dirname, '..', cleanUrl);
   } else {
     filePath = path.join(__dirname, cleanUrl);

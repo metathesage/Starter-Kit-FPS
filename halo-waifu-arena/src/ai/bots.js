@@ -290,6 +290,8 @@ export class BotManager {
 
       // Attach 3D weapon to bot's right hand socket
       const handBone = model.getObjectByName('Weapon_Socket_R') ||
+                       model.getObjectByName('RightHand') ||
+                       model.getObjectByName('def_r_wrist') ||
                        model.getObjectByName('Skl_hand_R_056') ||
                        model.getObjectByName('Bip001 R Hand_074');
       if (handBone) {
@@ -304,6 +306,11 @@ export class BotManager {
           wm.position.set(0, -0.02, -0.06);
           wm.traverse(c => { if (c.isMesh) { c.frustumCulled = false; c.castShadow = true; } });
           handBone.add(wm);
+          if (wgltf.animations && wgltf.animations.length > 0) {
+            bot.weaponMixer = new THREE.AnimationMixer(wm);
+            const idle = wgltf.animations.find(a => a.name.toLowerCase().includes('idle')) || wgltf.animations[0];
+            if (idle) bot.weaponMixer.clipAction(idle).play();
+          }
         }, undefined, () => {});
       }
 
@@ -373,6 +380,9 @@ export class BotManager {
 
       if (bot.mixer) {
         bot.mixer.update(safeDt);
+      }
+      if (bot.weaponMixer) {
+        bot.weaponMixer.update(safeDt);
       }
 
       // Dynamic muzzle flash decay

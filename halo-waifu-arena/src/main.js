@@ -750,7 +750,16 @@ class GameApp {
       shotgun: { scale: 0.65, rot: [0, Math.PI / 2, 0], pos: [0, -0.04, -0.10] },
       launcher: { scale: 0.60, rot: [0, 0, 0], pos: [0, 0.0, 0.0] },
       sword: { scale: 0.65, rot: [-Math.PI / 2.2, 0.25, -0.2], pos: [0, 0, 0] },
-      lament: { scale: 0.65, rot: [0, 0, 0], pos: [0, 0, 0] }
+      lament: { scale: 0.65, rot: [0, 0, 0], pos: [0, 0, 0] },
+      car_brimstone: { scale: 0.70, rot: [0, 0, 0], pos: [0, -0.03, -0.06] },
+      car_allfather: { scale: 0.70, rot: [0, 0, 0], pos: [0, -0.03, -0.06] },
+      car_prism: { scale: 0.70, rot: [0, 0, 0], pos: [0, -0.03, -0.06] },
+      volt: { scale: 0.70, rot: [0, 0, 0], pos: [0, -0.03, -0.06] },
+      g7: { scale: 0.68, rot: [0, 0, 0], pos: [0, -0.04, -0.08] },
+      r99: { scale: 0.70, rot: [0, 0, 0], pos: [0, -0.03, -0.06] },
+      r99_avalanche: { scale: 0.70, rot: [0, 0, 0], pos: [0, -0.03, -0.06] },
+      r99_system_error: { scale: 0.70, rot: [0, 0, 0], pos: [0, -0.03, -0.06] },
+      grand_slam: { scale: 0.65, rot: [0, 0, 0], pos: [0, 0, 0] }
     };
 
     const tpc = thirdPersonConfigs[weaponKey] || {
@@ -775,6 +784,11 @@ class GameApp {
           c.receiveShadow = true;
         }
       });
+      if (gltf.animations && gltf.animations.length > 0) {
+        this.thirdPersonWeaponMixer = new THREE.AnimationMixer(weaponModel);
+        const idle = gltf.animations.find(a => a.name.toLowerCase().includes('idle')) || gltf.animations[0];
+        if (idle) this.thirdPersonWeaponMixer.clipAction(idle).play();
+      }
       this.heroineWeaponSocket.add(weaponModel);
     }, undefined, () => {});
   }
@@ -1264,9 +1278,10 @@ class GameApp {
       if (ev.type === 'fire') {
         const def = this.weapons.def;
         this.viewmodel.triggerFlash();
+        this.viewmodel.playAnimation('Fire');
 
         if (def.isMelee) {
-          this.audio.playMelee(def.model.includes('lament'));
+          this.audio.playMelee(def.model.includes('lament') || def.model.includes('grand_slam'));
         } else {
           this.audio.playGunshot(def.sound || 'ace', weaponCmd.aim);
         }
@@ -1279,9 +1294,18 @@ class GameApp {
         this.hud.updateWeapon(def, this.weapons.ammo, this.weapons.slot.reserve, this.weapons.current);
       } else if (ev.type === 'reloadStart') {
         this.audio.playReload();
+        this.viewmodel.playAnimation('Reload');
       } else if (ev.type === 'reloadEnd') {
+        this.viewmodel.playAnimation('Idle', true);
         this.hud.updateWeapon(this.weapons.def, this.weapons.ammo, this.weapons.slot.reserve, this.weapons.current);
+      } else if (ev.type === 'equip') {
+        this.viewmodel.playAnimation('Idle', true);
       }
+    }
+
+    // Inspect weapon animation
+    if (this.input?.pressed?.inspect) {
+      this.viewmodel.playAnimation('Inspect');
     }
 
     // 5. Update Heroine Animation Blend (Standby / Step)
@@ -1297,6 +1321,10 @@ class GameApp {
           this.heroineActions.idle.reset().fadeIn(0.18).play();
         }
       }
+    }
+
+    if (this.thirdPersonWeaponMixer) {
+      this.thirdPersonWeaponMixer.update(dt);
     }
 
     // 5. Update Viewmodel animations (sway, bob, kickback)

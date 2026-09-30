@@ -91,7 +91,7 @@ export class Viewmodel {
     const group = new THREE.Group();
     group.visible = false;
     this.root.add(group);
-    this.weaponGroups[key] = { group, ready: false, def };
+    this.weaponGroups[key] = { group, ready: false, def, mixer: null, actions: {}, currentAction: null };
 
     const file = def.model.endsWith('.glb') ? def.model : `${def.model}.glb`;
     const path = `./assets/weapons/${file}`;
@@ -121,6 +121,27 @@ export class Viewmodel {
           }
         });
 
+        // Initialize AnimationMixer if model contains animation clips
+        if (gltf.animations && gltf.animations.length > 0) {
+          const mixer = new THREE.AnimationMixer(model);
+          const actions = {};
+          for (const clip of gltf.animations) {
+            const action = mixer.clipAction(clip);
+            actions[clip.name] = action;
+            actions[clip.name.toLowerCase()] = action;
+          }
+          this.weaponGroups[key].mixer = mixer;
+          this.weaponGroups[key].actions = actions;
+
+          // Default to looping Idle
+          const idleAction = actions['Idle'] || actions['idle'] || actions['Idle_Loop'];
+          if (idleAction) {
+            idleAction.setLoop(THREE.LoopRepeat);
+            idleAction.play();
+            this.weaponGroups[key].currentAction = idleAction;
+          }
+        }
+
         group.add(model);
         this.weaponGroups[key].ready = true;
         if (this.activeKey === key) {
@@ -142,7 +163,36 @@ export class Viewmodel {
       this.loadWeapon(key, def);
     }
     if (this.weaponGroups[key]) {
-      this.weaponGroups[key].group.visible = true;
+      const entry = this.weaponGroups[key];
+      entry.group.visible = true;
+      if (entry.actions) {
+        const idle = entry.actions['Idle'] || entry.actions['idle'] || entry.actions['Idle_Loop'];
+        if (idle && !idle.isRunning()) {
+          idle.reset().setLoop(THREE.LoopRepeat).play();
+        }
+      }
+    }
+  }
+
+  playAnimation(name, loop = false, timeScale = 1.0) {
+    if (!this.activeKey || !this.weaponGroups[this.activeKey]) return;
+    const entry = this.weaponGroups[this.activeKey];
+    if (!entry.mixer || !entry.actions) return;
+
+    const action = entry.actions[name] || entry.actions[name.toLowerCase()];
+    if (!action) return;
+
+    if (!loop) {
+      action.reset();
+      action.setLoop(THREE.LoopOnce);
+      action.clampWhenFinished = false;
+      action.timeScale = timeScale;
+      action.play();
+    } else {
+      action.reset();
+      action.setLoop(THREE.LoopRepeat);
+      action.timeScale = timeScale;
+      action.play();
     }
   }
 
@@ -160,6 +210,11 @@ export class Viewmodel {
     const entry = this.weaponGroups[this.activeKey];
     const def = entry.def;
     const group = entry.group;
+
+    // Advance weapon skeletal / model animations
+    if (entry.mixer) {
+      entry.mixer.update(dt);
+    }
 
     // Update muzzle flash fade
     if (this.flashTimer > 0) {

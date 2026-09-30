@@ -146,6 +146,7 @@ export class Input {
     edge('sprint', k.has('ShiftLeft') || k.has('ShiftRight') || pad.leftStickClick);
     edge('reload', k.has('KeyR') || pad.x);
     edge('melee', k.has('KeyV') || pad.y);
+    edge('inspect', k.has('KeyT') || k.has('KeyI'));
     edge('scoreboard', k.has('Tab') || pad.select);
     edge('pause', k.has('Escape') || pad.start);
     edge('nextWeapon', pad.rightBumper);
